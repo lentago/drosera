@@ -1,0 +1,138 @@
+// Alloy collector for the homelab.
+//
+// Replaces the self-hosted Loki + Prometheus + blackbox-exporter trio. One
+// container running on the same Proxmox LXC that used to host the docker
+// compose stack:
+//   - Listens on :3100 for Loki push (Promtail on the Firewalla keeps its
+//     existing endpoint URL, just the Loki container behind it changes).
+//   - Native blackbox prober replaces blackbox-exporter (ICMP + HTTP_2xx).
+//   - Scrapes node_exporter on pve/pve2 and Home Assistant's /api/prometheus.
+//   - Forwards everything to Grafana Cloud Mimir / Loki via remote_write.
+//
+// Secrets are read from environment variables loaded by docker-compose from
+// `.envrc` (gitignored). See `../.envrc.example` for the variable list.
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ----------------------------------------------------------------------------
+// Logs: receive from Promtail (Firewalla) → forward to Grafana Cloud Loki
+// ----------------------------------------------------------------------------
+
+loki.source.api "firewalla" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 3100
+  }
+
+  // Don't add cluster labels here — preserve whatever Promtail sends so the
+  // existing `log_source=zeek_dns|zeek_conn|firewalla_acl` queries keep working.
+  forward_to = [loki.write.cloud.receiver]
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_LOGS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_LOGS_USER")
+      password = sys.env("GRAFANA_CLOUD_LOGS_TOKEN")
+    }
+  }
+  external_labels = {
+    cluster = "homelab",
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Metrics: native blackbox probes + node_exporter + Home Assistant
+// ----------------------------------------------------------------------------
+
+prometheus.exporter.blackbox "default" {
+  config_file = "/etc/alloy/blackbox.yml"
+
+  target {
+    name    = "firewalla"
+    address = "192.168.139.1"
+    module  = "icmp"
+  }
+  target {
+    name    = "ap-office"
+    address = "192.168.139.86"
+    module  = "icmp"
+  }
+  target {
+    name    = "pve"
+    address = "192.168.139.8"
+    module  = "icmp"
+  }
+  target {
+    name    = "pve2"
+    address = "192.168.139.7"
+    module  = "icmp"
+  }
+  target {
+    name    = "pluto"
+    address = "192.168.139.203"
+    module  = "icmp"
+  }
+  target {
+    name    = "homeassistant-icmp"
+    address = "192.168.139.172"
+    module  = "icmp"
+  }
+  target {
+    name    = "homeassistant-http"
+    address = "http://192.168.139.172:8123"
+    module  = "http_2xx"
+  }
+}
+
+prometheus.scrape "blackbox" {
+  targets         = prometheus.exporter.blackbox.default.targets
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.scrape "node" {
+  targets = [
+    { __address__ = "192.168.139.8:9100", instance = "pve" },
+    { __address__ = "192.168.139.7:9100", instance = "pve2" },
+  ]
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+  scrape_interval = "30s"
+  job_name        = "node"
+}
+
+local.file "ha_token" {
+  filename  = "/etc/alloy/ha_token"
+  is_secret = true
+}
+
+prometheus.scrape "homeassistant" {
+  targets = [
+    {
+      __address__      = "192.168.139.172:8123",
+      __metrics_path__ = "/api/prometheus",
+      instance         = "homeassistant",
+    },
+  ]
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+  scrape_interval = "60s"
+  job_name        = "homeassistant"
+  bearer_token    = local.file.ha_token.content
+}
+
+prometheus.remote_write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_METRICS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_METRICS_USER")
+      password = sys.env("GRAFANA_CLOUD_METRICS_TOKEN")
+    }
+  }
+  external_labels = {
+    cluster = "homelab",
+  }
+}

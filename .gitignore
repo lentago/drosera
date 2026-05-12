@@ -1,8 +1,23 @@
 .env
+.envrc
+.direnv/
 grafana-data/
 loki-data/
 prometheus/ha_token
+alloy/ha_token
 prometheus-data/
 *.swp
 *~
 .DS_Store
+
+# Terraform — local state strategy (state file backed up to NAS manually)
+terraform/.terraform/
+terraform/.bootstrap/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfstate.backup
+terraform/crash.log
+terraform/crash.*.log
+terraform/.terraform.tfstate.lock.info
+terraform/*.tfvars
+!terraform/*.tfvars.example

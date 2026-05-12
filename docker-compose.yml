@@ -1,59 +1,30 @@
 services:
-  loki:
-    image: grafana/loki:3.4.2
-    container_name: loki
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
-      - loki-data:/loki
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+  alloy:
+    image: grafana/alloy:v1.6.1
+    container_name: alloy
     restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana-oss:11.5.2
-    container_name: grafana
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - grafana-data:/var/lib/grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-    restart: unless-stopped
-    depends_on:
-      - loki
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/ha_token:/etc/prometheus/ha_token:ro
-      - prometheus_data:/prometheus
     command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.retention.time=30d
-      - --storage.tsdb.path=/prometheus
-      - --web.enable-lifecycle
-
-  blackbox:
-    image: prom/blackbox-exporter:latest
-    container_name: blackbox
-    restart: unless-stopped
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     ports:
-      - "9115:9115"
+      - "3100:3100"   # Loki push receiver (Promtail on the Firewalla points here)
+      - "12345:12345" # Alloy debug UI (http://<host>:12345)
     volumes:
-      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./alloy/blackbox.yml:/etc/alloy/blackbox.yml:ro
+      - ./alloy/ha_token:/etc/alloy/ha_token:ro
+      - alloy-data:/var/lib/alloy/data
+    environment:
+      GRAFANA_CLOUD_METRICS_URL:   "${GRAFANA_CLOUD_METRICS_URL}"
+      GRAFANA_CLOUD_METRICS_USER:  "${GRAFANA_CLOUD_METRICS_USER}"
+      GRAFANA_CLOUD_METRICS_TOKEN: "${GRAFANA_CLOUD_METRICS_TOKEN}"
+      GRAFANA_CLOUD_LOGS_URL:      "${GRAFANA_CLOUD_LOGS_URL}"
+      GRAFANA_CLOUD_LOGS_USER:     "${GRAFANA_CLOUD_LOGS_USER}"
+      GRAFANA_CLOUD_LOGS_TOKEN:    "${GRAFANA_CLOUD_LOGS_TOKEN}"
     cap_add:
-      - NET_RAW
+      - NET_RAW # required for ICMP probes
 
 volumes:
-  loki-data:
-  grafana-data:
-  prometheus_data:
+  alloy-data:

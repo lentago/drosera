@@ -1,0 +1,111 @@
+name: terraform
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "dashboards/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "dashboards/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+          terraform_wrapper: false
+
+      - name: fmt
+        run: terraform fmt -check -recursive
+
+      - name: init (no backend)
+        run: terraform init -backend=false -input=false
+
+      - name: validate
+        run: terraform validate -no-color
+
+  plan:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: terraform
+    env:
+      GRAFANA_URL:  ${{ secrets.GRAFANA_URL }}
+      GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Grafana Cloud secrets
+        run: |
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_AUTH:-}" ]; then
+            echo "::error::Set repository secrets GRAFANA_URL and GRAFANA_AUTH (see README § CI). They were empty in this run."
+            exit 1
+          fi
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+          terraform_wrapper: false
+
+      - name: init
+        run: terraform init -input=false
+
+      - name: plan
+        id: plan
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          terraform plan -no-color -input=false -lock=false \
+            -out=tfplan 2>&1 | tee plan.txt
+          PLAN_EXIT=${PIPESTATUS[0]}
+          {
+            echo 'plan<<EOF'
+            tail -c 60000 plan.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit "$PLAN_EXIT"
+
+      - name: comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PLAN: ${{ steps.plan.outputs.plan }}
+          OUTCOME: ${{ steps.plan.outcome }}
+        with:
+          script: |
+            const plan = process.env.PLAN || '(no plan output captured)';
+            const outcome = process.env.OUTCOME;
+            const body = [
+              `### terraform plan (${outcome})`,
+              '```',
+              plan,
+              '```',
+            ].join('\n');
+            return github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      - name: Fail if terraform plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

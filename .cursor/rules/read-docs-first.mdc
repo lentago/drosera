@@ -1,0 +1,15 @@
+---
+description: Read repo docs before changing observability stack or asking setup questions
+alwaysApply: true
+---
+
+# Homelab observability — read the docs first
+
+Before editing this repo or asking the user for architecture/credentials details:
+
+1. **[README.md](../../README.md)** — Grafana Cloud + Alloy architecture, Promtail → Alloy → Loki push on `:3100`, env vars (`.envrc`), Terraform apply flow, orphan datasource cleanup, public kiosk, CI secrets.
+2. **[CLAUDE.md](../../CLAUDE.md)** — Conventions only: dashboard UIDs (`firewalla-*`), `log_source` / LogQL patterns, `node_exporter` on bare metal, office-display IPs, testing commands.
+3. **[terraform/README.md](../../terraform/README.md)** — Terraform state (local, not committed), import blocks, new dashboard workflow.
+4. **[CONTRIBUTING.md](../../CONTRIBUTING.md)** — PR scope and where dashboards live (`dashboards/`).
+
+Do not assume the old self-hosted Docker stack (Loki + Prometheus + Grafana in one compose file); it was removed in favor of Cloud + a single Alloy service.
