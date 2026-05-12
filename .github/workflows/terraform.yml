@@ -15,6 +15,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   validate:
@@ -42,7 +43,7 @@ jobs:
   plan:
     needs: validate
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' && github.secret_source != 'None' }}
+    if: github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: terraform
@@ -51,6 +52,13 @@ jobs:
       GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify Grafana Cloud secrets
+        run: |
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_AUTH:-}" ]; then
+            echo "::error::Set repository secrets GRAFANA_URL and GRAFANA_AUTH (see README § CI). They were empty in this run."
+            exit 1
+          fi
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -62,15 +70,18 @@ jobs:
 
       - name: plan
         id: plan
+        continue-on-error: true
         run: |
           set -o pipefail
           terraform plan -no-color -input=false -lock=false \
             -out=tfplan 2>&1 | tee plan.txt
+          PLAN_EXIT=${PIPESTATUS[0]}
           {
             echo 'plan<<EOF'
             tail -c 60000 plan.txt
-            echo EOF
+            echo 'EOF'
           } >> "$GITHUB_OUTPUT"
+          exit "$PLAN_EXIT"
 
       - name: comment on PR
         if: always()
@@ -81,9 +92,13 @@ jobs:
             \`\`\`
             ${{ steps.plan.outputs.plan }}
             \`\`\``;
-            github.rest.issues.createComment({
+            return github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.name,
-              body
+              repo: context.repo.repo,
+              body,
             });
+
+      - name: Fail if terraform plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

@@ -149,10 +149,16 @@ stack is exposed.
 
 ### 6. CI
 
-Add repository secrets so the `terraform plan` job runs on PRs:
+Add **repository** secrets (Settings → Secrets and variables → **Actions**,
+not Dependabot) so the `terraform plan` job can authenticate to Grafana:
 
-- `GRAFANA_URL` = `https://pitzilabs.grafana.net`
-- `GRAFANA_AUTH` = the same service account token you put in `.envrc`
+- `GRAFANA_URL` — full stack URL, e.g. `https://pitzilabs.grafana.net` (no
+  trailing slash).
+- `GRAFANA_AUTH` — the same Grafana Cloud **service account token** you use in
+  `.envrc` as `GRAFANA_AUTH` / `GRAFANA_SA_TOKEN`.
+
+Both must be non-empty. If either is missing, the plan job fails immediately
+with a clear log message instead of a misleading Terraform provider error.
 
 GitHub Actions runs `terraform fmt -check`, `validate`, and `plan` on every PR
 that touches `terraform/**` or `dashboards/**`, and posts the plan as a PR
