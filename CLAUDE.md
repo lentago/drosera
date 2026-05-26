@@ -1,4 +1,4 @@
-# CLAUDE.md
+# CLAUDE.md — Homelab Observability
 
 **Read [README.md](README.md) first** for architecture, setup, credentials, Alloy vs Cloud split, and kiosk (public dashboard). This file keeps **conventions and query patterns** that stay true after the Grafana Cloud migration; it does not duplicate the full setup guide.
 
