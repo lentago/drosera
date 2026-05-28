@@ -372,7 +372,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"integrations/blackbox/pluto\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/neptune\"}",
           "legendFormat": "NAS",
           "instant": true
         }
@@ -777,7 +777,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"}) / count(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"})) * 100",
+          "expr": "(sum(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|neptune|homeassistant-icmp)\"}) / count(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|neptune|homeassistant-icmp)\"})) * 100",
           "legendFormat": "Network Health",
           "instant": true
         }
@@ -1233,7 +1233,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_duration_seconds{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"} * 1000",
+          "expr": "probe_duration_seconds{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|neptune|homeassistant-icmp)\"} * 1000",
           "legendFormat": "{{ job }}"
         }
       ],

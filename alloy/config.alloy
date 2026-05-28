@@ -59,7 +59,7 @@ prometheus.exporter.blackbox "default" {
   }
   target {
     name    = "ap-office"
-    address = "192.168.139.86"
+    address = "192.168.139.4"
     module  = "icmp"
   }
   target {
@@ -73,8 +73,8 @@ prometheus.exporter.blackbox "default" {
     module  = "icmp"
   }
   target {
-    name    = "pluto"
-    address = "192.168.139.203"
+    name    = "neptune"
+    address = "192.168.139.6"
     module  = "icmp"
   }
   target {
