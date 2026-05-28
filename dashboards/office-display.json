@@ -48,7 +48,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.1\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/firewalla\"}",
           "legendFormat": "Firewalla",
           "instant": true
         }
@@ -129,7 +129,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.86\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/ap-office\"}",
           "legendFormat": "RT6600ax",
           "instant": true
         }
@@ -210,7 +210,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.8\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/pve\"}",
           "legendFormat": "pve",
           "instant": true
         }
@@ -291,7 +291,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.7\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/pve2\"}",
           "legendFormat": "pve2",
           "instant": true
         }
@@ -372,7 +372,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.203\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/pluto\"}",
           "legendFormat": "NAS",
           "instant": true
         }
@@ -453,7 +453,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"icmp_ping\", instance=\"192.168.139.172\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/homeassistant-icmp\"}",
           "legendFormat": "Home Assistant",
           "instant": true
         }
@@ -520,7 +520,7 @@
     {
       "id": 20,
       "type": "stat",
-      "title": "Grafana",
+      "title": "Alloy",
       "gridPos": {
         "x": 0,
         "y": 2,
@@ -534,8 +534,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"http_probe\", instance=\"http://grafana:3000\"}",
-          "legendFormat": "Grafana",
+          "expr": "probe_success{job=\"integrations/blackbox/alloy\"}",
+          "legendFormat": "Alloy",
           "instant": true
         }
       ],
@@ -601,7 +601,7 @@
     {
       "id": 21,
       "type": "stat",
-      "title": "Loki",
+      "title": "Cloud",
       "gridPos": {
         "x": 4,
         "y": 2,
@@ -615,8 +615,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"http_probe\", instance=\"http://loki:3100/ready\"}",
-          "legendFormat": "Loki",
+          "expr": "probe_success{job=\"integrations/blackbox/grafana-cloud\"}",
+          "legendFormat": "Cloud",
           "instant": true
         }
       ],
@@ -696,7 +696,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_success{job=\"http_probe\", instance=\"http://192.168.139.172:8123\"}",
+          "expr": "probe_success{job=\"integrations/blackbox/homeassistant-http\"}",
           "legendFormat": "Home Assistant",
           "instant": true
         }
@@ -777,7 +777,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(probe_success{job=\"icmp_ping\"}) / count(probe_success{job=\"icmp_ping\"})) * 100",
+          "expr": "(sum(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"}) / count(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"})) * 100",
           "legendFormat": "Network Health",
           "instant": true
         }
@@ -846,7 +846,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"192.168.139.8:9100\",mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve\",mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "pve",
           "instant": true
         }
@@ -914,7 +914,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"192.168.139.7:9100\",mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve2\",mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "pve2",
           "instant": true
         }
@@ -982,7 +982,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"192.168.139.8:9100\"} / node_memory_MemTotal_bytes{instance=\"192.168.139.8:9100\"}) * 100",
+          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve\"} / node_memory_MemTotal_bytes{instance=\"pve\"}) * 100",
           "legendFormat": "pve",
           "instant": true
         }
@@ -1050,7 +1050,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"192.168.139.7:9100\"} / node_memory_MemTotal_bytes{instance=\"192.168.139.7:9100\"}) * 100",
+          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve2\"} / node_memory_MemTotal_bytes{instance=\"pve2\"}) * 100",
           "legendFormat": "pve2",
           "instant": true
         }
@@ -1233,8 +1233,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "probe_duration_seconds{job=\"icmp_ping\"} * 1000",
-          "legendFormat": "{{instance}}"
+          "expr": "probe_duration_seconds{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|pluto|homeassistant-icmp)\"} * 1000",
+          "legendFormat": "{{ job }}"
         }
       ],
       "fieldConfig": {
@@ -1319,7 +1319,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"192.168.139.8:9100\",mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve\",mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "pve"
         }
       ],
@@ -1408,7 +1408,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"192.168.139.7:9100\",mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve2\",mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "pve2"
         }
       ],
@@ -1497,7 +1497,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"192.168.139.8:9100\"} / node_memory_MemTotal_bytes{instance=\"192.168.139.8:9100\"}) * 100",
+          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve\"} / node_memory_MemTotal_bytes{instance=\"pve\"}) * 100",
           "legendFormat": "pve"
         }
       ],
@@ -1586,7 +1586,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"192.168.139.7:9100\"} / node_memory_MemTotal_bytes{instance=\"192.168.139.7:9100\"}) * 100",
+          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve2\"} / node_memory_MemTotal_bytes{instance=\"pve2\"}) * 100",
           "legendFormat": "pve2"
         }
       ],

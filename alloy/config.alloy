@@ -87,6 +87,16 @@ prometheus.exporter.blackbox "default" {
     address = "http://192.168.139.172:8123"
     module  = "http_2xx"
   }
+  target {
+    name    = "alloy"
+    address = "http://localhost:12345/-/ready"
+    module  = "http_2xx"
+  }
+  target {
+    name    = "grafana-cloud"
+    address = "https://pitzilabs.grafana.net/api/health"
+    module  = "http_2xx"
+  }
 }
 
 prometheus.scrape "blackbox" {
