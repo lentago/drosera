@@ -21,6 +21,17 @@ warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 fail()    { echo -e "${RED}[FAIL]${NC}  $*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
+# Privilege escalation — use sudo only if we're not already root.
+# Proxmox host root shells routinely don't have sudo installed at all.
+# ---------------------------------------------------------------------------
+if [[ ${EUID} -eq 0 ]]; then
+  SUDO=""
+else
+  SUDO="sudo"
+  command -v sudo >/dev/null || fail "sudo is required when running as a non-root user, but was not found in PATH."
+fi
+
+# ---------------------------------------------------------------------------
 # Step 1 — Detect architecture
 # ---------------------------------------------------------------------------
 info "Detecting system architecture..."
@@ -69,7 +80,7 @@ if [[ "${SKIP_INSTALL}" == "false" ]]; then
   EXTRACTED_DIR="/tmp/node_exporter-${NODE_EXPORTER_VERSION}.linux-${ARCH}"
 
   info "Installing binary to /usr/local/bin/node_exporter..."
-  sudo install -m 0755 "${EXTRACTED_DIR}/node_exporter" /usr/local/bin/node_exporter \
+  ${SUDO:+sudo }install -m 0755 "${EXTRACTED_DIR}/node_exporter" /usr/local/bin/node_exporter \
     || fail "Failed to install node_exporter binary"
 
   info "Cleaning up temporary files..."
@@ -87,7 +98,7 @@ if id -u node_exporter &>/dev/null; then
   success "System user 'node_exporter' already exists — skipping."
 else
   info "Creating system user 'node_exporter'..."
-  sudo useradd --no-create-home --shell /bin/false --system node_exporter \
+  ${SUDO:+sudo }useradd --no-create-home --shell /bin/false --system node_exporter \
     || fail "Failed to create node_exporter system user"
   success "System user 'node_exporter' created."
 fi
@@ -96,7 +107,7 @@ fi
 # Step 5 — Write systemd unit file
 # ---------------------------------------------------------------------------
 info "Writing /etc/systemd/system/node_exporter.service..."
-sudo tee /etc/systemd/system/node_exporter.service > /dev/null <<'UNIT_EOF'
+${SUDO:+sudo }tee /etc/systemd/system/node_exporter.service > /dev/null <<'UNIT_EOF'
 [Unit]
 Description=Prometheus Node Exporter
 Documentation=https://github.com/prometheus/node_exporter
@@ -123,11 +134,11 @@ success "Systemd unit file written."
 # Step 6 — Enable and start service
 # ---------------------------------------------------------------------------
 info "Reloading systemd daemon..."
-sudo systemctl daemon-reload \
+${SUDO:+sudo }systemctl daemon-reload \
   || fail "systemctl daemon-reload failed"
 
 info "Enabling and starting node_exporter..."
-sudo systemctl enable --now node_exporter \
+${SUDO:+sudo }systemctl enable --now node_exporter \
   || fail "Failed to enable/start node_exporter service"
 
 success "node_exporter service enabled and started."
@@ -136,21 +147,27 @@ success "node_exporter service enabled and started."
 # Step 7 — Verify
 # ---------------------------------------------------------------------------
 info "Waiting for node_exporter to start..."
-sleep 2
-
-if ! sudo systemctl is-active --quiet node_exporter; then
-  fail "node_exporter service is not active. Run 'journalctl -u node_exporter -n 50' to diagnose."
+if ! ${SUDO:+sudo }systemctl is-active --quiet node_exporter; then
+  sleep 1
+  ${SUDO:+sudo }systemctl is-active --quiet node_exporter \
+    || fail "node_exporter service is not active. Run 'journalctl -u node_exporter -n 50' to diagnose."
 fi
 success "Service is active."
 
 info "Checking metrics endpoint..."
-METRICS=$(curl -fsSL http://localhost:9100/metrics 2>/dev/null) \
-  || fail "Could not reach http://localhost:9100/metrics — check the service logs."
+# node_exporter needs a few seconds after start before its collectors emit
+# node_* series. Poll for up to 15s.
+METRICS=""
+for _ in $(seq 1 15); do
+  METRICS=$(curl -fsSL http://localhost:9100/metrics 2>/dev/null || true)
+  echo "${METRICS}" | grep -q "node_cpu_seconds_total" && break
+  sleep 1
+done
 
 if echo "${METRICS}" | grep -q "node_cpu_seconds_total"; then
   success "Metrics endpoint is healthy — node_cpu_seconds_total confirmed."
 else
-  fail "Metrics endpoint reachable but node_cpu_seconds_total not found — unexpected."
+  fail "Metrics endpoint reachable but node_cpu_seconds_total never appeared after 15s — check service logs."
 fi
 
 if echo "${METRICS}" | grep -q "node_zfs_"; then

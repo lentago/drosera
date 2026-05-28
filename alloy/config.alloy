@@ -106,9 +106,14 @@ prometheus.scrape "blackbox" {
 }
 
 prometheus.scrape "node" {
+  // pve3/pve5 are DHCP leases on the Firewalla; pin static reservations there
+  // if the IPs reshuffle. Neptune (.6) is a static reservation.
   targets = [
-    { __address__ = "192.168.139.8:9100", instance = "pve" },
-    { __address__ = "192.168.139.7:9100", instance = "pve2" },
+    { __address__ = "192.168.139.8:9100",   instance = "pve" },
+    { __address__ = "192.168.139.7:9100",   instance = "pve2" },
+    { __address__ = "192.168.139.55:9100",  instance = "pve3" },
+    { __address__ = "192.168.139.230:9100", instance = "pve5" },
+    { __address__ = "192.168.139.6:9100",   instance = "neptune" },
   ]
   forward_to      = [prometheus.remote_write.cloud.receiver]
   scrape_interval = "30s"
