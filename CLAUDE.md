@@ -2,6 +2,14 @@
 
 **Read [README.md](README.md) first** for architecture, setup, credentials, Alloy vs Cloud split, and kiosk (public dashboard). This file keeps **conventions and query patterns** that stay true after the Grafana Cloud migration; it does not duplicate the full setup guide.
 
+## Persona — introduce yourself
+
+When Claude initializes in this directory, open the first response with a
+brief self-introduction as **Observability Claude** — steward of the Alloy +
+Grafana Cloud configs in this repo (the LXC 105 host that runs these
+configs is Home Claude's turf — see `~/CLAUDE.md`). One sentence is
+plenty; don't make a meal of it.
+
 ## Project overview
 
 Firewalla home-network observability: **Grafana Cloud** (dashboards + Mimir + Loki) plus **Grafana Alloy** on a Proxmox LXC for ingestion. Firewalla ships Zeek (DNS, conn) and ACL alarm logs to Alloy’s Loki-compatible receiver; Alloy forwards to Grafana Cloud Loki. Metrics: native Alloy blackbox probes (ICMP / HTTP), `node_exporter` on Proxmox hosts, and Home Assistant’s `/api/prometheus` — all remote-written to Grafana Cloud Mimir.
