@@ -92,9 +92,22 @@ else
   echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
     | ${SUDO} tee /etc/apt/sources.list.d/grafana.list >/dev/null
 
-  info "Updating apt and installing alloy..."
-  ${SUDO} apt-get update -y || warn "apt-get update reported errors (continuing; the Grafana repo may still be usable)."
-  ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y alloy || fail "apt-get install alloy failed."
+  # Update ONLY the Grafana repo list, so an unrelated failing repo (e.g. the
+  # Proxmox enterprise repo returning 401) can't leave alloy unindexed. A real
+  # failure to reach the Grafana repo is fatal.
+  # DPkg::Lock::Timeout makes apt wait for the dpkg lock instead of failing
+  # immediately — Proxmox nodes run background apt/pve tasks that briefly hold it.
+  info "Refreshing the Grafana apt repo index..."
+  ${SUDO} apt-get update \
+    -o Dir::Etc::sourcelist="sources.list.d/grafana.list" \
+    -o Dir::Etc::sourceparts="-" \
+    -o APT::Get::List-Cleanup="0" \
+    -o DPkg::Lock::Timeout="120" \
+    || fail "Failed to refresh the Grafana apt repo index."
+
+  info "Installing alloy..."
+  ${SUDO} DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout="120" alloy \
+    || fail "apt-get install alloy failed."
   success "Alloy installed."
 fi
 
