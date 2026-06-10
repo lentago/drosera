@@ -19,25 +19,21 @@ Everything is declarative:
 
 ## Architecture
 
+Node metrics **push** from each host (host-local Alloy → Mimir, 15s); the
+central Alloy on the LXC handles only blackbox probes, the Home Assistant
+scrape, and the Loki receiver. **Full rendered diagram, paths, and label
+conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
+
 ```
-                                ┌────────────────────────────┐
-Firewalla (Promtail) ──Loki────▶│                            │
-node_exporter (pve, pve2) ◀─────│   Alloy on Proxmox LXC     │
-Home Assistant /api/prometheus ◀│   - native blackbox probes │──┐
-ICMP/HTTP blackbox probes ◀─────│   - Loki push receiver     │  │
-                                └────────────────────────────┘  │
-                                                                │
-                                              remote_write +    │
-                                              loki push (HTTPS) │
-                                                                ▼
-                                          Grafana Cloud (pitzilabs)
-                                          ├── Mimir (metrics)
-                                          ├── Loki  (logs)
-                                          └── Grafana (UI + dashboards)
-                                                  ▲
-                                                  │ kiosk via public share
-                                                  │
-                                          Office Display
+  HOSTS ×6 (neptune, pve, pve2, pve3, pve4, pve5)
+    each: node_exporter:9100 → local Alloy ── remote_write 15s ─┐
+                                                                ├─▶ Grafana Cloud
+  CENTRAL ALLOY (LXC 105)                                       │    (pitzilabs)
+    blackbox ICMP/HTTP ───────────────── remote_write ─────────┤    ├─ Mimir (metrics)
+    Home Assistant /api/prometheus → HA scrape → remote_write ──┤    ├─ Loki  (logs)
+    Firewalla Promtail → Loki receiver :3100 ── loki push ──────┘    └─ Grafana
+                                                                          │
+                                                  public share ──▶ Office Display
 ```
 
 ## Repo layout
