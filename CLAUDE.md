@@ -51,6 +51,15 @@ scripts/inventory-cloud.sh  # optional snapshot of Cloud API (needs GRAFANA_* en
 
 Runs as **systemd on Proxmox hosts**, not in Docker (`/proc`, `/sys`, ZFS). Deploy with `scripts/deploy-node-exporter.sh`. Alloy scrapes `192.168.139.8:9100` and `192.168.139.7:9100` by default — update [`alloy/config.alloy`](alloy/config.alloy) if your IPs differ.
 
+## Collection model: central pull vs. host-local push
+
+Two ways node_exporter metrics reach Mimir, both with identical labels (`job="node"`, `instance="<host>"`) so dashboards don't care which is used:
+
+- **Central pull** — the LXC 105 Alloy scrapes the host's `:9100` (a target in `prometheus.scrape "node"`).
+- **Host-local push** (the standardized model) — the host runs its own Alloy that scrapes `localhost:9100` and `remote_write`s at 15s. Deploy with `scripts/deploy-alloy.sh <instance>`; the host config is embedded in that script and secrets live in a `0600 /etc/default/alloy` (never git).
+
+**Never both for one host** — that double-counts series. Moving a host to push ⇒ delete it from the central `prometheus.scrape "node"` block. Rollout target: neptune + all five Proxmox nodes on push; HAOS stays on the central HA `/api/prometheus` scrape (locked appliance, no system Alloy). neptune currently has a tighter 15s `node_neptune` central block as an interim step until its push agent lands.
+
 ## Metrics / probes (Alloy)
 
 Blackbox targets and HA scrape mirror the old Prometheus jobs: ICMP to key LAN IPs, HTTP to Home Assistant, bearer token from `alloy/ha_token`. Probe list lives in [`alloy/config.alloy`](alloy/config.alloy) (`prometheus.exporter.blackbox` targets + `prometheus.scrape` blocks).

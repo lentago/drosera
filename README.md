@@ -60,7 +60,8 @@ terraform/                     # manages Cloud-side resources
   *.tf
 scripts/
   inventory-cloud.sh           # snapshot current state of pitzilabs.grafana.net
-  deploy-node-exporter.sh      # install node_exporter on Proxmox hosts
+  deploy-node-exporter.sh      # install node_exporter on a host
+  deploy-alloy.sh              # install a host-local Alloy push agent (15s remote_write)
 .github/workflows/
   terraform.yml                # fmt/validate/plan on PR
 ```
@@ -190,10 +191,38 @@ hot-reloads on file change). No service restart needed.
 
 ### node_exporter
 
-Bare-metal node_exporter on Proxmox hosts is unchanged. Run
-`scripts/deploy-node-exporter.sh` against any new Proxmox host you add and
-update the `prometheus.scrape "node"` target list in
-[`alloy/config.alloy`](alloy/config.alloy).
+Bare-metal node_exporter on each host is the metric source. Run
+`scripts/deploy-node-exporter.sh` against any new host you add. How those
+metrics reach Grafana Cloud depends on the collection model below.
+
+### Collection models: central pull vs. host-local push
+
+There are two ways a host's node_exporter metrics get to Mimir, and the repo
+supports both side by side with identical labels (`job="node"`,
+`instance="<host>"`), so dashboards never care which is in use:
+
+- **Central pull (default/legacy):** the Alloy on LXC 105 scrapes the host's
+  `:9100` over the LAN. Add the host to the `prometheus.scrape "node"` target
+  list in [`alloy/config.alloy`](alloy/config.alloy).
+- **Host-local push (standardized):** the host runs its own Alloy that scrapes
+  `localhost:9100` and `remote_write`s to Mimir at 15s. Tighter cadence,
+  buffers across network blips, and each host owns its own shipping. Deploy
+  with [`scripts/deploy-alloy.sh`](scripts/deploy-alloy.sh):
+
+  ```bash
+  source .envrc                     # exports GRAFANA_CLOUD_METRICS_*
+  # on the target host (root, or via sudo):
+  ./deploy-alloy.sh <instance-label>   # e.g. neptune, pve, pve3
+  ```
+
+  The script installs Alloy from the Grafana apt repo, writes
+  `/etc/alloy/config.alloy` (canonical config embedded in the script) and a
+  `0600 /etc/default/alloy` holding the push token, then enables the service.
+
+**Don't run both for the same host** — that double-counts series. When you move
+a host to push, delete it from the central `prometheus.scrape "node"` block.
+The rollout target is neptune + all five Proxmox nodes on push; HAOS stays on
+the central HA `/api/prometheus` scrape (it can't run a system Alloy).
 
 ## Why this layout
 
