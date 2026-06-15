@@ -39,6 +39,10 @@ locals {
       uid  = "firewalla-neptune-nas"
       file = "neptune-nas.json"
     }
+    claude_runner_fleet = {
+      uid  = "claude-runner-fleet"
+      file = "claude-runner-fleet.json"
+    }
   }
 
   # Read each dashboard JSON file and rewrite datasource UIDs in one pass.
