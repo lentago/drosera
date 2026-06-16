@@ -245,6 +245,21 @@ Check current usage with the `grafanacloud-usage` datasource:
 ~1.3k series), watch the headroom — trim more (e.g. node_exporter discard/flush
 families) or the rollout will hit `err-mimir-max-active-series`.
 
+### Check Loki label health
+
+`scripts/check-loki-labels.sh` queries Loki for active `log_source` values over
+the last 24h and diffs against the expected set (`zeek_dns`, `zeek_conn`,
+`zeek_ssl`, `firewalla_acl`).  Run it manually as a sanity check, or wire it to
+a cron / GitHub Actions schedule to alert on silent log streams:
+
+```bash
+source .envrc
+./scripts/check-loki-labels.sh
+```
+
+Exits 0 when all four values are present; exits 1 and prints the missing names to
+stderr otherwise.
+
 ## Why this layout
 
 The original incarnation of this repo ran Loki, Prometheus, Grafana, and
