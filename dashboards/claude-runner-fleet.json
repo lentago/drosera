@@ -1,7 +1,7 @@
 {
   "uid": "claude-runner-fleet",
   "title": "Claude Runner Fleet",
-  "description": "Claude Runner Fleet observability: per-job cost, turns, and runtime plus open agent PRs for the agent-runner fleet, sourced from Loki job_complete events.",
+  "description": "Claude Runner Fleet observability: per-job cost, turns, and runtime from Loki job_complete events, plus a live open-PR review queue pulled from the GitHub API via the Infinity datasource.",
   "tags": [
     "claude-runner",
     "homelab"
@@ -395,8 +395,9 @@
     },
     {
       "id": 9,
-      "type": "logs",
+      "type": "table",
       "title": "Open agent PRs (awaiting local review)",
+      "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by pitzilabs-claude-runner[bot] across the PitziLabs org, oldest first. Reflects real state — merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "h": 7,
         "w": 24,
@@ -404,23 +405,148 @@
         "y": 20
       },
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "infinity"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": ".*/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PR"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Title"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open PR on GitHub",
+                    "url": "${__data.fields.url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Opened"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "url"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "sortOrder": "Descending"
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "infinity"
           },
-          "queryType": "range",
-          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | pr_url!=\"\" | line_format \"{{.project}}  ${{.cost_usd}}  {{.num_turns}}turns  {{.pr_url}}\""
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "https://api.github.com/search/issues?q=is:pr+is:open+org:PitziLabs+author:app/pitzilabs-claude-runner&sort=created&order=asc&per_page=100",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "repository_url",
+              "text": "Repo",
+              "type": "string"
+            },
+            {
+              "selector": "number",
+              "text": "PR",
+              "type": "number"
+            },
+            {
+              "selector": "title",
+              "text": "Title",
+              "type": "string"
+            },
+            {
+              "selector": "created_at",
+              "text": "Opened",
+              "type": "timestamp"
+            },
+            {
+              "selector": "html_url",
+              "text": "url",
+              "type": "string"
+            }
+          ]
         }
       ]
     }

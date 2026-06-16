@@ -9,9 +9,14 @@ locals {
   # To verify the UIDs on a live stack:
   #   curl -s -H "Authorization: Bearer $GRAFANA_AUTH" $GRAFANA_URL/api/datasources \
   #     | jq '.[] | {uid, name}'
+  # infinity has no stack-name prefix on Cloud (uid is "grafanacloud-infinity"),
+  # but we keep the JSON portable with a bare "infinity" placeholder and rewrite
+  # it here, mirroring loki/prometheus. Used by the claude-runner-fleet dashboard's
+  # live open-PR panel (GitHub Search API).
   datasource_uid_rewrites = {
     "loki"       = "grafanacloud-pitzilabs-logs"
     "prometheus" = "grafanacloud-pitzilabs-prom"
+    "infinity"   = "grafanacloud-infinity"
   }
 
   firewalla_dashboards = {
@@ -52,12 +57,16 @@ locals {
     for k, d in local.firewalla_dashboards :
     k => replace(
       replace(
-        file("${local.dashboards_dir}/${d.file}"),
-        "/\"uid\":\\s*\"loki\"/",
-        "\"uid\": \"${local.datasource_uid_rewrites["loki"]}\""
+        replace(
+          file("${local.dashboards_dir}/${d.file}"),
+          "/\"uid\":\\s*\"loki\"/",
+          "\"uid\": \"${local.datasource_uid_rewrites["loki"]}\""
+        ),
+        "/\"uid\":\\s*\"prometheus\"/",
+        "\"uid\": \"${local.datasource_uid_rewrites["prometheus"]}\""
       ),
-      "/\"uid\":\\s*\"prometheus\"/",
-      "\"uid\": \"${local.datasource_uid_rewrites["prometheus"]}\""
+      "/\"uid\":\\s*\"infinity\"/",
+      "\"uid\": \"${local.datasource_uid_rewrites["infinity"]}\""
     )
   }
 }
