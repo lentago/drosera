@@ -397,7 +397,7 @@
       "id": 10,
       "type": "timeseries",
       "title": "Runners underway",
-      "description": "Per-worker busy signal from the bullpen run-job heartbeat (event=\"job_running\", pushed to Loki every ~30s while a job is in flight). A band at 1 means that worker was actively running a job; gaps are idle. Empty until the heartbeat ships from the workers and a job runs.",
+      "description": "Per-worker busy signal from the bullpen run-job heartbeat (event=\"job_running\", pushed to Loki every ~30s while a job is in flight). Stacked: each running worker contributes 1, so the band height is the number of runners underway at once and each colored layer is one worker. Gaps (height 0) are idle. Empty until the heartbeat ships from the workers and a job runs.",
       "gridPos": {
         "h": 6,
         "w": 24,
@@ -412,16 +412,19 @@
         "defaults": {
           "unit": "short",
           "min": 0,
-          "max": 1,
           "decimals": 0,
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "stepAfter",
             "lineWidth": 2,
-            "fillOpacity": 40,
+            "fillOpacity": 60,
             "spanNulls": false,
             "showPoints": "auto",
-            "pointSize": 5
+            "pointSize": 5,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
           }
         }
       },
