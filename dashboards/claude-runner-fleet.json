@@ -54,7 +54,7 @@
       "title": "Jobs (range)",
       "gridPos": {
         "x": 0,
-        "y": 6,
+        "y": 12,
         "w": 6,
         "h": 4
       },
@@ -97,7 +97,7 @@
       "title": "Spend (range)",
       "gridPos": {
         "x": 6,
-        "y": 6,
+        "y": 12,
         "w": 6,
         "h": 4
       },
@@ -141,7 +141,7 @@
       "title": "Success rate",
       "gridPos": {
         "x": 12,
-        "y": 6,
+        "y": 12,
         "w": 6,
         "h": 4
       },
@@ -200,7 +200,7 @@
       "title": "PRs opened (range)",
       "gridPos": {
         "x": 18,
-        "y": 6,
+        "y": 12,
         "w": 6,
         "h": 4
       },
@@ -243,7 +243,7 @@
       "title": "Jobs over time by status",
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 16,
         "w": 24,
         "h": 8
       },
@@ -282,7 +282,7 @@
       "title": "Spend over time by project",
       "gridPos": {
         "x": 0,
-        "y": 18,
+        "y": 24,
         "w": 24,
         "h": 8
       },
@@ -321,7 +321,7 @@
       "title": "Job duration (avg / max)",
       "gridPos": {
         "x": 0,
-        "y": 26,
+        "y": 32,
         "w": 24,
         "h": 8
       },
@@ -368,7 +368,7 @@
       "title": "Recent jobs",
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 40,
         "w": 24,
         "h": 8
       },
@@ -453,13 +453,72 @@
       ]
     },
     {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Local sessions underway",
+      "description": "In-flight signal from the local Claude Code heartbeat hook (event=\"session_running\", pushed to Loki every ~30s while a session is actively working). Stacked by worker: band height is the number of machines with a local session underway; each layer is one worker. Gaps are idle/closed. Empty until a local session runs with the heartbeat hook installed.",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "spanNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "max by (worker) (count_over_time({job=\"claude_local\"} | json | event=\"session_running\" [2m]) > bool 0)",
+          "legendFormat": "{{worker}}"
+        }
+      ]
+    },
+    {
       "id": 9,
       "type": "table",
       "title": "Open agent PRs (awaiting local review)",
       "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by pitzilabs-claude-runner[bot] across the PitziLabs org, oldest first. Reflects real state — merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "x": 0,
-        "y": 42,
+        "y": 48,
         "w": 24,
         "h": 7
       },
@@ -616,7 +675,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 49,
+        "y": 55,
         "w": 24,
         "h": 1
       }
@@ -627,7 +686,7 @@
       "title": "Local sessions (range)",
       "gridPos": {
         "x": 0,
-        "y": 50,
+        "y": 56,
         "w": 6,
         "h": 4
       },
@@ -670,7 +729,7 @@
       "title": "Local spend (range)",
       "gridPos": {
         "x": 6,
-        "y": 50,
+        "y": 56,
         "w": 6,
         "h": 4
       },
@@ -714,7 +773,7 @@
       "title": "Local turns (range)",
       "gridPos": {
         "x": 12,
-        "y": 50,
+        "y": 56,
         "w": 6,
         "h": 4
       },
@@ -757,7 +816,7 @@
       "title": "Output tokens (range)",
       "gridPos": {
         "x": 18,
-        "y": 50,
+        "y": 56,
         "w": 6,
         "h": 4
       },
@@ -800,7 +859,7 @@
       "title": "Local spend over time by project",
       "gridPos": {
         "x": 0,
-        "y": 54,
+        "y": 60,
         "w": 24,
         "h": 8
       },
@@ -839,7 +898,7 @@
       "title": "Local spend over time by worker",
       "gridPos": {
         "x": 0,
-        "y": 62,
+        "y": 68,
         "w": 24,
         "h": 8
       },
@@ -878,7 +937,7 @@
       "title": "Recent local sessions",
       "gridPos": {
         "x": 0,
-        "y": 70,
+        "y": 76,
         "w": 24,
         "h": 8
       },
