@@ -444,7 +444,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "max by (worker) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" [$__auto]) > bool 0)",
+          "expr": "max by (worker) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" [2m]) > bool 0)",
           "legendFormat": "{{worker}}"
         }
       ]
