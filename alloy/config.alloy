@@ -129,7 +129,7 @@ prometheus.scrape "homeassistant" {
   forward_to      = [prometheus.relabel.ha_trim.receiver]
   scrape_interval = "60s"
   job_name        = "homeassistant"
-  bearer_token    = local.file.ha_token.content
+  bearer_token    = string.trim_space(local.file.ha_token.content)
 }
 
 // Drop high-cardinality Home Assistant export noise that no dashboard uses:

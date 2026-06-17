@@ -148,7 +148,7 @@ done
 ```bash
 # On the LXC (or any host with docker), in this repo:
 cp alloy/ha_token.example alloy/ha_token
-$EDITOR alloy/ha_token             # paste your HA long-lived access token
+$EDITOR alloy/ha_token             # paste your HA long-lived access token (no trailing newline — use printf '%s' "<token>" > alloy/ha_token to be safe)
 docker compose up -d
 docker compose logs -f alloy       # confirm "remote_write succeeded" etc.
 open http://<lxc-ip>:12345         # Alloy debug UI

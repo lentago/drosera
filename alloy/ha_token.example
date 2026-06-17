@@ -1,1 +1,4 @@
 REPLACE_ME_with_a_long_lived_HA_access_token
+# The token file must end WITHOUT a trailing newline. Use:
+#   printf '%s' "<token>" > alloy/ha_token
+# or strip one that crept in: truncate -s -1 alloy/ha_token
