@@ -41,6 +41,21 @@
           "text": "All",
           "value": "$__all"
         }
+      },
+      {
+        "name": "worker",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": "label_values({job=\"claude_transcript\"}, worker)",
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
@@ -515,7 +530,7 @@
       "id": 9,
       "type": "table",
       "title": "Open agent PRs (awaiting local review)",
-      "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by pitzilabs-claude-runner[bot] across the PitziLabs org, oldest first. Reflects real state — merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
+      "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by pitzilabs-claude-runner[bot] across the PitziLabs org, oldest first. Reflects real state \u2014 merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "x": 0,
         "y": 48,
@@ -669,13 +684,48 @@
       ]
     },
     {
+      "id": 12,
+      "type": "logs",
+      "title": "Fleet stream of consciousness (live)",
+      "description": "Live, near-real-time reasoning of every running bullpen job \u2014 each assistant turn's narration plus the tools it fired, streamed from the workers' Claude Code session transcripts via Alloy (job=\"claude_transcript\"). Scrubbed for offsite egress: thinking blocks and tool INPUTS are dropped; only text and tool names are shipped. Filter with the project/worker variables. For true websocket tailing, open this query in Explore.",
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "{job=\"claude_transcript\", project=~\"$project\", worker=~\"$worker\"}"
+        }
+      ]
+    },
+    {
       "id": 100,
       "type": "row",
       "title": "Local sessions \u2014 interactive (source=\"local\")",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 55,
+        "y": 65,
         "w": 24,
         "h": 1
       }
@@ -686,7 +736,7 @@
       "title": "Local sessions (range)",
       "gridPos": {
         "x": 0,
-        "y": 56,
+        "y": 66,
         "w": 6,
         "h": 4
       },
@@ -729,7 +779,7 @@
       "title": "Local spend (range)",
       "gridPos": {
         "x": 6,
-        "y": 56,
+        "y": 66,
         "w": 6,
         "h": 4
       },
@@ -773,7 +823,7 @@
       "title": "Local turns (range)",
       "gridPos": {
         "x": 12,
-        "y": 56,
+        "y": 66,
         "w": 6,
         "h": 4
       },
@@ -816,7 +866,7 @@
       "title": "Output tokens (range)",
       "gridPos": {
         "x": 18,
-        "y": 56,
+        "y": 66,
         "w": 6,
         "h": 4
       },
@@ -859,7 +909,7 @@
       "title": "Local spend over time by project",
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 70,
         "w": 24,
         "h": 8
       },
@@ -898,7 +948,7 @@
       "title": "Local spend over time by worker",
       "gridPos": {
         "x": 0,
-        "y": 68,
+        "y": 78,
         "w": 24,
         "h": 8
       },
@@ -937,7 +987,7 @@
       "title": "Recent local sessions",
       "gridPos": {
         "x": 0,
-        "y": 76,
+        "y": 86,
         "w": 24,
         "h": 8
       },
@@ -962,5 +1012,6 @@
         }
       ]
     }
-  ]
+  ],
+  "liveNow": true
 }

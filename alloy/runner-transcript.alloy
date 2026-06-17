@@ -1,0 +1,167 @@
+// ============================================================================
+// Worker-local Alloy agent — live bullpen-fleet reasoning transcript shipper.
+// ============================================================================
+//
+// Runs on each claude-runner worker (claude-runner / claude-runner-2 on pve4),
+// as a DEDICATED `alloy-transcript.service` running as the `claude` user (the
+// session files are 0600 claude:claude, so the stock root/alloy service can't
+// read them). Deploy with scripts/deploy-runner-transcript-alloy.sh — do NOT
+// hand-edit on the host.
+//
+// What it does: tails Claude Code's session transcripts AS THEY ARE WRITTEN
+// during a bullpen run and ships a scrubbed, human-readable "stream of
+// consciousness" to Grafana Cloud Loki, where the Claude Runner Fleet
+// dashboard renders it live next to "Open agent PRs".
+//
+// Why worker-local (see #71): the NAS copy at
+// /srv/jobs/logs/<runid>.transcript.jsonl is written ONCE, at job completion
+// (run-job:165-172) — useless for a LIVE view. The live source is Claude
+// Code's own session file, written incrementally:
+//     ~/.claude/projects/<cwd-as-dashes>/<session-id>.jsonl
+// The runner reuses /home/claude/work/<project> (run-job:14,93), so the path
+// encodes the project, the filename is the session id, and the host is the
+// worker. (runid is NOT on disk — sid is only read post-run, run-job:166 — so a
+// `runid` label is a deliberate future bullpen fast-follow, not part of v1.)
+//
+// Egress posture (deliberate — Chris chose "Cloud Loki, scrubbed" for #71):
+// this ships offsite, so the pipeline is aggressively minimal —
+//   * ONLY `assistant` events. `user` lines are dropped — they carry tool
+//     RESULTS, i.e. raw repo contents / command output.
+//   * `thinking` blocks DROPPED (redacted on opus anyway, and the most
+//     sensitive signal).
+//   * tool calls ship the NAME ONLY — tool INPUTS are omitted, because inputs
+//     are where file contents, paths and secrets live.
+//   * a belt-and-braces secret scrub over the surviving narration text.
+//   * an `older_than` drop so an Alloy restart never back-fills old runs.
+//
+// Secrets (GRAFANA_CLOUD_LOGS_*) and the worker label come from
+// /etc/default/alloy-transcript (0600), never git.
+
+// ----------------------------------------------------------------------------
+// Discover live session transcripts and tail them.
+// ----------------------------------------------------------------------------
+local.file_match "transcripts" {
+	path_targets = [{
+		__path__ = "/home/claude/.claude/projects/-home-claude-work*/*.jsonl",
+	}]
+}
+
+loki.source.file "transcripts" {
+	targets    = local.file_match.transcripts.targets
+	forward_to = [loki.process.transcript.receiver]
+}
+
+// ----------------------------------------------------------------------------
+// Render each assistant turn into one readable, scrubbed log line.
+// ----------------------------------------------------------------------------
+loki.process "transcript" {
+	// -- Keep only `assistant` events. Everything else — especially `user` lines,
+	//    which contain tool RESULTS (repo contents / command output) — is dropped
+	//    before any content is rendered or shipped offsite.
+	stage.json {
+		expressions = {
+			evtype = "type",
+			ts     = "timestamp",
+		}
+	}
+
+	stage.labels {
+		values = {evtype = "evtype"}
+	}
+
+	stage.match {
+		selector = `{evtype!="assistant"}`
+		action   = "drop"
+	}
+
+	// -- Stamp each entry with the transcript line's own time, then drop anything
+	//    older than an hour so a restart can't re-ship already-completed runs.
+	stage.timestamp {
+		source = "ts"
+		format = "RFC3339Nano"
+	}
+
+	stage.drop {
+		older_than          = "1h"
+		drop_counter_reason = "transcript_too_old"
+	}
+
+	// -- Fan the content[] blocks into two joined strings via JMESPath: narration
+	//    text, and tool NAMES only. `thinking` and tool `input` are never selected.
+	stage.json {
+		expressions = {
+			texts = "join(' ', message.content[?type=='text'].text)",
+			tools = "join(', ', message.content[?type=='tool_use'].name)",
+		}
+	}
+
+	stage.template {
+		source   = "rendered"
+		template = "{{ if .texts }}[TEXT] {{ .texts }}{{ end }}{{ if .tools }}{{ if .texts }}  {{ end }}[TOOL] {{ .tools }}{{ end }}"
+	}
+	// -- Drop pure-thinking turns (no text, no tool calls) — they render empty.
+	stage.drop {
+		source              = "rendered"
+		expression          = "^\\s*$"
+		drop_counter_reason = "no_visible_content"
+	}
+
+	stage.output {
+		source = "rendered"
+	}
+	// -- Belt-and-braces secret scrub over the surviving narration line.
+	stage.replace {
+		expression = "(?i)(bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)([\"'\\s:=]+)\\S+"
+		replace    = "${1}${2}***REDACTED***"
+	}
+
+	// -- Labels: project (from the cwd-as-dashes dir), session_id (filename),
+	//    worker (this host, from env), job (stream selector). `evtype`/`filename`
+	//    were only needed internally — never ship them as labels.
+	stage.regex {
+		source     = "filename"
+		expression = ".*/projects/-home-claude-work-?(?P<project>[^/]*)/(?P<session_id>[^/]+)\\.jsonl$"
+	}
+
+	stage.template {
+		source   = "project"
+		template = "{{ if .project }}{{ .project }}{{ else }}adhoc{{ end }}"
+	}
+
+	stage.static_labels {
+		values = {
+			job    = "claude_transcript",
+			worker = sys.env("ALLOY_INSTANCE"),
+		}
+	}
+
+	stage.labels {
+		values = {
+			project    = "project",
+			session_id = "session_id",
+		}
+	}
+
+	stage.label_drop {
+		values = ["evtype", "filename"]
+	}
+
+	forward_to = [loki.write.cloud.receiver]
+}
+
+// ----------------------------------------------------------------------------
+// Ship to Grafana Cloud Loki (same stack + creds as the central Alloy).
+// ----------------------------------------------------------------------------
+loki.write "cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_LOGS_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_LOGS_USER")
+			password = sys.env("GRAFANA_CLOUD_LOGS_TOKEN")
+		}
+	}
+	external_labels = {
+		cluster = "homelab",
+	}
+}

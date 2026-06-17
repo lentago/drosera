@@ -251,6 +251,32 @@ a host to push, delete it from the central `prometheus.scrape "node"` block.
 The rollout target is neptune + all five Proxmox nodes on push; HAOS stays on
 the central HA `/api/prometheus` scrape (it can't run a system Alloy).
 
+### Fleet reasoning stream (worker transcripts)
+
+The **Claude Runner Fleet** dashboard has a live *"Fleet stream of
+consciousness"* panel that shows each running bullpen job's reasoning in
+near-real-time (each assistant turn's narration + the tools it fired). The
+source is a **worker-local Alloy agent** on each runner that tails Claude
+Code's session transcript as it is written and ships it to Grafana Cloud Loki
+as `job="claude_transcript"` (labels: `project`, `worker`, `session_id`).
+
+Deploy it per worker with
+[`scripts/deploy-runner-transcript-alloy.sh`](scripts/deploy-runner-transcript-alloy.sh)
+(canonical config: [`alloy/runner-transcript.alloy`](alloy/runner-transcript.alloy)):
+
+```bash
+source .envrc   # exports GRAFANA_CLOUD_LOGS_*
+# on the worker (sudo-capable), from a repo checkout:
+./scripts/deploy-runner-transcript-alloy.sh <worker-label>   # claude-runner, claude-runner-2
+```
+
+It runs as a dedicated `alloy-transcript.service` under the `claude` user (the
+session files are `0600 claude:claude`). **Egress is deliberately scrubbed**
+(see [#71](https://github.com/PitziLabs/homelab-observability/issues/71)): only
+`assistant` text + tool *names* are shipped — `thinking` blocks, tool *inputs*,
+and `user`/tool-result lines (raw repo contents) never leave the LAN. A `runid`
+label is a possible future bullpen-side fast-follow.
+
 ### Series budget / HA export trim
 
 Grafana Cloud free tier caps **active series at 15,000**. Home Assistant's
