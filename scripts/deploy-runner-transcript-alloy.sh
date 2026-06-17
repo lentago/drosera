@@ -20,19 +20,19 @@ set -euo pipefail
 #   GRAFANA_CLOUD_LOGS_USER   Loki username (numeric)
 #   GRAFANA_CLOUD_LOGS_TOKEN  Grafana Cloud push token (logs:write scope)
 #
-# Worker label (arg 1, or $ALLOY_INSTANCE; defaults to `hostname -s`):
-#   the value used for the worker="" label — use the worker's name as the fleet
-#   knows it (claude-runner, claude-runner-2).
+# The worker="" label is derived automatically by Alloy from the container
+# hostname (constants.hostname) — nothing to pass, and it stays correct across
+# `pct clone` (the clone self-labels with its own hostname).
 #
 # Usage — run from a checkout ON the worker, as a sudo-capable user:
 #   source .envrc      # exports GRAFANA_CLOUD_LOGS_*
-#   ./scripts/deploy-runner-transcript-alloy.sh <worker-label>
+#   ./scripts/deploy-runner-transcript-alloy.sh
 #
 # One-liner from a control host (private repo → the worker already has git auth):
 #   ssh claude-runner 'git clone --depth 1 \
 #     https://github.com/PitziLabs/homelab-observability /tmp/ho && cd /tmp/ho && \
 #     sudo env GRAFANA_CLOUD_LOGS_URL=… GRAFANA_CLOUD_LOGS_USER=… \
-#     GRAFANA_CLOUD_LOGS_TOKEN=… ALLOY_INSTANCE=claude-runner \
+#     GRAFANA_CLOUD_LOGS_TOKEN=… \
 #     ./scripts/deploy-runner-transcript-alloy.sh; rm -rf /tmp/ho'
 
 # ---------------------------------------------------------------------------
@@ -49,10 +49,9 @@ if [[ ${EUID} -eq 0 ]]; then SUDO=""; else command -v sudo >/dev/null || fail "R
 RUN_USER="${RUNNER_USER:-claude}"
 id "${RUN_USER}" >/dev/null 2>&1 || fail "User '${RUN_USER}' does not exist on this host — is this a claude-runner worker?"
 
-# Worker label.
-ALLOY_INSTANCE="${ALLOY_INSTANCE:-${1:-$(hostname -s)}}"
-[[ -n "${ALLOY_INSTANCE}" ]] || fail "ALLOY_INSTANCE is empty — pass the worker label as arg 1."
-info "Worker label: ${ALLOY_INSTANCE}"
+# The worker label is derived at runtime from the hostname (constants.hostname
+# in the config) — nothing to set here.
+info "Worker label: $(hostname) (auto, from hostname)"
 
 # Locate the canonical config next to this script (single source of truth).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -118,12 +117,12 @@ ${SUDO} install -m 0644 "${CFG_SRC}" /etc/alloy-transcript/config.alloy
 ${SUDO} install -d -o "${RUN_USER}" -g "${RUN_USER}" -m 0750 /var/lib/alloy-transcript
 
 # ---------------------------------------------------------------------------
-# Secrets + worker label (0600, root:RUN_USER so the service user can read it).
+# Secrets (0640, root:RUN_USER so the service user can read it). The worker
+# label is NOT here — it comes from the hostname at runtime (constants.hostname).
 # ---------------------------------------------------------------------------
 info "Writing /etc/default/alloy-transcript (0640, holds the push token)..."
 ${SUDO} tee /etc/default/alloy-transcript >/dev/null <<ENV_EOF
 # Managed by scripts/deploy-runner-transcript-alloy.sh — do not edit by hand.
-ALLOY_INSTANCE="${ALLOY_INSTANCE}"
 GRAFANA_CLOUD_LOGS_URL="${GRAFANA_CLOUD_LOGS_URL}"
 GRAFANA_CLOUD_LOGS_USER="${GRAFANA_CLOUD_LOGS_USER}"
 GRAFANA_CLOUD_LOGS_TOKEN="${GRAFANA_CLOUD_LOGS_TOKEN}"
@@ -166,5 +165,5 @@ ${SUDO} systemctl restart alloy-transcript.service \
 sleep 2
 ${SUDO} systemctl is-active --quiet alloy-transcript.service \
   || fail "alloy-transcript is not active after restart — check 'journalctl -u alloy-transcript -n 50'."
-success "alloy-transcript.service is running as ${RUN_USER}, shipping job=\"claude_transcript\" worker=\"${ALLOY_INSTANCE}\"."
+success "alloy-transcript.service is running as ${RUN_USER}, shipping job=\"claude_transcript\" worker=\"$(hostname)\"."
 info  "Watch it live: journalctl -u alloy-transcript -f   (or the fleet dashboard's 'Fleet stream of consciousness' panel)"

@@ -267,7 +267,7 @@ Deploy it per worker with
 ```bash
 source .envrc   # exports GRAFANA_CLOUD_LOGS_*
 # on the worker (sudo-capable), from a repo checkout:
-./scripts/deploy-runner-transcript-alloy.sh <worker-label>   # claude-runner, claude-runner-2
+./scripts/deploy-runner-transcript-alloy.sh   # worker label is auto (from hostname)
 ```
 
 It runs as a dedicated `alloy-transcript.service` under the `claude` user (the
