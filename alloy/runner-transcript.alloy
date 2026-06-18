@@ -34,8 +34,11 @@
 //   * a belt-and-braces secret scrub over the surviving narration text.
 //   * an `older_than` drop so an Alloy restart never back-fills old runs.
 //
-// Secrets (GRAFANA_CLOUD_LOGS_*) and the worker label come from
-// /etc/default/alloy-transcript (0600), never git.
+// The `worker` label is `constants.hostname` (the container's hostname) — this
+// matches how the rest of the fleet labels workers (bullpen `cr-emit` uses
+// `$(hostname)`) and is clone-safe: a `pct clone`d worker self-labels with its
+// own new hostname instead of inheriting a baked-in value. Only the secrets
+// (GRAFANA_CLOUD_LOGS_*) come from /etc/default/alloy-transcript (0600, never git).
 
 // ----------------------------------------------------------------------------
 // Discover live session transcripts and tail them.
@@ -131,7 +134,7 @@ loki.process "transcript" {
 	stage.static_labels {
 		values = {
 			job    = "claude_transcript",
-			worker = sys.env("ALLOY_INSTANCE"),
+			worker = constants.hostname,
 		}
 	}
 
