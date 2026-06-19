@@ -119,9 +119,11 @@ terraform plan           # should show: import folder + 5 dashboards, then updat
 terraform apply
 ```
 
-After `apply`, back up `terraform/terraform.tfstate` to the NAS — it is not
-committed to git (see [terraform/README.md](terraform/README.md) for the
-rationale and recovery procedure).
+State lives in S3 (foundry's `foundry-tfstate-365184644049` bucket, versioned +
+encrypted) — no local-state backup step needed. Day to day you don't run `apply`
+by hand at all: **merging dashboard/terraform changes to `main` auto-applies** via
+the `terraform` workflow. See [terraform/README.md](terraform/README.md) § State and
+§ CI.
 
 The first apply rewrites datasource UIDs in each dashboard from `loki` /
 `prometheus` (the old self-hosted UIDs) to `grafanacloud-pitzilabs-logs` /
@@ -176,19 +178,22 @@ stack is exposed.
 ### 6. CI
 
 Add **repository** secrets (Settings → Secrets and variables → **Actions**,
-not Dependabot) so the `terraform plan` job can authenticate to Grafana:
+not Dependabot) so the `plan` and `apply` jobs can authenticate to Grafana:
 
 - `GRAFANA_URL` — full stack URL, e.g. `https://pitzilabs.grafana.net` (no
   trailing slash).
 - `GRAFANA_AUTH` — the same Grafana Cloud **service account token** you use in
   `.envrc` as `GRAFANA_AUTH` / `GRAFANA_SA_TOKEN`.
 
-Both must be non-empty. If either is missing, the plan job fails immediately
-with a clear log message instead of a misleading Terraform provider error.
+Both must be non-empty. If either is missing, the job fails immediately with a
+clear log message instead of a misleading Terraform provider error.
 
-GitHub Actions runs `terraform fmt -check`, `validate`, and `plan` on every PR
-that touches `terraform/**` or `dashboards/**`, and posts the plan as a PR
-comment. Applies stay local.
+AWS (for the S3 state backend) is reached via GitHub **OIDC** — no AWS secrets are
+stored; the jobs assume `homelab-observability-github-actions-terraform` in account
+`365184644049`. The workflow runs `fmt -check` + `validate` + `plan` (posted as a PR
+comment) on every PR touching `terraform/**` or `dashboards/**`, and **`apply
+-auto-approve` on push to `main`** — so merges deploy automatically. See
+[terraform/README.md](terraform/README.md) § CI.
 
 ## Day-to-day
 
@@ -196,15 +201,15 @@ comment. Applies stay local.
 
 1. Edit the JSON file in `dashboards/` (or edit in the Cloud UI and copy the
    exported JSON back into the file).
-2. `cd terraform && terraform plan` → review diff → `terraform apply`.
-3. Back up `terraform.tfstate` to the NAS.
+2. Open a PR — CI posts the `terraform plan` as a comment. **Merging to `main`
+   auto-applies.** (Out-of-band you can still `cd terraform && terraform apply`.)
 
 ### Add a new dashboard
 
 1. Drop a new JSON file in `dashboards/`.
 2. Add an entry to the `firewalla_dashboards` local in
    [`terraform/locals.tf`](terraform/locals.tf).
-3. `terraform apply`.
+3. Open a PR; merging to `main` applies it (or `terraform apply` locally).
 
 ### Add new scrape targets / new log sources
 

@@ -11,11 +11,18 @@ on:
     paths:
       - "terraform/**"
       - "dashboards/**"
+      - ".github/workflows/terraform.yml"
 
 permissions:
   contents: read
   pull-requests: write
   issues: write
+  id-token: write # OIDC → AWS for the S3 state backend (plan + apply jobs)
+
+env:
+  # OIDC role (least-privilege: this repo's S3 state key + the lock table only).
+  AWS_ROLE: arn:aws:iam::365184644049:role/homelab-observability-github-actions-terraform
+  AWS_REGION: us-east-1
 
 jobs:
   validate:
@@ -48,7 +55,7 @@ jobs:
       run:
         working-directory: terraform
     env:
-      GRAFANA_URL:  ${{ secrets.GRAFANA_URL }}
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
     steps:
       - uses: actions/checkout@v4
@@ -56,9 +63,15 @@ jobs:
       - name: Verify Grafana Cloud secrets
         run: |
           if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_AUTH:-}" ]; then
-            echo "::error::Set repository secrets GRAFANA_URL and GRAFANA_AUTH (see README § CI). They were empty in this run."
+            echo "::error::Set repository secrets GRAFANA_URL and GRAFANA_AUTH (see terraform/README.md § CI). They were empty in this run."
             exit 1
           fi
+
+      - name: Configure AWS credentials (OIDC → S3 state)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -109,3 +122,44 @@ jobs:
       - name: Fail if terraform plan failed
         if: steps.plan.outcome == 'failure'
         run: exit 1
+
+  apply:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Serialize applies so two quick merges can't race on the same state.
+    concurrency:
+      group: terraform-apply
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: terraform
+    env:
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Grafana Cloud secrets
+        run: |
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_AUTH:-}" ]; then
+            echo "::error::Set repository secrets GRAFANA_URL and GRAFANA_AUTH (see terraform/README.md § CI). They were empty in this run."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials (OIDC → S3 state)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+          terraform_wrapper: false
+
+      - name: init
+        run: terraform init -input=false
+
+      - name: apply
+        run: terraform apply -auto-approve -no-color -input=false

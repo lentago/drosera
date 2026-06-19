@@ -16,25 +16,48 @@ around. Drift introduced via the Grafana UI gets overwritten on the next `apply`
 
 ## State
 
-Local state, **not** checked into git (see root `.gitignore`). Back up `terraform.tfstate`
-to the NAS after each successful `apply`. If the laptop dies before backup, the state can be
-reconstructed by re-running `terraform import` for each resource — the imports are
-idempotent because every resource has a stable UID.
+Remote state in **S3** ([`backend.tf`](backend.tf)): foundry-platform-demo's state bucket
+`foundry-tfstate-365184644049`, key `homelab-observability/terraform.tfstate`, region
+`us-east-1`, with DynamoDB lock table `foundry-tfstate-lock`. The bucket is versioned +
+encrypted, so the old "back up the local `tfstate` to the NAS" step is gone — S3 is the
+single authoritative store shared by local runs and CI.
+
+Local `terraform` uses your own AWS creds (the `default` profile / `cpitzi-iac` user); CI
+assumes the `homelab-observability-github-actions-terraform` OIDC role, scoped to **only**
+this state key + the lock table — it cannot touch foundry's own state. (History: state was
+laptop-local until 2026-06-19, migrated into S3 to enable apply-on-merge — see CI below.)
 
 ## Prerequisites
 
 - Terraform `>= 1.5` (for `import` blocks)
 - direnv loading `../.envrc` so `GRAFANA_URL` and `GRAFANA_AUTH` are in your shell
 - Service account token in `GRAFANA_AUTH` with **Admin** role on the stack
+- AWS creds in your shell (the `default` profile / `cpitzi-iac` user) with access to the S3
+  state bucket + lock table — `terraform init`/`plan`/`apply` read & write remote state
 
 ## Day-to-day
 
 ```bash
 cd terraform
-terraform init           # one time, or after provider version bumps
+terraform init           # one time, or after provider/backend changes
 terraform plan           # show drift / pending changes
-terraform apply          # apply pending changes
+terraform apply          # apply locally — or just merge to main (see CI below)
 ```
+
+## CI / apply-on-merge
+
+The [`terraform` workflow](../.github/workflows/terraform.yml) runs on every PR and push
+touching `terraform/**` or `dashboards/**`:
+
+- **PR** → `validate` (fmt + validate) and `plan` (posts the diff as a PR comment).
+- **push to `main`** → `validate` then **`apply -auto-approve`** — merging a dashboard
+  change deploys it automatically; no manual `terraform apply` needed.
+
+CI authenticates to Grafana via the `GRAFANA_URL` / `GRAFANA_AUTH` repo secrets, and to AWS
+(for S3 state) via GitHub **OIDC**, assuming
+`arn:aws:iam::365184644049:role/homelab-observability-github-actions-terraform` (least
+privilege: this state key + the lock table only). The `apply` job uses a `terraform-apply`
+concurrency group so two quick merges serialize instead of racing.
 
 ## Adopting a new resource that already exists in Cloud
 

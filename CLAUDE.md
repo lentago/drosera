@@ -88,7 +88,7 @@ The Alloy on the grafana-stack LXC is **gitops-managed** — do NOT hand-edit th
 
 - Validate dashboard JSON: `python3 -m json.tool dashboards/<file>.json > /dev/null`
 - Validate Alloy syntax: `alloy fmt /path/to/config.alloy` (with Alloy binary) or rely on `docker compose` logs after deploy
-- After dashboard edits: `cd terraform && terraform plan && terraform apply` (no Grafana container restart)
+- Deploying dashboard edits: **merging to `main` auto-applies** via the `terraform` workflow's `apply` job (GitHub OIDC → S3 state in foundry's bucket; no Grafana container restart). Out-of-band you can still `cd terraform && terraform plan && terraform apply` locally — same S3 backend. See [`terraform/README.md`](terraform/README.md) § CI.
 
 ## Contributing / PRs
 
