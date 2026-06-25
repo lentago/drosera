@@ -534,8 +534,8 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Local sessions underway",
-      "description": "In-flight signal from the local Claude Code heartbeat hook (event=\"session_running\", pushed to Loki every ~30s while a session is actively working). Stacked by worker: band height is the number of machines with a local session underway; each layer is one worker. Gaps are idle/closed. Empty until a local session runs with the heartbeat hook installed.",
+      "title": "Local sessions live",
+      "description": "Distinct top-level Claude Code sessions active per worker in the last 2 min (event=\"session_running\" heartbeats, ~30s cadence). Subagents roll up into their parent session — each band is one worker, height is how many separate sessions are churning. Gaps are idle/closed. Empty until a local session runs with the heartbeat hook installed.",
       "gridPos": {
         "h": 6,
         "w": 24,
@@ -585,7 +585,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "max by (worker) (count_over_time({job=\"claude_local\"} | json | event=\"session_running\" [2m]) > bool 0)",
+          "expr": "sum by (worker) (\n  max by (worker, session_id) (\n    count_over_time({job=\"claude_local\"} | json | event=\"session_running\" [2m]) > bool 0\n  )\n)",
           "legendFormat": "{{worker}}"
         }
       ]
