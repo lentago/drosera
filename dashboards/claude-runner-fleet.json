@@ -594,7 +594,7 @@
       "id": 9,
       "type": "table",
       "title": "Open agent PRs (awaiting local review)",
-      "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by pitzilabs-claude-runner[bot] across the Lentago Labs org, oldest first. Reflects real state \u2014 merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
+      "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by lentago-claude-runner[bot] across the Lentago Labs org, oldest first. Reflects real state \u2014 merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "x": 0,
         "y": 48,
@@ -712,7 +712,7 @@
           "source": "url",
           "format": "table",
           "parser": "backend",
-          "url": "https://api.github.com/search/issues?q=is:pr+is:open+org:lentago+author:app/pitzilabs-claude-runner&sort=created&order=asc&per_page=100",
+          "url": "https://api.github.com/search/issues?q=is:pr+is:open+org:lentago+author:app/lentago-claude-runner&sort=created&order=asc&per_page=100",
           "url_options": {
             "method": "GET"
           },
