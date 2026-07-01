@@ -1,0 +1,24 @@
+{
+  "_comment": "Per-MTok USD pricing for Claude Code local-session cost estimation. Source: https://platform.claude.com/docs/en/about-claude/pricing (fetched 2026-06-16). Cache rates are DERIVED from base input via the standard, uniform multipliers below — do not hand-edit per-model cache numbers. To update when Anthropic changes prices: edit the `input`/`output` for the affected models (and `fast` for Opus). Unknown models fall back to `_default`.",
+  "multipliers": {
+    "cache_write_5m": 1.25,
+    "cache_write_1h": 2.0,
+    "cache_read": 0.1
+  },
+  "_default": "claude-opus-4-8",
+  "models": {
+    "claude-opus-4-8":   { "input": 5,    "output": 25, "fast": { "input": 10, "output": 50 } },
+    "claude-opus-4-7":   { "input": 5,    "output": 25, "fast": { "input": 30, "output": 150 } },
+    "claude-opus-4-6":   { "input": 5,    "output": 25, "fast": { "input": 30, "output": 150 } },
+    "claude-opus-4-5":   { "input": 5,    "output": 25 },
+    "claude-opus-4-1":   { "input": 15,   "output": 75 },
+    "claude-opus-4-0":   { "input": 15,   "output": 75 },
+    "claude-sonnet-4-6": { "input": 3,    "output": 15 },
+    "claude-sonnet-4-5": { "input": 3,    "output": 15 },
+    "claude-sonnet-4-0": { "input": 3,    "output": 15 },
+    "claude-haiku-4-5":  { "input": 1,    "output": 5 },
+    "claude-haiku-3-5":  { "input": 0.8,  "output": 4 },
+    "claude-fable-5":    { "input": 10,   "output": 50 },
+    "claude-mythos-5":   { "input": 10,   "output": 50 }
+  }
+}

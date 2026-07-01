@@ -37,6 +37,9 @@ dashboards/*.json           # dashboard source of truth (Terraform reads these)
 terraform/*.tf              # Grafana Cloud resources (folder, dashboards, …)
 scripts/deploy-node-exporter.sh
 scripts/inventory-cloud.sh  # optional snapshot of Cloud API (needs GRAFANA_* env)
+claude-cost-export/         # local-session cost exporter + session_running heartbeat
+                            # (feeds the Claude Runner Fleet dashboard; rehomed from
+                            # workstation-bootstrap when that repo was archived)
 ```
 
 ## Key conventions

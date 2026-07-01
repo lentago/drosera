@@ -1,0 +1,15 @@
+[Unit]
+Description=Periodic Claude Code local-session cost export
+Documentation=https://github.com/PitziLabs/workstation-bootstrap/tree/main/claude-cost-export
+
+[Timer]
+# Backstop + off-LAN drainer: catches sessions the SessionEnd hook missed
+# (hard kills) and retries any spool entries that failed to ship while off-LAN.
+OnBootSec=3min
+OnUnitActiveSec=5min
+# Don't all fire at once if several machines share a clock
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

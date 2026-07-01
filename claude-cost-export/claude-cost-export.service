@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude Code local-session cost export (sweep transcripts + ship to Loki)
+Documentation=https://github.com/PitziLabs/workstation-bootstrap/tree/main/claude-cost-export
+After=network-online.target
+
+[Service]
+Type=oneshot
+# __NODE_BIN__ and __INSTALL_DIR__ are substituted by install.sh at install time
+# (systemd --user does not inherit nvm's PATH, so node is referenced absolutely).
+# flock -n serializes against any manual run so concurrent sweeps can't race the
+# emit-once guard (-n = skip this tick rather than queue if one is already running).
+ExecStart=/usr/bin/flock -n __INSTALL_DIR__/.lock __NODE_BIN__ __INSTALL_DIR__/cost-export.mjs all
+Nice=10
+IOSchedulingClass=idle
