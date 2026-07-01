@@ -10,7 +10,7 @@
   "editable": true,
   "graphTooltip": 1,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {
     "from": "now-3h",
@@ -127,12 +127,247 @@
   },
   "panels": [
     {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Offload \u2014 runners underway vs local sessions live",
+      "description": "The offload picture in one view: overlaid (not stacked) so you can watch local interactive sessions wind DOWN as the bullpen fleet winds UP. \"Runners underway\" = distinct busy bullpen workers (job_running heartbeat, 15s window). \"Local sessions live\" = distinct top-level local Claude Code sessions (session_running heartbeat, 2m window). Both are counts of concurrent work; where the orange falls and the blue rises is the handoff.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "spanNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runners underway"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Local sessions live"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "count(max by (worker) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" [15s]) > bool 0)) or vector(0)",
+          "legendFormat": "Runners underway"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "sum(max by (worker, session_id) (count_over_time({job=\"claude_local\"} | json | event=\"session_running\" [2m]) > bool 0)) or vector(0)",
+          "legendFormat": "Local sessions live"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Total spend (range)",
+      "description": "Runner + local combined spend over the dashboard range (job_complete cost_usd from the fleet plus session_complete cost_usd from local sessions).",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "expr": "sum(sum_over_time({job=~\"claude_runner|claude_local\"} | json | event=~\"job_complete|session_complete\" | unwrap cost_usd [$__range])) or vector(0)"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Combined spend over time (runners + local)",
+      "description": "Fleet and local spend stacked in one view \u2014 the stack height is the combined per-bucket spend. Per-project breakdowns for each side remain in their own panels below.",
+      "gridPos": {
+        "x": 6,
+        "y": 12,
+        "w": 18,
+        "h": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 70
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runners"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Local"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "sum(sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | unwrap cost_usd [$__auto])) or vector(0)",
+          "legendFormat": "Runners"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "expr": "sum(sum_over_time({job=\"claude_local\"} | json | event=\"session_complete\" | unwrap cost_usd [$__auto])) or vector(0)",
+          "legendFormat": "Local"
+        }
+      ]
+    },
+    {
       "id": 1,
       "type": "stat",
       "title": "Jobs (range)",
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 18,
         "w": 6,
         "h": 4
       },
@@ -175,7 +410,7 @@
       "title": "Spend (range)",
       "gridPos": {
         "x": 6,
-        "y": 12,
+        "y": 18,
         "w": 6,
         "h": 4
       },
@@ -219,7 +454,7 @@
       "title": "Success rate",
       "gridPos": {
         "x": 12,
-        "y": 12,
+        "y": 18,
         "w": 6,
         "h": 4
       },
@@ -278,7 +513,7 @@
       "title": "PRs opened (range)",
       "gridPos": {
         "x": 18,
-        "y": 12,
+        "y": 18,
         "w": 6,
         "h": 4
       },
@@ -321,7 +556,7 @@
       "title": "Jobs over time by status",
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 22,
         "w": 24,
         "h": 8
       },
@@ -360,7 +595,7 @@
       "title": "Spend over time by project",
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 30,
         "w": 24,
         "h": 8
       },
@@ -399,7 +634,7 @@
       "title": "Job duration (avg / max)",
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 38,
         "w": 24,
         "h": 8
       },
@@ -446,7 +681,7 @@
       "title": "Recent jobs",
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 46,
         "w": 24,
         "h": 8
       },
@@ -472,132 +707,13 @@
       ]
     },
     {
-      "id": 10,
-      "type": "timeseries",
-      "title": "Runners underway",
-      "description": "Concurrent busy workers from the bullpen run-job heartbeat (event=\"job_running\", pushed to Loki every ~10s while a job is in flight). Counts distinct busy workers by worker label over a 15s window, so the line height is the number of workers underway at once (ceiling = number of single-threaded workers). Keying on worker (not runid) avoids over-counting during back-to-back job handoffs on the same worker. Gaps (height 0) are idle. Empty until the heartbeat ships from the workers and a job runs.",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 6
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "decimals": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "stepAfter",
-            "lineWidth": 2,
-            "fillOpacity": 60,
-            "spanNulls": false,
-            "showPoints": "auto",
-            "pointSize": 5
-          },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "queryType": "range",
-          "expr": "count(max by (worker) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" [15s]) > bool 0)) or vector(0)",
-          "legendFormat": "runners underway"
-        }
-      ]
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Local sessions live",
-      "description": "Distinct top-level Claude Code sessions active per worker in the last 2 min (event=\"session_running\" heartbeats, ~30s cadence). Subagents roll up into their parent session — each band is one worker, height is how many separate sessions are churning. Gaps are idle/closed. Empty until a local session runs with the heartbeat hook installed.",
-      "gridPos": {
-        "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 6
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "decimals": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "stepAfter",
-            "lineWidth": 2,
-            "fillOpacity": 60,
-            "spanNulls": false,
-            "showPoints": "auto",
-            "pointSize": 5,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          }
-        }
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "queryType": "range",
-          "expr": "sum by (worker) (\n  max by (worker, session_id) (\n    count_over_time({job=\"claude_local\"} | json | event=\"session_running\" [2m]) > bool 0\n  )\n)",
-          "legendFormat": "{{worker}}"
-        }
-      ]
-    },
-    {
       "id": 9,
       "type": "table",
       "title": "Open agent PRs (awaiting local review)",
       "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by lentago-claude-runner[bot] across the Lentago Labs org, oldest first. Reflects real state \u2014 merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "x": 0,
-        "y": 48,
+        "y": 54,
         "w": 24,
         "h": 7
       },
@@ -751,11 +867,11 @@
       "id": 12,
       "type": "logs",
       "title": "Stream of consciousness \u2014 $worker",
-      "description": "Live, near-real-time reasoning for each bullpen worker \u2014 one pane per worker, repeated horizontally by the $worker variable (maxPerRow: 3). Each assistant turn's narration and tool names are streamed from the workers' Claude Code session transcripts via Alloy (job=\"claude_transcript\"). Scrubbed for offsite egress: thinking blocks and tool INPUTS are dropped; only text and tool names are shipped. An idle worker shows an empty pane. Filter by project with the $project variable. For true websocket tailing, open this query in Explore.",
+      "description": "Live, near-real-time reasoning for each bullpen worker \u2014 one full-width pane per worker (repeated by the $worker variable). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 55,
-        "w": 8,
+        "y": 61,
+        "w": 24,
         "h": 10
       },
       "datasource": {
@@ -778,12 +894,12 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "{job=\"claude_transcript\", worker=\"$worker\", project=~\"$project\"}"
+          "expr": "{job=\"claude_transcript\", worker=\"$worker\", project=~\"$project\"} !~ `^\\[TOOL\\]` | line_format `{{ regexReplaceAll \"\\\\s*\\\\[TOOL\\\\].*\" __line__ \"\" }}`"
         }
       ],
       "repeat": "worker",
       "repeatDirection": "h",
-      "maxPerRow": 3
+      "maxPerRow": 1
     },
     {
       "id": 100,
@@ -792,7 +908,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 65,
+        "y": 71,
         "w": 24,
         "h": 1
       }
@@ -803,7 +919,7 @@
       "title": "Local sessions (range)",
       "gridPos": {
         "x": 0,
-        "y": 66,
+        "y": 72,
         "w": 6,
         "h": 4
       },
@@ -846,7 +962,7 @@
       "title": "Local spend (range)",
       "gridPos": {
         "x": 6,
-        "y": 66,
+        "y": 72,
         "w": 6,
         "h": 4
       },
@@ -890,7 +1006,7 @@
       "title": "Local turns (range)",
       "gridPos": {
         "x": 12,
-        "y": 66,
+        "y": 72,
         "w": 6,
         "h": 4
       },
@@ -933,7 +1049,7 @@
       "title": "Output tokens (range)",
       "gridPos": {
         "x": 18,
-        "y": 66,
+        "y": 72,
         "w": 6,
         "h": 4
       },
@@ -976,7 +1092,7 @@
       "title": "Local spend over time by project",
       "gridPos": {
         "x": 0,
-        "y": 70,
+        "y": 76,
         "w": 24,
         "h": 8
       },
@@ -1015,7 +1131,7 @@
       "title": "Local spend over time by worker",
       "gridPos": {
         "x": 0,
-        "y": 78,
+        "y": 84,
         "w": 24,
         "h": 8
       },
@@ -1054,7 +1170,7 @@
       "title": "Recent local sessions",
       "gridPos": {
         "x": 0,
-        "y": 86,
+        "y": 92,
         "w": 24,
         "h": 8
       },
