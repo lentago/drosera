@@ -282,6 +282,57 @@ session files are `0600 claude:claude`). **Egress is deliberately scrubbed**
 and `user`/tool-result lines (raw repo contents) never leave the LAN. A `runid`
 label is a possible future bullpen-side fast-follow.
 
+### Device inventory feed (name ↔ IP resolution)
+
+Dashboards that show raw LAN source IPs (`id_orig_h`) resolve them to device
+names by joining against a **device-inventory log stream**,
+`log_source="device_inventory"`. Grafana Cloud runs queries server-side and
+cannot reach the LAN, and LAN topology must not be published to GitHub — so the
+name↔IP mapping travels the same trusted Alloy → Cloud Loki channel the Zeek
+logs already use (see [#113](https://github.com/lentago/homelab-observability/issues/113)).
+
+The publisher
+([`scripts/device-inventory-publisher/publish-device-inventory.sh`](scripts/device-inventory-publisher/publish-device-inventory.sh))
+runs **on the Firewalla box** (pi user, **hourly** via cron). It reads the box's
+own device inventory from local redis (`host:mac:*` hashes — no new
+credentials) and pushes one record per (device, IP) pair to the central Alloy
+Loki receiver (`http://<ALLOY_HOST>:3100/loki/api/v1/push`) — the same endpoint
+the box already ships Zeek logs to.
+
+**Stream schema** — one Loki stream per (device, IP):
+
+| Field | Value |
+|---|---|
+| label `log_source` | `device_inventory` |
+| label `dev` | `<name>\|<ip>` — **load-bearing** (see below) |
+| line body (JSON) | `{"name":"…","ip":"…","mac":"…","family":"4"\|"6","source":"firewalla-redis"}` |
+
+Display name is the redis `name` field, else `bname`, else the MAC. Both the
+IPv4 (`ipv4Addr`) and every IPv6 (`ipv6Addr` array) address get their own row.
+
+**The `dev` label contract:** the `<name>|<ip>` shape lets a dashboard build a
+template variable with `label_values({log_source="device_inventory"}, dev)` and
+regex `/(?<text>[^|]+)\|(?<value>.+)/` — the dropdown shows device *names* while
+the variable value stays the raw IP that `id_orig_h=~"$device_ip"` needs. Any
+`|` in a device name is stripped before composing the label so the split stays
+unambiguous.
+
+Deploy / update it by **re-running** the deploy script from the operator
+workstation (it scp's the publisher, installs the pi cron entry, and installs a
+`~/.firewalla/config/post_main.d/` hook that re-installs the cron after FireMain
+regenerates state):
+
+```bash
+./scripts/deploy-device-inventory-publisher.sh <ALLOY_HOST>   # e.g. 192.168.139.20
+# smoke-test on the box without pushing:
+ssh pi@firewalla.local 'DRY_RUN=1 ~/.firewalla/run/device-inventory/publish-device-inventory.sh | head'
+```
+
+Like the worker transcript shipper, this publisher is **not gitops-managed** —
+editing the script on `main` does not auto-deploy; you must re-run the deploy
+script. Volume is negligible (~110 devices, hourly; logs not metrics, so it
+does not touch the 15k active-series cap).
+
 ### Series budget / HA export trim
 
 Grafana Cloud free tier caps **active series at 15,000**. Home Assistant's
