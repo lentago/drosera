@@ -182,6 +182,7 @@
             ]
           },
           "unit": "percentunit",
+          "noValue": "0%",
           "color": { "mode": "thresholds" }
         },
         "overrides": []
@@ -203,7 +204,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate({log_source=\"zeek_dns\"} [5m]))",
+          "expr": "sum(rate({log_source=\"zeek_dns\"} | json | line_format \"{{.log}}\" | json | id_orig_h=~\"$device_ip\" [5m]))",
           "legendFormat": "queries/s"
         }
       ],
@@ -254,8 +255,7 @@
         {
           "refId": "A",
           "expr": "topk(20, sum by (query) (count_over_time({log_source=\"zeek_dns\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" | query!=\"\" | query!=\"*\" [$__range])))",
-          "queryType": "instant",
-          "legendFormat": "{{query}}"
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
@@ -330,7 +330,14 @@
           {
             "matcher": { "id": "byName", "options": "id_orig_h" },
             "properties": [
-              { "id": "displayName", "value": "Device IP" }
+              { "id": "displayName", "value": "Device IP" },
+              { "id": "links", "value": [
+                {
+                  "title": "Filter to this device",
+                  "url": "/d/firewalla-dns-security?var-device_ip=${__value.text}&${__url_time_range}",
+                  "targetBlank": false
+                }
+              ]}
             ]
           },
           {
@@ -421,8 +428,7 @@
         {
           "refId": "A",
           "expr": "topk(20, sum by (query) (count_over_time({log_source=\"zeek_dns\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" | rcode_name=\"NXDOMAIN\" | query!=\"\" [$__range])))",
-          "queryType": "instant",
-          "legendFormat": "{{query}}"
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {

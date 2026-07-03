@@ -165,7 +165,7 @@
       "id": 5,
       "type": "stat",
       "title": "Active Devices",
-      "description": "Unique source IPs seen across DNS and connection logs",
+      "description": "Count of unique source addresses (id_orig_h) seen across DNS and connection logs. Note: counts source addresses, so dual-stack or rotating-IPv6 clients may be counted more than once.",
       "gridPos": { "x": 18, "y": 1, "w": 6, "h": 4 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
@@ -213,7 +213,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Events Over Time",
-      "description": "Log events per minute by source — the pipeline heartbeat",
+      "description": "Log events per second by source — the pipeline heartbeat",
       "gridPos": { "x": 0, "y": 6, "w": 16, "h": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
@@ -262,7 +262,7 @@
       "id": 8,
       "type": "table",
       "title": "Top 10 Talkers (by event count)",
-      "description": "Source IPs generating the most log events (DNS + connections)",
+      "description": "Source addresses (id_orig_h) generating the most log events (DNS + connections). Note: counts source addresses, so dual-stack or rotating-IPv6 clients may be counted more than once.",
       "gridPos": { "x": 16, "y": 6, "w": 8, "h": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [

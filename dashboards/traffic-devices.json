@@ -58,6 +58,7 @@
       "id": 2,
       "type": "stat",
       "title": "Total Connections",
+      "description": "Total network connections in selected time range",
       "gridPos": { "x": 0, "y": 1, "w": 6, "h": 4 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
@@ -156,12 +157,13 @@
       "id": 5,
       "type": "timeseries",
       "title": "Connections/s",
+      "description": "Connection rate over time",
       "gridPos": { "x": 18, "y": 1, "w": 6, "h": 4 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate({log_source=\"zeek_conn\"} [5m]))",
+          "expr": "sum(rate({log_source=\"zeek_conn\"} | json | line_format \"{{.log}}\" | json | id_orig_h=~\"$device_ip\" [5m]))",
           "legendFormat": "conn/s"
         }
       ],
@@ -457,8 +459,8 @@
     {
       "id": 14,
       "type": "table",
-      "title": "Top Devices by Estimated Bytes (orig_bytes + resp_bytes)",
-      "description": "Bandwidth estimation from Zeek conn.log — shows orig_bytes + resp_bytes per device. Note: Zeek may report '-' for bytes on some connections, which are excluded.",
+      "title": "Top Devices by Bytes Sent (orig_bytes)",
+      "description": "Outbound bandwidth estimation from Zeek conn.log — sums orig_bytes (bytes sent) per source device. Note: Zeek may report '-' for bytes on some connections, which are excluded.",
       "gridPos": { "x": 0, "y": 28, "w": 12, "h": 10 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
