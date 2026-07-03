@@ -439,7 +439,7 @@
     {
       "id": 17,
       "type": "stat",
-      "title": "Home Assistant",
+      "title": "HA (ping)",
       "gridPos": {
         "x": 20,
         "y": 0,
@@ -682,7 +682,7 @@
     {
       "id": 22,
       "type": "stat",
-      "title": "Home Assistant",
+      "title": "HA (web)",
       "gridPos": {
         "x": 8,
         "y": 2,
@@ -764,6 +764,7 @@
       "id": 23,
       "type": "stat",
       "title": "Network Health",
+      "description": "Fleet availability: node_exporter up across all 6 Proxmox/NAS hosts (pve, pve2, pve3, pve4, pve5, neptune) plus blackbox probes for the non-node infra endpoints (firewalla, ap-office, homeassistant). Nodes use up{job=\"node\"} rather than their blackbox probes to avoid double-counting.",
       "gridPos": {
         "x": 12,
         "y": 2,
@@ -777,7 +778,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|neptune|homeassistant-icmp)\"}) / count(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|pve|pve2|neptune|homeassistant-icmp)\"})) * 100",
+          "expr": "(sum(up{job=\"node\"}) + sum(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|homeassistant-icmp)\"})) / (count(up{job=\"node\"}) + count(probe_success{job=~\"integrations/blackbox/(firewalla|ap-office|homeassistant-icmp)\"})) * 100",
           "legendFormat": "Network Health",
           "instant": true
         }
@@ -830,284 +831,12 @@
       }
     },
     {
-      "id": 3,
-      "type": "gauge",
-      "title": "CPU pve",
-      "gridPos": {
-        "x": 0,
-        "y": 4,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "pve",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#374151"
-              },
-              {
-                "value": 0,
-                "color": "#34d399"
-              },
-              {
-                "value": 60,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 85,
-                "color": "#ef4444"
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "\u2014"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      }
-    },
-    {
-      "id": 4,
-      "type": "gauge",
-      "title": "CPU pve2",
-      "gridPos": {
-        "x": 6,
-        "y": 4,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve2\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "pve2",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#374151"
-              },
-              {
-                "value": 0,
-                "color": "#34d399"
-              },
-              {
-                "value": 60,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 85,
-                "color": "#ef4444"
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "\u2014"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      }
-    },
-    {
-      "id": 5,
-      "type": "gauge",
-      "title": "RAM pve",
-      "gridPos": {
-        "x": 12,
-        "y": 4,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve\"} / node_memory_MemTotal_bytes{instance=\"pve\"}) * 100",
-          "legendFormat": "pve",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#374151"
-              },
-              {
-                "value": 0,
-                "color": "#34d399"
-              },
-              {
-                "value": 70,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 90,
-                "color": "#ef4444"
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "\u2014"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      }
-    },
-    {
-      "id": 6,
-      "type": "gauge",
-      "title": "RAM pve2",
-      "gridPos": {
-        "x": 18,
-        "y": 4,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve2\"} / node_memory_MemTotal_bytes{instance=\"pve2\"}) * 100",
-          "legendFormat": "pve2",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#374151"
-              },
-              {
-                "value": 0,
-                "color": "#34d399"
-              },
-              {
-                "value": 70,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 90,
-                "color": "#ef4444"
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "\u2014"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      }
-    },
-    {
       "id": 7,
       "type": "timeseries",
       "title": "Network Traffic",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 10,
         "w": 12,
         "h": 7
       },
@@ -1222,7 +951,7 @@
       "title": "Ping Latency",
       "gridPos": {
         "x": 12,
-        "y": 8,
+        "y": 10,
         "w": 12,
         "h": 7
       },
@@ -1305,11 +1034,11 @@
     {
       "id": 30,
       "type": "timeseries",
-      "title": "CPU % pve",
+      "title": "CPU % \u2014 Fleet",
       "gridPos": {
         "x": 0,
-        "y": 15,
-        "w": 6,
+        "y": 4,
+        "w": 12,
         "h": 6
       },
       "datasource": {
@@ -1319,8 +1048,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "pve"
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{instance}}"
         }
       ],
       "fieldConfig": {
@@ -1350,15 +1079,14 @@
             "hideFrom": {
               "tooltip": false,
               "vis": false,
-              "legend": true
+              "legend": false
             },
             "thresholdsStyle": {
               "mode": "area"
             }
           },
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#34d399"
+            "mode": "palette-classic"
           },
           "thresholds": {
             "mode": "absolute",
@@ -1382,112 +1110,24 @@
       },
       "options": {
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         },
         "legend": {
-          "displayMode": "hidden",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 31,
-      "type": "timeseries",
-      "title": "CPU % pve2",
-      "gridPos": {
-        "x": 6,
-        "y": 15,
-        "w": 6,
-        "h": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{instance=\"pve2\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "pve2"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "barAlignment": 0,
-            "lineWidth": 2,
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "spanNulls": false,
-            "showPoints": "never",
-            "pointSize": 5,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "axisCenteredZero": false,
-            "hideFrom": {
-              "tooltip": false,
-              "vis": false,
-              "legend": true
-            },
-            "thresholdsStyle": {
-              "mode": "area"
-            }
-          },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#38bdf8"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#34d399"
-              },
-              {
-                "value": 60,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 85,
-                "color": "#ef4444"
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "legend": {
-          "displayMode": "hidden",
-          "placement": "bottom"
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
       }
     },
     {
       "id": 32,
       "type": "timeseries",
-      "title": "RAM % pve",
+      "title": "RAM % \u2014 Fleet",
       "gridPos": {
         "x": 12,
-        "y": 15,
-        "w": 6,
+        "y": 4,
+        "w": 12,
         "h": 6
       },
       "datasource": {
@@ -1497,8 +1137,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve\"} / node_memory_MemTotal_bytes{instance=\"pve\"}) * 100",
-          "legendFormat": "pve"
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"}) * 100",
+          "legendFormat": "{{instance}}"
         }
       ],
       "fieldConfig": {
@@ -1528,15 +1168,14 @@
             "hideFrom": {
               "tooltip": false,
               "vis": false,
-              "legend": true
+              "legend": false
             },
             "thresholdsStyle": {
               "mode": "area"
             }
           },
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#a78bfa"
+            "mode": "palette-classic"
           },
           "thresholds": {
             "mode": "absolute",
@@ -1546,11 +1185,11 @@
                 "color": "#34d399"
               },
               {
-                "value": 70,
+                "value": 60,
                 "color": "#fbbf24"
               },
               {
-                "value": 90,
+                "value": 85,
                 "color": "#ef4444"
               }
             ]
@@ -1560,101 +1199,13 @@
       },
       "options": {
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         },
         "legend": {
-          "displayMode": "hidden",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 33,
-      "type": "timeseries",
-      "title": "RAM % pve2",
-      "gridPos": {
-        "x": 18,
-        "y": 15,
-        "w": 6,
-        "h": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"pve2\"} / node_memory_MemTotal_bytes{instance=\"pve2\"}) * 100",
-          "legendFormat": "pve2"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "barAlignment": 0,
-            "lineWidth": 2,
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "spanNulls": false,
-            "showPoints": "never",
-            "pointSize": 5,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "axisCenteredZero": false,
-            "hideFrom": {
-              "tooltip": false,
-              "vis": false,
-              "legend": true
-            },
-            "thresholdsStyle": {
-              "mode": "area"
-            }
-          },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#f472b6"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "#34d399"
-              },
-              {
-                "value": 70,
-                "color": "#fbbf24"
-              },
-              {
-                "value": 90,
-                "color": "#ef4444"
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "legend": {
-          "displayMode": "hidden",
-          "placement": "bottom"
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
       }
     },
@@ -1664,7 +1215,7 @@
       "title": "DNS Queries / min",
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 17,
         "w": 12,
         "h": 5
       },
@@ -1744,7 +1295,7 @@
       "title": "Blocked / min",
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 17,
         "w": 12,
         "h": 5
       },
