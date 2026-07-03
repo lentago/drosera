@@ -20,22 +20,19 @@
     "list": [
       {
         "name": "device_ip",
-        "type": "textbox",
-        "label": "Device IP",
-        "description": "Filter by source device IP (regex; .+ = all)",
-        "query": ".+",
-        "current": {
-          "text": ".+",
-          "value": ".+",
-          "selected": true
-        },
-        "options": [
-          {
-            "text": ".+",
-            "value": ".+",
-            "selected": true
-          }
-        ]
+        "label": "Device",
+        "description": "Filter by source device",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({log_source=\"device_inventory\"}, dev)",
+        "regex": "/(?<text>[^|]+)\\|(?<value>.+)/",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": false,
+        "current": { "text": "All", "value": "$__all", "selected": true },
+        "options": []
       }
     ]
   },
@@ -214,6 +211,11 @@
           "expr": "topk(20, sum by (id_orig_h) (count_over_time({log_source=\"zeek_conn\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" [$__range])))",
           "queryType": "instant",
           "legendFormat": "{{id_orig_h}}"
+        },
+        {
+          "refId": "NAMES",
+          "expr": "sum by (name, id_orig_h) (count_over_time({log_source=\"device_inventory\"} | json | label_format id_orig_h=ip [24h]))",
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
@@ -258,9 +260,15 @@
       },
       "transformations": [
         {
+          "id": "joinByField",
+          "options": { "byField": "id_orig_h", "mode": "outer" }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true }
+            "excludeByName": { "Time": true, "Time 1": true, "Value #NAMES": true },
+            "renameByName": { "name": "Device Name" },
+            "indexByName": { "name": 0, "id_orig_h": 1, "Value #A": 2 }
           }
         }
       ]
@@ -340,7 +348,8 @@
             "matcher": { "id": "byName", "options": "id_resp_h" },
             "properties": [
               { "id": "displayName", "value": "Destination IP" },
-              { "id": "custom.width", "value": 200 }
+              { "id": "custom.width", "value": 200 },
+              { "id": "links", "value": [{"title": "Look up ${__value.text} (bgp.tools)", "url": "https://bgp.tools/search?q=${__value.text}", "targetBlank": true}] }
             ]
           },
           {
@@ -466,6 +475,11 @@
           "expr": "topk(15, sum by (id_orig_h) (sum_over_time({log_source=\"zeek_conn\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" | unwrap orig_bytes [$__range])))",
           "queryType": "instant",
           "legendFormat": "{{id_orig_h}}"
+        },
+        {
+          "refId": "NAMES",
+          "expr": "sum by (name, id_orig_h) (count_over_time({log_source=\"device_inventory\"} | json | label_format id_orig_h=ip [24h]))",
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
@@ -512,9 +526,15 @@
       },
       "transformations": [
         {
+          "id": "joinByField",
+          "options": { "byField": "id_orig_h", "mode": "outer" }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true }
+            "excludeByName": { "Time": true, "Time 1": true, "Value #NAMES": true },
+            "renameByName": { "name": "Device Name" },
+            "indexByName": { "name": 0, "id_orig_h": 1, "Value #A": 2 }
           }
         }
       ]
@@ -552,7 +572,8 @@
             "matcher": { "id": "byName", "options": "id_resp_h" },
             "properties": [
               { "id": "displayName", "value": "Destination IP" },
-              { "id": "unit", "value": "string" }
+              { "id": "unit", "value": "string" },
+              { "id": "links", "value": [{"title": "Look up ${__value.text} (bgp.tools)", "url": "https://bgp.tools/search?q=${__value.text}", "targetBlank": true}] }
             ]
           },
           {

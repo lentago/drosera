@@ -20,22 +20,19 @@
     "list": [
       {
         "name": "device_ip",
-        "type": "textbox",
-        "label": "Device IP",
-        "description": "Filter by source device IP (regex; .+ = all)",
-        "query": ".+",
-        "current": {
-          "text": ".+",
-          "value": ".+",
-          "selected": true
-        },
-        "options": [
-          {
-            "text": ".+",
-            "value": ".+",
-            "selected": true
-          }
-        ]
+        "label": "Device",
+        "description": "Filter by source device",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({log_source=\"device_inventory\"}, dev)",
+        "regex": "/(?<text>[^|]+)\\|(?<value>.+)/",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": false,
+        "current": { "text": "All", "value": "$__all", "selected": true },
+        "options": []
       }
     ]
   },
@@ -306,6 +303,11 @@
           "expr": "topk(20, sum by (id_orig_h) (count_over_time({log_source=\"zeek_dns\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" | rcode_name=\"NXDOMAIN\" [$__range])))",
           "queryType": "instant",
           "legendFormat": "{{id_orig_h}}"
+        },
+        {
+          "refId": "NAMES",
+          "expr": "sum by (name, id_orig_h) (count_over_time({log_source=\"device_inventory\"} | json | label_format id_orig_h=ip [24h]))",
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
@@ -353,9 +355,15 @@
       },
       "transformations": [
         {
+          "id": "joinByField",
+          "options": { "byField": "id_orig_h", "mode": "outer" }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true }
+            "excludeByName": { "Time": true, "Time 1": true, "Value #NAMES": true },
+            "renameByName": { "name": "Device Name" },
+            "indexByName": { "name": 0, "id_orig_h": 1, "Value #A": 2 }
           }
         }
       ]

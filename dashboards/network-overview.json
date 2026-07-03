@@ -271,14 +271,24 @@
           "expr": "topk(10, sum by (id_orig_h) (count_over_time({log_source=~\"zeek_dns|zeek_conn\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" [$__range])))",
           "queryType": "instant",
           "legendFormat": "{{id_orig_h}}"
+        },
+        {
+          "refId": "NAMES",
+          "expr": "sum by (name, id_orig_h) (count_over_time({log_source=\"device_inventory\"} | json | label_format id_orig_h=ip [24h]))",
+          "queryType": "instant"
         }
       ],
       "transformations": [
         {
+          "id": "joinByField",
+          "options": { "byField": "id_orig_h", "mode": "outer" }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true },
-            "renameByName": { "id_orig_h": "Device IP", "Value #A": "Events" }
+            "excludeByName": { "Time": true, "Time 1": true, "Value #NAMES": true },
+            "renameByName": { "id_orig_h": "Device IP", "Value #A": "Events", "name": "Device Name" },
+            "indexByName": { "name": 0, "id_orig_h": 1, "Value #A": 2 }
           }
         }
       ],
