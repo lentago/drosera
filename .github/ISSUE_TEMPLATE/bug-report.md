@@ -25,7 +25,7 @@ assignees: cpitzi
 - **Host OS** (LXC where Alloy runs):
 - **Docker / Docker Compose version:**
 - **Alloy image tag** (`docker compose images alloy`):
-- **Grafana Cloud stack** (e.g. `pitzilabs.grafana.net`):
+- **Grafana Cloud stack** (e.g. `lentago.grafana.net`):
 - **Terraform version** (only if a `terraform plan/apply` is involved):
 
 ## Logs

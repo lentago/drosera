@@ -1,6 +1,6 @@
 [Unit]
 Description=Claude Code local-session cost export (sweep transcripts + ship to Loki)
-Documentation=https://github.com/PitziLabs/workstation-bootstrap/tree/main/claude-cost-export
+Documentation=https://github.com/lentago/workstation-bootstrap/tree/main/claude-cost-export
 After=network-online.target
 
 [Service]

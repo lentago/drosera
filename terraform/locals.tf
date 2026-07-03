@@ -2,9 +2,9 @@ locals {
   dashboards_dir = "${path.module}/../dashboards"
 
   # Dashboard JSON in the repo references the original self-hosted datasource
-  # UIDs ("loki" and "prometheus"). On Grafana Cloud the pitzilabs stack
+  # UIDs ("loki" and "prometheus"). On Grafana Cloud the lentago stack
   # auto-provisions datasources whose *UID* is "grafanacloud-<service>"
-  # (logs / prom / infinity). The stack-name prefix ("grafanacloud-pitzilabs-*")
+  # (logs / prom / infinity). The stack-name prefix ("grafanacloud-lentago-*")
   # appears in the datasource *name*, NOT its UID — panels reference datasources
   # by UID, so we must rewrite to the UID, not the name. We rewrite at apply time
   # so the JSON files stay portable.
@@ -14,7 +14,7 @@ locals {
   #     | jq '.[] | {uid, name}'
   #
   # History: loki/prometheus were previously rewritten to the *name*
-  # ("grafanacloud-pitzilabs-{logs,prom}"), which are non-existent UIDs. Prom
+  # ("grafanacloud-lentago-{logs,prom}"), which are non-existent UIDs. Prom
   # panels still rendered because the Prometheus datasource is the stack default,
   # so a dangling UID silently fell back to it; all-Loki dashboards (e.g.
   # claude-runner-fleet) showed "No data" because the fallback default is

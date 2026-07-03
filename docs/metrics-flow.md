@@ -25,7 +25,7 @@ flowchart LR
     lokirecv["loki.source.api :3100"]
   end
 
-  subgraph cloud["Grafana Cloud (pitzilabs)"]
+  subgraph cloud["Grafana Cloud (lentago)"]
     direction TB
     mimir[("Mimir<br/>metrics")]
     lokidb[("Loki<br/>logs")]

@@ -1,6 +1,6 @@
 [Unit]
 Description=Pull central Alloy config from git and reload the collector
-Documentation=https://github.com/PitziLabs/homelab-observability/blob/main/alloy-host/README.md
+Documentation=https://github.com/lentago/homelab-observability/blob/main/alloy-host/README.md
 After=network-online.target docker.service
 Wants=network-online.target
 

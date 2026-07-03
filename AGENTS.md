@@ -22,7 +22,7 @@ Cursor loads **[.cursor/rules/read-docs-first.mdc](.cursor/rules/read-docs-first
 
 ## grafana-assistant CLI (optional)
 
-`grafana-assistant` targets Grafana Cloud at `https://pitzilabs.grafana.net` (see `grafana-assistant config list`). Two distinct auth paths — don't confuse them:
+`grafana-assistant` targets Grafana Cloud at `https://lentago.grafana.net` (see `grafana-assistant config list`). Two distinct auth paths — don't confuse them:
 
 - **Grafana HTTP API + Terraform:** the `GRAFANA_SA_TOKEN` in `.envrc` is sufficient. This is what `terraform/` and `scripts/inventory-cloud.sh` use.
 - **Assistant A2A (`grafana-assistant prompt` / `chat`):** even an Admin-role SA token returns `HTTP 401: invalid user` against the A2A endpoint, and `grafana-assistant config list` shows `AUTH: Not authenticated` for the configured instance — A2A uses its own user-bound auth, separate from the SA token. Run `grafana-assistant auth` once (browser PKCE; **Assistant CLI User** role, which Editor or above gets automatically) before using `prompt` or `chat`. Until that's done, only local subcommands like `agents-md` and `config` work.

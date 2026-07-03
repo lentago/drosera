@@ -1,4 +1,4 @@
-# Adopt resources that the Cloud migration wizard imported into pitzilabs.
+# Adopt resources that the Cloud migration wizard imported into lentago.
 #
 # These blocks are idempotent — once a resource is in state, the import is a
 # no-op. Leave them here so a fresh-state bootstrap (e.g. state file lost) can

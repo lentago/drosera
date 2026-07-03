@@ -1,13 +1,13 @@
 # Terraform — Grafana Cloud
 
-Manages everything in the `pitzilabs` Grafana Cloud stack as code: dashboards, folders,
+Manages everything in the `lentago` Grafana Cloud stack as code: dashboards, folders,
 data sources, contact points, notification policies, alert rules, and service accounts.
 
 Dashboard JSON files live in [`../dashboards/`](../dashboards/) and are the source of truth.
 Terraform rewrites the original self-hosted datasource UIDs (`loki`, `prometheus`) to the
 Grafana Cloud UIDs (`grafanacloud-logs`, `grafanacloud-prom`) at apply time, so the JSON
 files stay portable. Note these are the datasource **UIDs** (`grafanacloud-<service>`), not
-their stack-prefixed **names** (`grafanacloud-pitzilabs-{logs,prom}`) — panels reference
+their stack-prefixed **names** (`grafanacloud-lentago-{logs,prom}`) — panels reference
 datasources by UID, so rewriting to the name produces a dangling ref that silently falls
 back to the default datasource. The exact mapping lives in [`locals.tf`](locals.tf); verify
 against a live stack with the `curl … /api/datasources | jq '.[]|{uid,name}'` snippet there.

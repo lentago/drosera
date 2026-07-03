@@ -8,14 +8,14 @@
 
 set -euo pipefail
 
-: "${GRAFANA_URL:?GRAFANA_URL must be set (e.g. https://pitzilabs.grafana.net)}"
+: "${GRAFANA_URL:?GRAFANA_URL must be set (e.g. https://lentago.grafana.net)}"
 : "${GRAFANA_SA_TOKEN:?GRAFANA_SA_TOKEN must be set}"
 
 # Expected log_source label values — the Alloy pipeline contract (see CLAUDE.md § Loki labels)
 EXPECTED=(zeek_dns zeek_conn zeek_ssl firewalla_acl)
 
-# Loki datasource UID as provisioned by Grafana Cloud for the pitzilabs stack
-LOKI_UID="grafanacloud-pitzilabs-logs"
+# Loki datasource UID as provisioned by Grafana Cloud for the lentago stack
+LOKI_UID="grafanacloud-logs"
 
 info() { echo "[INFO]  $*"; }
 fail() { echo "[FAIL]  $*" >&2; exit 1; }

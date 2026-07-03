@@ -2,14 +2,14 @@
 # .envrc is gitignored; this template (.envrc.example) is committed.
 #
 # Generate the Grafana Cloud service account token at:
-#   https://pitzilabs.grafana.net → Administration → Users and access → Service accounts
+#   https://lentago.grafana.net → Administration → Users and access → Service accounts
 # Generate the Alloy access policy tokens at:
 #   https://grafana.com → Account → Access Policies (metrics:write, logs:write)
 
 # Grafana Cloud stack
-export GRAFANA_URL="https://pitzilabs.grafana.net"
+export GRAFANA_URL="https://lentago.grafana.net"
 
-# Service account token for the pitzilabs stack.
+# Service account token for the lentago stack.
 # Used by:
 #   - Terraform / grafana provider (reads GRAFANA_AUTH)
 #   - grafana-assistant CLI       (reads GRAFANA_SA_TOKEN)

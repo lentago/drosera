@@ -1,6 +1,6 @@
 [Unit]
 Description=Periodic Claude Code local-session cost export
-Documentation=https://github.com/PitziLabs/workstation-bootstrap/tree/main/claude-cost-export
+Documentation=https://github.com/lentago/workstation-bootstrap/tree/main/claude-cost-export
 
 [Timer]
 # Backstop + off-LAN drainer: catches sessions the SessionEnd hook missed

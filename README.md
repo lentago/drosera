@@ -28,7 +28,7 @@ conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
   HOSTS ×6 (neptune, pve, pve2, pve3, pve4, pve5)
     each: node_exporter:9100 → local Alloy ── remote_write 15s ─┐
                                                                 ├─▶ Grafana Cloud
-  CENTRAL ALLOY (LXC 105)                                       │    (pitzilabs)
+  CENTRAL ALLOY (LXC 105)                                       │    (lentago)
     blackbox ICMP/HTTP ───────────────── remote_write ─────────┤    ├─ Mimir (metrics)
     Home Assistant /api/prometheus → HA scrape → remote_write ──┤    ├─ Loki  (logs)
     Firewalla Promtail → Loki receiver :3100 ── loki push ──────┘    └─ Grafana
@@ -81,7 +81,7 @@ dashboards/                    # source of truth for Grafana dashboard JSON
 terraform/                     # manages Cloud-side resources
   *.tf
 scripts/
-  inventory-cloud.sh           # snapshot current state of pitzilabs.grafana.net
+  inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host
   deploy-alloy.sh              # install a host-local Alloy push agent (15s remote_write)
 .github/workflows/
@@ -93,12 +93,12 @@ scripts/
 ### 1. Grafana Cloud credentials
 
 - **Stack service account** (drives Terraform + future CLI tooling). In
-  `https://pitzilabs.grafana.net` → **Administration → Users and access → Service
+  `https://lentago.grafana.net` → **Administration → Users and access → Service
   accounts**, create a service account named `terraform-iac` with role **Admin**,
   then **Add token** and copy the value. This becomes `GRAFANA_AUTH`.
 - **Access policy tokens** (drive Alloy remote_write / log push). At
   `https://grafana.com` → **My Account → Access Policies**, create one policy
-  with scopes **`metrics:write`** and **`logs:write`** for the `pitzilabs` stack.
+  with scopes **`metrics:write`** and **`logs:write`** for the `lentago` stack.
   Generate a token; copy the **username** (a numeric stack ID per signal type)
   and **token** and the **push URLs** from the stack details page.
 
@@ -126,8 +126,8 @@ the `terraform` workflow. See [terraform/README.md](terraform/README.md) § Stat
 § CI.
 
 The first apply rewrites datasource UIDs in each dashboard from `loki` /
-`prometheus` (the old self-hosted UIDs) to `grafanacloud-pitzilabs-logs` /
-`grafanacloud-pitzilabs-prom` (the pitzilabs stack's auto-provisioned UIDs).
+`prometheus` (the old self-hosted UIDs) to `grafanacloud-lentago-logs` /
+`grafanacloud-lentago-prom` (the lentago stack's auto-provisioned UIDs).
 The original JSON files in `dashboards/` are not modified — the rewrite happens
 in-memory at apply time via `replace()` in `terraform/locals.tf`.
 
@@ -158,8 +158,8 @@ open http://<lxc-ip>:12345         # Alloy debug UI
 
 After Alloy is up:
 
-- Confirm logs arrive in Cloud: **Explore → grafanacloud-pitzilabs-logs** → `{cluster="homelab"}`.
-- Confirm metrics arrive: **Explore → grafanacloud-pitzilabs-prom** →
+- Confirm logs arrive in Cloud: **Explore → grafanacloud-lentago-logs** → `{cluster="homelab"}`.
+- Confirm metrics arrive: **Explore → grafanacloud-lentago-prom** →
   `up{cluster="homelab"}` should return 1 for each scrape target.
 - Visit a dashboard (e.g. **Firewalla / Network Overview**) and confirm panels
   render data.
@@ -180,7 +180,7 @@ stack is exposed.
 Add **repository** secrets (Settings → Secrets and variables → **Actions**,
 not Dependabot) so the `plan` and `apply` jobs can authenticate to Grafana:
 
-- `GRAFANA_URL` — full stack URL, e.g. `https://pitzilabs.grafana.net` (no
+- `GRAFANA_URL` — full stack URL, e.g. `https://lentago.grafana.net` (no
   trailing slash).
 - `GRAFANA_AUTH` — the same Grafana Cloud **service account token** you use in
   `.envrc` as `GRAFANA_AUTH` / `GRAFANA_SA_TOKEN`.

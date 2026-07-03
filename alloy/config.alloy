@@ -94,7 +94,7 @@ prometheus.exporter.blackbox "default" {
   }
   target {
     name    = "grafana-cloud"
-    address = "https://pitzilabs.grafana.net/api/health"
+    address = "https://lentago.grafana.net/api/health"
     module  = "http_2xx"
   }
 }

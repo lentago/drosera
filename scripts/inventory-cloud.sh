@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Snapshot what's currently in the pitzilabs Grafana Cloud stack so we can write
+# Snapshot what's currently in the lentago Grafana Cloud stack so we can write
 # accurate Terraform import blocks. Reads GRAFANA_URL and GRAFANA_SA_TOKEN from
 # the environment (load via direnv).
 #
@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-: "${GRAFANA_URL:?GRAFANA_URL must be set (e.g. https://pitzilabs.grafana.net)}"
+: "${GRAFANA_URL:?GRAFANA_URL must be set (e.g. https://lentago.grafana.net)}"
 : "${GRAFANA_SA_TOKEN:?GRAFANA_SA_TOKEN must be set}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
