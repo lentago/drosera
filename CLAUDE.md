@@ -93,6 +93,35 @@ The Alloy on the grafana-stack LXC is **gitops-managed** — do NOT hand-edit th
 - Validate Alloy syntax: `alloy fmt /path/to/config.alloy` (with Alloy binary) or rely on `docker compose` logs after deploy
 - Deploying dashboard edits: **merging to `main` auto-applies** via the `terraform` workflow's `apply` job (GitHub OIDC → S3 state in foundry's bucket; no Grafana container restart). Out-of-band you can still `cd terraform && terraform plan && terraform apply` locally — same S3 backend. See [`terraform/README.md`](terraform/README.md) § CI.
 
+## Live dashboard edits — anti-drift rule
+
+Because merging to `main` auto-applies `dashboards/*.json` (see above), **the
+repo is the only durable home for dashboard state. Never edit a live dashboard
+— Grafana UI, HTTP API, or `mcp__grafana__update_dashboard` — without landing
+the identical change in `dashboards/*.json` in the same session** (PR opened
+and auto-merge armed before the session ends). A live-only edit survives
+exactly until the next merge to `main`, *any* merge: the terraform apply job
+re-pushes repo state and silently reverts it.
+
+Corollaries:
+
+- **Live-ahead-of-repo state is a fire, not a curiosity.** If panel titles in
+  Grafana don't match the repo JSON, someone's un-codified work is one merge
+  away from destruction — recover it into a PR *before* merging anything else
+  to this repo.
+- **Recovery path**: Grafana keeps dashboard version history. `GET
+  /api/dashboards/uid/<uid>/versions` to find the lost version, `GET
+  .../versions/<n>` → take `.data`, `del(.id, .version)`, and normalize
+  datasource UIDs back to the repo placeholders (`loki`, `prometheus`,
+  `infinity`) that `terraform/locals.tf` rewrites at apply time.
+- Note the MCP server authenticates as the same `terraform-iac` service
+  account as CI, so Grafana's version history cannot distinguish a live MCP
+  edit from a terraform apply — don't rely on `createdBy` to spot drift.
+
+Origin: 2026-07-03 — the infra-health fleet-scoreboard revamp was pushed live
+via the API but never committed; five unrelated bug-fix merges each ran the
+apply and reverted it (restored in #119 from version history).
+
 ## Contributing / PRs
 
 PR workflow + auto-merge arming protocol is fleet-wide; see `~/repos/CLAUDE.md`.
