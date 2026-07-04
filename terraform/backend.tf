@@ -1,5 +1,5 @@
 terraform {
-  # Remote state in foundry-platform-demo's S3 backend (shared account, isolated key).
+  # Remote state in solidago's S3 backend (formerly foundry-platform-demo) — shared account, isolated key.
   # CI authenticates to AWS via the homelab-observability-github-actions-terraform
   # OIDC role (S3 r/w on this key + the lock table only). See terraform/README.md.
   backend "s3" {
