@@ -1,6 +1,6 @@
 [Unit]
 Description=Periodic gitops pull for the central Alloy config
-Documentation=https://github.com/lentago/homelab-observability/blob/main/alloy-host/README.md
+Documentation=https://github.com/lentago/drosera/blob/main/alloy-host/README.md
 
 [Timer]
 # 2-minute settle after boot so docker + the alloy container come up first.

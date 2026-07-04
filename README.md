@@ -161,7 +161,7 @@ terraform plan           # should show: import folder + 5 dashboards, then updat
 terraform apply
 ```
 
-State lives in S3 (foundry's `foundry-tfstate-365184644049` bucket, versioned +
+State lives in S3 (solidago's `foundry-tfstate-365184644049` bucket, versioned +
 encrypted) — no local-state backup step needed. Day to day you don't run `apply`
 by hand at all: **merging dashboard/terraform changes to `main` auto-applies** via
 the `terraform` workflow. See [terraform/README.md](terraform/README.md) § State and
