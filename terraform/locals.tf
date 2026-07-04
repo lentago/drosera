@@ -76,3 +76,23 @@ locals {
     )
   }
 }
+
+# Solidago (AWS) dashboards — separate map from the firewalla set, and
+# deliberately NOT routed through the datasource-UID-rewrite machinery above:
+# Solidago dashboard JSON references "solidago-cloudwatch" directly, a uid WE
+# choose in datasources.tf — unlike the firewalla dashboards, which predate
+# the stack and carry legacy self-hosted uids that must be rewritten at
+# apply time.
+locals {
+  solidago_dashboards = {
+    platform_health = {
+      uid  = "solidago-platform-health"
+      file = "solidago-platform-health.json"
+    }
+  }
+
+  solidago_dashboard_json = {
+    for k, d in local.solidago_dashboards :
+    k => file("${local.dashboards_dir}/${d.file}")
+  }
+}

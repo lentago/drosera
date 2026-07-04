@@ -1,0 +1,686 @@
+{
+  "uid": "solidago-platform-health",
+  "title": "Solidago \u2014 Platform Health",
+  "tags": [
+    "solidago",
+    "aws"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "schemaVersion": 42,
+  "fiscalYearStartMonth": 0,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "description": "Query-on-demand CloudWatch view of the Solidago platform (assume-role datasource; no metrics imported into Mimir). Overnight gaps are the nightly DR teardown drill, not an outage. Refresh floor is 1m \u2014 every render bills GetMetricData.",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "ALB Requests",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "RequestCount",
+          "statistic": "Sum",
+          "dimensions": {
+            "LoadBalancer": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "ALB 5xx",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_ELB_5XX_Count",
+          "statistic": "Sum",
+          "dimensions": {
+            "LoadBalancer": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "ELB 5xx",
+          "alias": ""
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_Target_5XX_Count",
+          "statistic": "Sum",
+          "dimensions": {
+            "LoadBalancer": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "Target 5xx",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Target Response Time (p95)",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "TargetResponseTime",
+          "statistic": "p95",
+          "dimensions": {
+            "LoadBalancer": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "ECS CPU / Memory",
+      "description": "Per-service series: app + pitzilabs + lentago sites on the shared cluster.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ECS",
+          "metricName": "CPUUtilization",
+          "statistic": "Average",
+          "dimensions": {
+            "ClusterName": [
+              "foundry-dev-cluster"
+            ],
+            "ServiceName": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "CPU",
+          "alias": ""
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ECS",
+          "metricName": "MemoryUtilization",
+          "statistic": "Average",
+          "dimensions": {
+            "ClusterName": [
+              "foundry-dev-cluster"
+            ],
+            "ServiceName": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "Memory",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "WAF Blocked Requests",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/WAFV2",
+          "metricName": "BlockedRequests",
+          "statistic": "Sum",
+          "dimensions": {
+            "WebACL": [
+              "*"
+            ],
+            "Rule": [
+              "ALL"
+            ],
+            "Region": [
+              "us-east-1"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "RDS CPU / Free Storage",
+      "description": "CPU in percent; free storage in bytes (right-side override).",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/RDS",
+          "metricName": "CPUUtilization",
+          "statistic": "Average",
+          "dimensions": {
+            "DBInstanceIdentifier": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "CPU %",
+          "alias": ""
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/RDS",
+          "metricName": "FreeStorageSpace",
+          "statistic": "Minimum",
+          "dimensions": {
+            "DBInstanceIdentifier": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "Free storage",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Valkey CPU / Memory",
+      "description": "",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ElastiCache",
+          "metricName": "EngineCPUUtilization",
+          "statistic": "Average",
+          "dimensions": {
+            "CacheClusterId": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "Engine CPU",
+          "alias": ""
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "B",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/ElastiCache",
+          "metricName": "DatabaseMemoryUsagePercentage",
+          "statistic": "Average",
+          "dimensions": {
+            "CacheClusterId": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "Memory %",
+          "alias": ""
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "NAT Egress",
+      "description": "NAT gateway IDs rotate on the nightly DR rebuild \u2014 wildcard dimension is mandatory.",
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "solidago-cloudwatch"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "solidago-cloudwatch"
+          },
+          "refId": "A",
+          "queryMode": "Metrics",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "matchExact": false,
+          "namespace": "AWS/NATGateway",
+          "metricName": "BytesOutToDestination",
+          "statistic": "Sum",
+          "dimensions": {
+            "NatGatewayId": [
+              "*"
+            ]
+          },
+          "region": "default",
+          "period": "",
+          "expression": "",
+          "id": "",
+          "label": "",
+          "alias": ""
+        }
+      ]
+    }
+  ]
+}

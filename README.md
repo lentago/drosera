@@ -42,6 +42,8 @@ conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
     Home Assistant /api/prometheus → HA scrape → remote_write ──┤    ├─ Loki  (logs)
     Firewalla Promtail → Loki receiver :3100 ── loki push ──────┘    └─ Grafana
                                                                           │
+  AWS / SOLIDAGO CloudWatch ◀── query-on-demand (assume-role) ── Grafana ─┤
+                                                                          │
                                                   public share ──▶ Office Display
 ```
 
@@ -62,10 +64,33 @@ The four active log streams, keyed by `log_source`:
 | `firewalla_acl` | Firewalla ACL alarm events — blocked/allowed flows, rule name, severity. |
 
 **Change coordination:** the Firewalla side of this pipeline lives in
-[lentago/firewalla-axiom-pipeline](https://github.com/lentago/firewalla-axiom-pipeline).
+[lentago/betula](https://github.com/lentago/betula) (renamed from
+`firewalla-axiom-pipeline` 2026-07-04).
 Any change to the `log_source` values or the push endpoint above must be
 coordinated with that repo (see its issue #42, which shipped the current label
 scheme) so both sides stay in sync.
+
+## Solidago (AWS) contract
+
+Solidago platform metrics render in this stack via a **query-on-demand
+CloudWatch datasource** — nothing is streamed or imported into Mimir, so it
+consumes zero free-tier active series. Queries bill as CloudWatch
+`GetMetricData` at render time; the dashboard refresh floor is **1m**.
+
+- **This repo owns:** the `Solidago` folder, the `solidago-cloudwatch`
+  datasource (`terraform/datasources.tf`, "Grafana Assume Role" auth), and
+  Solidago dashboards (`dashboards/solidago-platform-health.json`).
+- **[lentago/solidago](https://github.com/lentago/solidago) owns:** the IAM
+  role `foundry-dev-grafana-cloudwatch` (`modules/grafana-cloud`), its trust
+  and permission policies, and the External ID plumbing.
+- **Coordination rule:** renaming the role, changing auth, or widening its
+  policy is a **cross-repo change** — same discipline as the `log_source`
+  label contract above.
+- **Overnight gaps are the DR drill, not an outage:** solidago tears down and
+  rebuilds nightly; role ARNs are deterministic, so the datasource never needs
+  re-pointing, and "No data" while the platform is down is correct behavior.
+- **Alerting stays AWS-native** (CloudWatch alarms → SNS; solidago ADR-0001) —
+  Grafana is visualization only.
 
 ## Repo layout
 
@@ -87,8 +112,9 @@ dashboards/                    # source of truth for Grafana dashboard JSON
   infra-health.json
   office-display.json
   neptune-nas.json             # Neptune NAS real-time activity (CPU/disk/net/RAID/temps)
+  solidago-platform-health.json # Solidago (AWS) via the CloudWatch datasource
 terraform/                     # manages Cloud-side resources
-  *.tf
+  *.tf                         # incl. datasources.tf — the solidago-cloudwatch datasource
 scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host
