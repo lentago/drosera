@@ -1,13 +1,16 @@
 name: terraform
 
 on:
+  # PR trigger is intentionally NOT path-filtered: the `gate` job below is a
+  # required status check, and a required check whose *workflow* never triggers
+  # is held "Expected" forever (deadlock). So the workflow always runs on PRs and
+  # the path filter moves down to the `changes` job, which skips the heavy jobs
+  # on docs-only PRs (a *skipped* required job counts as passing).
+  # See lentago/.github#27.
   pull_request:
-    paths:
-      - "terraform/**"
-      - "dashboards/**"
-      - ".github/workflows/terraform.yml"
   push:
     branches: [main]
+    # apply stays path-gated: never re-apply on a merge that didn't touch these.
     paths:
       - "terraform/**"
       - "dashboards/**"
@@ -25,7 +28,37 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
+  # Did this PR touch terraform/dashboards? Gates the heavy jobs so a docs-only
+  # PR skips them (skipped → the required `gate` check still reports green).
+  # Non-PR events (push to main, already path-filtered above) always count as
+  # changed.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      tf: ${{ steps.filter.outputs.tf }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect terraform/dashboard changes
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "tf=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          changed=$(git diff --name-only "$BASE_SHA" HEAD)
+          echo "changed files:"; echo "$changed"
+          if echo "$changed" | grep -qE '^terraform/|^dashboards/|^\.github/workflows/terraform\.yml$'; then
+            echo "tf=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tf=false" >> "$GITHUB_OUTPUT"
+          fi
+
   validate:
+    needs: changes
+    if: needs.changes.outputs.tf == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,9 +81,9 @@ jobs:
         run: terraform validate -no-color
 
   plan:
-    needs: validate
+    needs: [changes, validate]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: needs.changes.outputs.tf == 'true' && github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: terraform
@@ -124,9 +157,11 @@ jobs:
         run: exit 1
 
   apply:
-    needs: validate
+    needs: [changes, validate]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      needs.changes.outputs.tf == 'true' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
     # Serialize applies so two quick merges can't race on the same state.
     concurrency:
       group: terraform-apply
@@ -163,3 +198,24 @@ jobs:
 
       - name: apply
         run: terraform apply -auto-approve -no-color -input=false
+
+  # Single required status check for the terraform pipeline. Runs on every PR
+  # (if: always()) so the ruleset can require exactly `gate`: it reports green
+  # when validate/plan succeeded OR were skipped (docs-only PR), and red when
+  # either failed — so a bad plan blocks the merge, and therefore the apply.
+  gate:
+    needs: [changes, validate, plan]
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Terraform gate
+        run: |
+          echo "changes=${{ needs.changes.result }} validate=${{ needs.validate.result }} plan=${{ needs.plan.result }}"
+          for r in "${{ needs.changes.result }}" "${{ needs.validate.result }}" "${{ needs.plan.result }}"; do
+            case "$r" in
+              failure|cancelled)
+                echo "::error::terraform gate blocked (a required job reported $r)"
+                exit 1 ;;
+            esac
+          done
+          echo "gate passed (success/skipped only)"
