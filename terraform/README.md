@@ -17,8 +17,8 @@ around. Drift introduced via the Grafana UI gets overwritten on the next `apply`
 ## State
 
 Remote state in **S3** ([`backend.tf`](backend.tf)): solidago's state bucket
-`foundry-tfstate-365184644049`, key `homelab-observability/terraform.tfstate`, region
-`us-east-1`, with DynamoDB lock table `foundry-tfstate-lock`. The bucket is versioned +
+`solidago-tfstate-365184644049`, key `homelab-observability/terraform.tfstate`, region
+`us-east-1`, with DynamoDB lock table `solidago-tfstate-lock`. The bucket is versioned +
 encrypted, so the old "back up the local `tfstate` to the NAS" step is gone — S3 is the
 single authoritative store shared by local runs and CI.
 

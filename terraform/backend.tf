@@ -5,10 +5,10 @@ terraform {
   # The role name and state key keep the pre-rename homelab-observability prefix
   # (repo renamed to drosera 2026-07-04) — do not rename them; the key would orphan state.
   backend "s3" {
-    bucket         = "foundry-tfstate-365184644049"
+    bucket         = "solidago-tfstate-365184644049"
     key            = "homelab-observability/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "foundry-tfstate-lock"
+    dynamodb_table = "solidago-tfstate-lock"
     encrypt        = true
   }
 }
