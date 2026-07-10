@@ -2,7 +2,7 @@
 // Worker-local Alloy agent — live bullpen-fleet reasoning transcript shipper.
 // ============================================================================
 //
-// Runs on each claude-runner worker (claude-runner / claude-runner-2 on pve4),
+// Runs on each claude-runner worker (claude-runner … claude-runner-5 on pve4),
 // as a DEDICATED `alloy-transcript.service` running as the `claude` user (the
 // session files are 0600 claude:claude, so the stock root/alloy service can't
 // read them). Deploy with scripts/deploy-runner-transcript-alloy.sh — do NOT

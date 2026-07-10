@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Deploy the worker-local "fleet transcript" Alloy agent to a claude-runner
-# worker (claude-runner / claude-runner-2 on pve4). Idempotent — safe to re-run.
+# worker (claude-runner … claude-runner-5 on pve4). Idempotent — safe to re-run.
 #
 # This tails Claude Code's live session transcripts and ships a scrubbed,
 # human-readable reasoning stream to Grafana Cloud Loki (job="claude_transcript"),
