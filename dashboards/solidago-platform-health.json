@@ -252,7 +252,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "ECS CPU / Memory",
-      "description": "Per-service series: app + pitzilabs + lentago sites on the shared cluster.",
+      "description": "Per-service series: one line per app/site running on the shared ECS cluster.",
       "datasource": {
         "type": "cloudwatch",
         "uid": "solidago-cloudwatch"
