@@ -97,6 +97,24 @@ prometheus.exporter.blackbox "default" {
     address = "https://lentago.grafana.net/api/health"
     module  = "http_2xx"
   }
+
+  // Public sites (Solidago ECS) — outside-in uptime/latency; https targets
+  // also emit probe_ssl_earliest_cert_expiry for cert monitoring.
+  target {
+    name    = "pondviewlane.com"
+    address = "https://pondviewlane.com"
+    module  = "http_2xx"
+  }
+  target {
+    name    = "icecreamtofightwith.com"
+    address = "https://icecreamtofightwith.com"
+    module  = "http_2xx"
+  }
+  target {
+    name    = "lentago.dev"
+    address = "https://lentago.dev"
+    module  = "http_2xx"
+  }
 }
 
 prometheus.scrape "blackbox" {
