@@ -259,7 +259,8 @@ comment) on every PR touching `terraform/**` or `dashboards/**`, and **`apply
 ### Add a new dashboard
 
 1. Drop a new JSON file in `dashboards/`.
-2. Add an entry to the `firewalla_dashboards` local in
+2. Add an entry to the matching per-folder local (`lab_dashboards`,
+   `claytonia_dashboards`, `solidago_dashboards`, or `sites_dashboards`) in
    [`terraform/locals.tf`](terraform/locals.tf).
 3. Open a PR; merging to `main` applies it (or `terraform apply` locally).
 
@@ -310,7 +311,7 @@ the central HA `/api/prometheus` scrape (it can't run a system Alloy).
 
 ### Fleet reasoning stream (worker transcripts)
 
-The **Claude Runner Fleet** dashboard has a live *"Fleet stream of
+The **Claytonia — Runner Fleet** dashboard has a live *"Fleet stream of
 consciousness"* panel that shows each running bullpen job's reasoning in
 near-real-time (each assistant turn's narration + the tools it fired). The
 source is a **worker-local Alloy agent** on each runner that tails Claude

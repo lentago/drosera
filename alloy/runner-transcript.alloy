@@ -10,7 +10,7 @@
 //
 // What it does: tails Claude Code's session transcripts AS THEY ARE WRITTEN
 // during a bullpen run and ships a scrubbed, human-readable "stream of
-// consciousness" to Grafana Cloud Loki, where the Claude Runner Fleet
+// consciousness" to Grafana Cloud Loki, where the Claytonia — Runner Fleet
 // dashboard renders it live next to "Open agent PRs".
 //
 // Why worker-local (see #71): the NAS copy at

@@ -1,9 +1,17 @@
-resource "grafana_dashboard" "firewalla" {
-  for_each = local.firewalla_dashboards
+resource "grafana_dashboard" "lab" {
+  for_each = local.lab_dashboards
 
-  folder      = grafana_folder.firewalla.uid
+  folder      = grafana_folder.lab.uid
   overwrite   = true
-  config_json = local.firewalla_dashboard_json[each.key]
+  config_json = local.lab_dashboard_json[each.key]
+}
+
+resource "grafana_dashboard" "claytonia" {
+  for_each = local.claytonia_dashboards
+
+  folder      = grafana_folder.claytonia.uid
+  overwrite   = true
+  config_json = local.claytonia_dashboard_json[each.key]
 }
 
 resource "grafana_dashboard" "solidago" {

@@ -5,31 +5,31 @@
 # recover by re-importing without code changes.
 
 import {
-  to = grafana_folder.firewalla
+  to = grafana_folder.lab
   id = "afh7m8li40zk0d"
 }
 
 import {
-  to = grafana_dashboard.firewalla["network_overview"]
+  to = grafana_dashboard.lab["network_overview"]
   id = "firewalla-network-overview"
 }
 
 import {
-  to = grafana_dashboard.firewalla["dns_security"]
+  to = grafana_dashboard.lab["dns_security"]
   id = "firewalla-dns-security"
 }
 
 import {
-  to = grafana_dashboard.firewalla["traffic_devices"]
+  to = grafana_dashboard.lab["traffic_devices"]
   id = "firewalla-traffic-devices"
 }
 
 import {
-  to = grafana_dashboard.firewalla["infra_health"]
+  to = grafana_dashboard.lab["infra_health"]
   id = "firewalla-infra-health"
 }
 
 import {
-  to = grafana_dashboard.firewalla["office_display"]
+  to = grafana_dashboard.lab["office_display"]
   id = "firewalla-office-display"
 }

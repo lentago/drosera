@@ -25,7 +25,10 @@ locals {
     "infinity"   = "grafanacloud-infinity"
   }
 
-  firewalla_dashboards = {
+  # Lentago Lab (homelab-source) dashboards. Uids keep the legacy firewalla-
+  # prefix: uids are load-bearing (cross-dashboard /d/ links, the office-display
+  # public share, the import blocks) and changing one is a destroy/create.
+  lab_dashboards = {
     network_overview = {
       uid  = "firewalla-network-overview"
       file = "network-overview.json"
@@ -50,17 +53,13 @@ locals {
       uid  = "firewalla-neptune-nas"
       file = "neptune-nas.json"
     }
-    claude_runner_fleet = {
-      uid  = "claude-runner-fleet"
-      file = "claude-runner-fleet.json"
-    }
   }
 
   # Read each dashboard JSON file and rewrite datasource UIDs in one pass.
   # The regex tolerates either `"uid": "loki"` or `"uid":"loki"` (and similar
   # for prometheus) so we don't depend on the formatter's whitespace.
-  firewalla_dashboard_json = {
-    for k, d in local.firewalla_dashboards :
+  lab_dashboard_json = {
+    for k, d in local.lab_dashboards :
     k => replace(
       replace(
         replace(
@@ -77,10 +76,40 @@ locals {
   }
 }
 
-# Solidago (AWS) dashboards — separate map from the firewalla set, and
+# Claytonia (agent fleet) dashboards. Same datasource-UID rewrite as the lab
+# set — the runner-fleet dashboard is all-Loki (plus Infinity), so it carries
+# the legacy self-hosted "loki" placeholder uid. The dashboard uid keeps the
+# legacy claude-runner-fleet name so existing links survive the rename.
+locals {
+  claytonia_dashboards = {
+    runner_fleet = {
+      uid  = "claude-runner-fleet"
+      file = "claytonia-runner-fleet.json"
+    }
+  }
+
+  claytonia_dashboard_json = {
+    for k, d in local.claytonia_dashboards :
+    k => replace(
+      replace(
+        replace(
+          file("${local.dashboards_dir}/${d.file}"),
+          "/\"uid\":\\s*\"loki\"/",
+          "\"uid\": \"${local.datasource_uid_rewrites["loki"]}\""
+        ),
+        "/\"uid\":\\s*\"prometheus\"/",
+        "\"uid\": \"${local.datasource_uid_rewrites["prometheus"]}\""
+      ),
+      "/\"uid\":\\s*\"infinity\"/",
+      "\"uid\": \"${local.datasource_uid_rewrites["infinity"]}\""
+    )
+  }
+}
+
+# Solidago (AWS) dashboards — separate map from the lab set, and
 # deliberately NOT routed through the datasource-UID-rewrite machinery above:
 # Solidago dashboard JSON references "solidago-cloudwatch" directly, a uid WE
-# choose in datasources.tf — unlike the firewalla dashboards, which predate
+# choose in datasources.tf — unlike the lab dashboards, which predate
 # the stack and carry legacy self-hosted uids that must be rewritten at
 # apply time.
 locals {

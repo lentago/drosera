@@ -119,6 +119,6 @@ $(c_ok "Claude Code cost export installed.")
   Spool:    $INSTALL_DIR/spool.ndjson   (unsent; drains when on-LAN)
   Run now:  flock -n $INSTALL_DIR/.lock $NODE_BIN $INSTALL_DIR/cost-export.mjs        # sweep + ship
   Backfill: COST_LOOKBACK_DAYS=90 flock -n $INSTALL_DIR/.lock $NODE_BIN $INSTALL_DIR/cost-export.mjs sweep
-  Dashboard: "Claude Runner Fleet" → Local sessions row  (source="local")
+  Dashboard: "Claytonia — Runner Fleet" → Local sessions row  (source="local")
   Underway:  ~30s heartbeat on active tool use → "Local sessions underway" pane
 EOF

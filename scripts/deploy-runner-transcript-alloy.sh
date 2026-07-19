@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # This tails Claude Code's live session transcripts and ships a scrubbed,
 # human-readable reasoning stream to Grafana Cloud Loki (job="claude_transcript"),
-# rendered live on the Claude Runner Fleet dashboard. See issue #71 and the
+# rendered live on the Claytonia — Runner Fleet dashboard. See issue #71 and the
 # canonical config alloy/runner-transcript.alloy (read verbatim by this script —
 # there is no second embedded copy to drift).
 #
