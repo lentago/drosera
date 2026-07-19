@@ -46,13 +46,14 @@ terraform/*.tf              # Grafana Cloud resources (folder, dashboards, …)
 scripts/deploy-node-exporter.sh
 scripts/inventory-cloud.sh  # optional snapshot of Cloud API (needs GRAFANA_* env)
 claude-cost-export/         # local-session cost exporter + session_running heartbeat
-                            # (feeds the Claude Runner Fleet dashboard; rehomed from
-                            # workstation-bootstrap when that repo was archived)
+                            # (feeds the Claytonia — Runner Fleet dashboard; rehomed
+                            # from workstation-bootstrap when that repo was archived)
 ```
 
 ## Key conventions
 
-- **Dashboard UIDs**: `firewalla-<name>` (e.g. `firewalla-network-overview`); per-site dashboards use `site-<domain-with-dashes>` matching the site repo names (e.g. `site-pondviewlane-com`).
+- **Folders & titles follow the product lines** (2026-07-18 reorg): `Claytonia` (Claytonia — Runner Fleet), `Solidago` (Solidago — Platform Health), `Sites` (per-site dashboards), and `Lentago Lab` for the homelab-source dashboards (the lab is drosera's first client, not a product). Product-scoped dashboard titles use `<Product> — <What>`.
+- **Dashboard UIDs are frozen legacy names** — `firewalla-<name>` for the lab set and `claude-runner-fleet` for the Claytonia fleet dashboard. UIDs are load-bearing (cross-dashboard `/d/` links, the office-display public share, terraform import blocks); changing one is a destroy/create. New per-site dashboards use `site-<domain-with-dashes>` matching the site repo names (e.g. `site-pondviewlane-com`); new product dashboards use `<product>-<name>` (e.g. `solidago-platform-health`).
 - **Loki labels**: `log_source` is the main stream selector — current values are `zeek_dns`, `zeek_conn`, `zeek_ssl`, `firewalla_acl`. After Alloy → Cloud, queries may also see `cluster="lentago-lab"` from `external_labels` in Alloy — use both if a panel is empty. Data ingested before the 2026-07-04 label migration still carries `cluster="homelab"`.
 - **Log parsing**: Zeek panels use `| json | line_format "{{.log}}" | json` to unwrap nested JSON.
 - **Template variables**: DNS & Traffic dashboards use `$device_ip` for per-device filtering.

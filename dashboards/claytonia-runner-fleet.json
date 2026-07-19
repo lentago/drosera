@@ -1,9 +1,9 @@
 {
   "uid": "claude-runner-fleet",
-  "title": "Claude Runner Fleet",
-  "description": "Claude Runner Fleet observability: per-job cost, turns, and runtime from Loki job_complete events, plus a live open-PR review queue pulled from the GitHub API via the Infinity datasource.",
+  "title": "Claytonia — Runner Fleet",
+  "description": "Claytonia (agent fleet) observability: per-job cost, turns, and runtime from Loki job_complete events, plus a live open-PR review queue pulled from the GitHub API via the Infinity datasource. The uid keeps the legacy claude-runner-fleet name so existing links survive.",
   "tags": [
-    "claude-runner",
+    "claytonia",
     "lentago-lab"
   ],
   "timezone": "browser",

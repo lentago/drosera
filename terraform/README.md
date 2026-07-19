@@ -78,6 +78,6 @@ concurrency group so two quick merges serialize instead of racing.
 ## Creating a new dashboard from scratch
 
 1. Drop a JSON file in `../dashboards/`.
-2. Add an entry to the `firewalla_dashboards` map in [`locals.tf`](locals.tf) (the `grafana_dashboard` resource uses `for_each` over that map in [`dashboards.tf`](dashboards.tf)).
+2. Add an entry to the matching per-folder map (`lab_dashboards`, `claytonia_dashboards`, `solidago_dashboards`, or `sites_dashboards`) in [`locals.tf`](locals.tf) (the `grafana_dashboard` resources use `for_each` over those maps in [`dashboards.tf`](dashboards.tf)).
 3. Add a matching `import` block in [`imports.tf`](imports.tf) if the dashboard was already created in the UI (otherwise Terraform creates it on first apply).
 4. `terraform apply`.
