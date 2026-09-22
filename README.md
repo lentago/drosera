@@ -208,17 +208,6 @@ for the SLO targets and burn-rate design.
   the probe rules — because an empty Loki result *is* the failure this group
   exists to catch, not an ambiguous vantage-point gap. `zeek_notice` carries no
   absence alert (sparse, bursty by nature — a quiet day is a real zero).
-- **`Context ledger alerts`** (4 rules, issue #185 — quarantine, stale host
-  snapshot, and committer silence over `{service="context_ledger"}`, the
-  cross-repo event contract documented in
-  [lentago/claytonia docs/context-ledger.md](https://github.com/lentago/claytonia/blob/main/docs/context-ledger.md)
-  § Events). Events land once daily after the 05:00 committer sweep, so
-  windows are sized in days (26h default, 96h for the `cpitzi-ThinkPad`
-  laptop, which gets its own threshold and `info` severity since travel isn't
-  an incident). Quarantine fires immediately (`for = "0s"`) at `critical`
-  severity — it means the snapshot guard caught secret-shaped content in a
-  host's context. `claude_version` is deliberately never alerted on
-  (known-broken on workers, claytonia#89).
 - **`Site SLO burn rate`** (6 rules, issue #195 — a fast/slow pair for each of
   the three public sites: lentago.dev, icecreamtofightwith.com,
   pondviewlane.com). These are *objective* alerts, not symptom alerts: they fire
@@ -314,7 +303,7 @@ dashboards/                    # source of truth for Grafana dashboard JSON
 terraform/                     # manages Cloud-side resources
   *.tf                         # incl. datasources.tf (solidago-cloudwatch) and
                                 # alerts.tf (site probe + Loki ingest-absence +
-                                # context-ledger alert rules)
+                                # bullpen + lab availability alert rules)
 docs/adr/                      # architecture decision records (e.g. native alerting for site probes)
 scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
