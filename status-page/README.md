@@ -1,7 +1,18 @@
 # Estate status page
 
-A static status page, regenerated on a schedule and published to **GitHub Pages
-from this repo** (no new services, free tier). It shows:
+**What you're about to do:** publish a status page for your estate — site
+availability against a 99.9% SLO, fleet CI health per repo, and a link to your
+incident register. GitHub Pages rebuilds it every thirty minutes on a schedule,
+no new services, free tier.
+
+**Why bother:** anyone, including you at 2 am, can see at a glance whether a
+site is up, the error budget is still green, and CI is passing — no Grafana
+login required.
+
+**Time:** about twenty minutes to enable Pages and wire the required secrets the
+first time.
+
+The page shows:
 
 1. **Site availability** vs the 99.9% / 30-day SLO, with error-budget remaining,
    queried from the same Grafana Cloud Mimir `probe_success` series the R14
@@ -14,13 +25,11 @@ from this repo** (no new services, free tier). It shows:
 Built by [`build.py`](build.py) (stdlib only — `tomllib` + `urllib`, no pip
 install) and deployed by [`.github/workflows/status-page.yml`](../.github/workflows/status-page.yml).
 
-## Degrade gracefully — never fake green
-
-Every data source degrades independently. If the Mimir query fails (or no
-credential is configured), a GitHub call fails, or a series is missing, the
-affected item renders an explicit neutral **"no data"** state — never a healthy
-green one — and the rest of the page still builds. The page makes no correctness
-or availability guarantees in its copy.
+> **Heads up.** Every data source degrades independently. If the Mimir query
+> fails (or no credential is configured), a GitHub call fails, or a series is
+> missing, the affected item renders an explicit neutral **"no data"** state —
+> never a healthy green one — and the rest of the page still builds. The page
+> makes no correctness or availability guarantees in its copy.
 
 ## Variants — a config file away
 
@@ -68,3 +77,9 @@ health are public, so no extra scope is needed.
 The workflow deploys via `actions/deploy-pages`. In repo **Settings → Pages**,
 set **Source: GitHub Actions** once. Trigger a first build via **Actions →
 status-page → Run workflow** (or wait for the `*/30` cron).
+
+**How you know it worked:** within a minute or two of the first successful run,
+GitHub shows the Pages URL under **Settings → Pages**. Open it and confirm you
+see site rows with SLO data (or "no data" if Mimir credentials aren't set yet)
+and a CI badge per repo. The `status.json` companion at `<pages-url>/status.json`
+is machine-readable if you want to pull the data elsewhere.
