@@ -1012,7 +1012,7 @@
         "prettifyLogMessage": false,
         "enableLogDetails": true,
         "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "sortOrder": "Ascending"
       },
       "targets": [
         {
@@ -1047,7 +1047,7 @@
         "prettifyLogMessage": false,
         "enableLogDetails": true,
         "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "sortOrder": "Ascending"
       },
       "targets": [
         {
@@ -1082,7 +1082,7 @@
         "prettifyLogMessage": false,
         "enableLogDetails": true,
         "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "sortOrder": "Ascending"
       },
       "targets": [
         {
@@ -1117,7 +1117,7 @@
         "prettifyLogMessage": false,
         "enableLogDetails": true,
         "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "sortOrder": "Ascending"
       },
       "targets": [
         {
@@ -1152,7 +1152,7 @@
         "prettifyLogMessage": false,
         "enableLogDetails": true,
         "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "sortOrder": "Ascending"
       },
       "targets": [
         {
