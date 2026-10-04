@@ -187,7 +187,7 @@ look for `device_inventory` gaps (below) and for the metrics pipeline.
 ## Alerting
 
 Terraform provisions the stack's alerting end to end —
-[`terraform/alerts.tf`](terraform/alerts.tf): **41 rules** across six rule
+[`terraform/alerts.tf`](terraform/alerts.tf): **40 rules** across six rule
 groups in the `Lentago` folder, plus the stack's first contact point. See
 [docs/adr/0001-grafana-native-alerting-for-site-probes.md](docs/adr/0001-grafana-native-alerting-for-site-probes.md)
 for why this lives in Grafana instead of AWS, and
@@ -234,8 +234,19 @@ for the SLO targets and burn-rate design.
   legitimate idle stretch until claytonia ships an always-on
   `workers/<host>.alive` heartbeat to Loki (boundary: drosera owns the rules,
   claytonia owns the telemetry). See ADR-0009.
+- **`Uvularia pipeline — lentago`** (3 rules, issue #218 — from the
+  [`uvularia-pipeline`](terraform/modules/uvularia-pipeline/main.tf) module, the
+  same one clients apply into their own stacks): **served digest behind
+  published** for 30m, **obligation went amber or red** on a publish, and the
+  **Ask daily cap nearly spent** (under 20% left, or a turn refused for the
+  cap). Loki-sourced over `log_source=uvularia_*`, `cluster="lentago"`. Each
+  query returns a series only when something is wrong, so `no_data_state =
+  "OK"`. Contact point and routing are the `uvularia_contact_point` /
+  `uvularia_repeat_interval` / `uvularia_group_by` variables; the contact point
+  defaults to `Site probe email`. See
+  [docs/clients/uvularia.md](docs/clients/uvularia.md).
 - **Contact point:** one email contact point (`Site probe email`), reused by
-  all five groups. The recipient is `TF_VAR_alert_email`, a sensitive
+  every group. The recipient is `TF_VAR_alert_email`, a sensitive
   Terraform variable with no default, supplied via CI/`.envrc` and never
   committed (this is a public repo). Routing is scoped per-rule, so it doesn't
   touch the stack's root notification policy.
@@ -251,6 +262,17 @@ labels — `log_source=<source>_<stage>`, `cluster=<org>`, plus `source`,
 `pipeline`, `stage`, `repo` — with the payload as a one-line JSON log. First
 consumer is uvularia, pushing into each client's own Grafana Cloud stack.
 Token setup and label rules: [clients/README.md](clients/README.md).
+
+**The uvularia pipeline pane** reads those events: the
+`Uvularia — Records pipeline` dashboard
+([`dashboards/uvularia-pipeline.json`](dashboards/uvularia-pipeline.json),
+uid `uvularia-pipeline`) plus three alert rules, packaged as one Terraform
+module, [`terraform/modules/uvularia-pipeline/`](terraform/modules/uvularia-pipeline/main.tf).
+This stack runs it for the demonstration client (`cluster = "lentago"`, wired
+in [`terraform/alerts.tf`](terraform/alerts.tf)); a client runs the same module
+from their own repo into their own free-tier stack, and nothing of theirs is
+hosted here. How a client applies it, and the payload fields each stage must
+send: [docs/clients/uvularia.md](docs/clients/uvularia.md).
 
 ## Solidago (AWS) contract
 
@@ -314,14 +336,17 @@ dashboards/                    # source of truth for Grafana dashboard JSON
   neptune-nas.json             # Neptune NAS real-time activity (CPU/disk/net/RAID/temps)
   solidago-platform-health.json # Solidago (AWS) via the CloudWatch datasource
   site-*.json                  # per-site health (Mimir probes + per-TG/service CloudWatch)
+  uvularia-pipeline.json       # Uvularia — Records pipeline (Loki events, cluster variable)
 terraform/                     # manages Cloud-side resources
   *.tf                         # incl. datasources.tf (solidago-cloudwatch) and
                                 # alerts.tf (site probe + Loki ingest-absence +
                                 # bullpen + lab availability alert rules)
+  modules/uvularia-pipeline/   # uvularia dashboard + rules; estate and clients both use it
 clients/                       # source-neutral client emitters (#131)
   loki_push.py                 # stdlib-only Loki push for serverless functions
   README.md                    # token setup + label discipline
 docs/adr/                      # architecture decision records (e.g. native alerting for site probes)
+docs/clients/uvularia.md       # client export: the uvularia pane into a client's own stack
 scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host

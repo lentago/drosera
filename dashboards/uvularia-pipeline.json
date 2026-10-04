@@ -1,0 +1,1075 @@
+{
+  "uid": "uvularia-pipeline",
+  "title": "Uvularia — Records pipeline",
+  "description": "uvularia operator pane: one row left to right — Intake, Reviewed, Published, Served, Asked — from the events each stage pushes to Loki (log_source=uvularia_<stage>, cluster=<org>), then announcement latency, the obligation timeline, and the demand loop. One JSON serves any org: pick it with the cluster variable. Every panel reads \"no data\" when its events are missing, never a fake green. Event contract: docs/clients/uvularia.md.",
+  "tags": [
+    "uvularia"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Org (cluster)",
+        "type": "query",
+        "description": "The owning org's slug — the cluster label every uvularia event carries.",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values({source=\"uvularia\"}, cluster)",
+        "query": "label_values({source=\"uvularia\"}, cluster)",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "current": {
+          "text": "lentago",
+          "value": "lentago"
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "green",
+        "name": "Published",
+        "expr": "{log_source=\"uvularia_published\", cluster=\"$cluster\"} | json",
+        "step": "60s",
+        "titleFormat": "Published",
+        "textFormat": "digest {{.digest}}",
+        "type": "default"
+      },
+      {
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "blue",
+        "name": "Rules released",
+        "expr": "{log_source=\"uvularia_rules_released\", cluster=\"$cluster\"} | json",
+        "step": "60s",
+        "titleFormat": "Rules released",
+        "textFormat": "tag {{.tag}}",
+        "type": "default"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Intake",
+      "description": "Open intake Issues and PRs, and how long the oldest has waited. From the latest uvularia_intake event in 7 days (fields: open, oldest_opened_at). No event in 7 days reads \"no data\", never zero.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "no data",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "none waiting",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_intake\", cluster=\"$cluster\"} | json v=\"open\" | unwrap v | __error__=\"\" [7d]))",
+          "legendFormat": "open"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_intake\", cluster=\"$cluster\"} | json v=\"oldest_opened_at\" | unwrap v | __error__=\"\" [7d])) * 1000",
+          "legendFormat": "oldest"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Reviewed",
+      "description": "PRs whose checks are green and are waiting on a human, and how long the oldest has waited. From the latest uvularia_reviewed event in 7 days (fields: awaiting, oldest_green_at).",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "no data",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "none waiting",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_reviewed\", cluster=\"$cluster\"} | json v=\"awaiting\" | unwrap v | __error__=\"\" [7d]))",
+          "legendFormat": "awaiting a human"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_reviewed\", cluster=\"$cluster\"} | json v=\"oldest_green_at\" | unwrap v | __error__=\"\" [7d])) * 1000",
+          "legendFormat": "oldest"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Published",
+      "description": "The latest published corpus digest and how long ago it was published, plus the obligation standing that publish recorded (green / amber / red / no data). From uvularia_published events in 14 days (Grafana Cloud free-tier log retention).",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 5,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "no data",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "unknown",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(1, max by (digest) (max_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json digest=\"digest\", v=\"at\" | unwrap v | __error__=\"\" [14d]))) * 1000",
+          "legendFormat": "{{digest}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.green\" | unwrap v | __error__=\"\" [14d]))",
+          "legendFormat": "green"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.amber\" | unwrap v | __error__=\"\" [14d]))",
+          "legendFormat": "amber"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.red\" | unwrap v | __error__=\"\" [14d]))",
+          "legendFormat": "red"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.no_data\" | unwrap v | __error__=\"\" [14d]))",
+          "legendFormat": "no data"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Served",
+      "description": "The digest the Ask function last reported serving and how long ago it said so, the rules tag it runs, and how many refresh checks it reported in 24h. Compare the digest with Published: the \"Served digest behind published\" alert fires when they differ for more than 30 minutes.",
+      "gridPos": {
+        "x": 13,
+        "y": 0,
+        "w": 5,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "no data",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "unknown",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "unknown",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(1, max by (digest) (max_over_time({log_source=\"uvularia_served\", cluster=\"$cluster\"} | json digest=\"digest\", v=\"at\" | unwrap v | __error__=\"\" [1d]))) * 1000",
+          "legendFormat": "{{digest}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(1, max by (rules_tag) (max_over_time({log_source=\"uvularia_served\", cluster=\"$cluster\"} | json rules_tag=\"rules_tag\", v=\"at\" | unwrap v | __error__=\"\" [1d]))) * 1000",
+          "legendFormat": "rules {{rules_tag}}"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({log_source=\"uvularia_served\", cluster=\"$cluster\"} [24h]))",
+          "legendFormat": "refreshes (24h)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Asked",
+      "description": "Questions in the last 24h by outcome kind (answered / incident / escalated / declined, plus maintenance or capped if any), median answer latency, the daily cap remaining after the most recent question, and when that question came in.",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "no data",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "unknown",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (kind) (count_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json kind=\"kind\" [24h]))",
+          "legendFormat": "{{kind}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(quantile_over_time(0.5, {log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json v=\"latency_ms\" | unwrap v | __error__=\"\" [24h]))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(last_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json v=\"cap_remaining\" | unwrap v | __error__=\"\" [24h]))",
+          "legendFormat": "cap left"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max(max_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json v=\"at\" | unwrap v | __error__=\"\" [24h])) * 1000",
+          "legendFormat": "last question"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Announcements — merge-to-live latency",
+      "description": "For each publish that took an announcement live: the longest time from the announcement's merge to it being live (announcement_latency_s on uvularia_published). One point per publish; empty when no announcement has gone live in range.",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "no data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 8,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max(max_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"announcement_latency_s\" | unwrap v | __error__=\"\" [$__interval]))",
+          "legendFormat": "latency"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Obligation timeline — standing at each publish",
+      "description": "How the obligations stood at each publish: count of green, amber, red and no-data obligations from the standing summary on uvularia_published, stepped forward until the next publish. Published annotations mark each publish.",
+      "gridPos": {
+        "x": 12,
+        "y": 7,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no data",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 60,
+            "showPoints": "always",
+            "pointSize": 4,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.green\" | unwrap v | __error__=\"\" [$__interval]))",
+          "legendFormat": "green"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.amber\" | unwrap v | __error__=\"\" [$__interval]))",
+          "legendFormat": "amber"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.red\" | unwrap v | __error__=\"\" [$__interval]))",
+          "legendFormat": "red"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max(last_over_time({log_source=\"uvularia_published\", cluster=\"$cluster\"} | json v=\"standing.no_data\" | unwrap v | __error__=\"\" [$__interval]))",
+          "legendFormat": "no data"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Demand loop — top unanswered subjects (7 days)",
+      "description": "Subjects of questions the Ask box escalated or declined in the last 7 days, most-asked first (subject on uvularia_asked; \"unmatched\" when the question matched no subject). Each bar is a record nobody has written yet.",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no data",
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(10, sum by (subject) (count_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json kind=\"kind\", subject=\"subject\" | kind=~\"escalated|declined\" [7d])))",
+          "legendFormat": "{{subject}}"
+        }
+      ]
+    }
+  ]
+}
