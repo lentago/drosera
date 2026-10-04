@@ -240,6 +240,18 @@ for the SLO targets and burn-rate design.
   committed (this is a public repo). Routing is scoped per-rule, so it doesn't
   touch the stack's root notification policy.
 
+## Client event push (Actions + serverless)
+
+Workflows and serverless functions can't run Alloy, so drosera ships two tiny
+emitters that push **one structured event** straight to a Grafana Cloud Loki
+push endpoint: the [`loki-event`](.github/actions/loki-event/README.md)
+composite action (`lentago/drosera/.github/actions/loki-event@main`) and
+[`clients/loki_push.py`](clients/README.md) for functions. Both send the same
+labels — `log_source=<source>_<stage>`, `cluster=<org>`, plus `source`,
+`pipeline`, `stage`, `repo` — with the payload as a one-line JSON log. First
+consumer is uvularia, pushing into each client's own Grafana Cloud stack.
+Token setup and label rules: [clients/README.md](clients/README.md).
+
 ## Solidago (AWS) contract
 
 Solidago platform metrics render in this stack via a **query-on-demand
@@ -306,13 +318,19 @@ terraform/                     # manages Cloud-side resources
   *.tf                         # incl. datasources.tf (solidago-cloudwatch) and
                                 # alerts.tf (site probe + Loki ingest-absence +
                                 # bullpen + lab availability alert rules)
+clients/                       # source-neutral client emitters (#131)
+  loki_push.py                 # stdlib-only Loki push for serverless functions
+  README.md                    # token setup + label discipline
 docs/adr/                      # architecture decision records (e.g. native alerting for site probes)
 scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host
   deploy-alloy.sh              # install a host-local Alloy push agent (15s remote_write)
+.github/actions/
+  loki-event/                  # composite action: one event from a workflow to Loki
 .github/workflows/
   terraform.yml                # fmt/validate/plan on PR
+  loki-event-test.yml          # loki-event + loki_push.py against a mock Loki
 ```
 
 ## First-time setup
