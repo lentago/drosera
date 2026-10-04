@@ -598,6 +598,80 @@
           }
         }
       ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Bandwidth over time — top devices",
+      "description": "Outbound bandwidth per source device over time, stacked, from Zeek conn.log: sum of orig_bytes (bytes sent) per $__interval for the top 10 devices, respecting the Device IP filter. Query-time Loki only — no recording rules or extra metric series. Devices are labelled by IP; name resolution via device_inventory is intentionally not joined here (that feed is currently down, #151). Zeek may report \"-\" for bytes on some connections, which are excluded.",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (id_orig_h) (sum_over_time({log_source=\"zeek_conn\"} | json | line_format \"{{.log}}\" | json | __error__=\"\" | id_orig_h=~\"$device_ip\" | unwrap orig_bytes [$__interval])))",
+          "queryType": "range",
+          "legendFormat": "{{id_orig_h}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "decbytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      }
     }
   ]
 }
