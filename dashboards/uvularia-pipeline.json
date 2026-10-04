@@ -368,6 +368,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "green"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -382,6 +386,10 @@
               "options": "C"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "amber"
+              },
               {
                 "id": "color",
                 "value": {
@@ -398,6 +406,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "red"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -412,6 +424,10 @@
               "options": "E"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "no data"
+              },
               {
                 "id": "color",
                 "value": {
