@@ -125,9 +125,25 @@
           {
             "matcher": {
               "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "open"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
               "options": "B"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "oldest waiting"
+              },
               {
                 "id": "unit",
                 "value": "dateTimeFromNow"
@@ -228,9 +244,25 @@
           {
             "matcher": {
               "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "awaiting"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
               "options": "B"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "oldest green"
+              },
               {
                 "id": "unit",
                 "value": "dateTimeFromNow"
@@ -547,6 +579,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "${__field.labels.digest}"
+              },
+              {
                 "id": "unit",
                 "value": "dateTimeFromNow"
               },
@@ -580,6 +616,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "${__field.labels.rules_tag}"
+              },
+              {
                 "id": "unit",
                 "value": "dateTimeFromNow"
               },
@@ -603,6 +643,18 @@
                   "mode": "fixed",
                   "fixedColor": "text"
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "refresh reports (24h)"
               }
             ]
           }
@@ -690,9 +742,25 @@
           {
             "matcher": {
               "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.labels.kind}"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
               "options": "B"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "median latency"
+              },
               {
                 "id": "unit",
                 "value": "ms"
@@ -713,6 +781,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "cap remaining"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -727,6 +799,10 @@
               "options": "D"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "last question"
+              },
               {
                 "id": "unit",
                 "value": "dateTimeFromNow"
