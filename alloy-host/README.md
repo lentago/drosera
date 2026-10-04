@@ -7,7 +7,7 @@ instead of being hand-patched. They mirror the kiosk's gitops loop
 
 | File | Installed to | Role |
 |---|---|---|
-| `gitops-pull.sh` | run in place from the clone | fetch `origin/main`, validate, reload Alloy on drift |
+| `gitops-pull.sh` | run in place from the clone | fetch `origin/main`, validate, reload Alloy on drift, restart it if down |
 | `alloy-gitops.service` | `/etc/systemd/system/` | oneshot that runs the script |
 | `alloy-gitops.timer` | `/etc/systemd/system/` | fires the service every 5 min |
 
@@ -16,19 +16,28 @@ instead of being hand-patched. They mirror the kiosk's gitops loop
 `alloy-gitops.timer` fires every 5 minutes. `gitops-pull.sh`:
 
 1. `flock`s against concurrent runs; refuses unless the checkout is on `main`.
-2. `git fetch origin main`; **exits silently if already up to date** (no-op fast
-   path — Alloy is never reloaded on a quiet poll).
-3. On divergence: `git reset --hard origin/main`, then validates the new config
-   with `alloy fmt` **inside the running container**. Alloy doesn't auto-reload,
-   so a broken config on disk can't affect the live process — on a validation
-   failure the script rolls the working tree back and skips the reload, leaving
-   the last-good in-memory config running.
+2. `git fetch origin main`; if already up to date it takes the no-op fast path
+   (Alloy is never reloaded on a quiet poll) — but still runs the liveness
+   guard (step 5).
+3. On divergence: `git reset --hard origin/main`. If `alloy/` or
+   `docker-compose.yml` changed, validates the new config **out-of-band**:
+   `docker run --rm -v <repo>/alloy:/etc/alloy:ro <image> fmt
+   /etc/alloy/config.alloy`, where `<image>` is parsed from the `alloy` service
+   in `docker-compose.yml` (not hardcoded). This doesn't depend on the running
+   container. On failure the script rolls the working tree back and skips the
+   apply, leaving the last-good in-memory config running.
 4. Applies the smallest reload for what changed:
    - `docker-compose.yml` changed → `docker compose up -d` (recreate).
    - `alloy/` changed → `docker kill --signal=HUP alloy` (config reload). The
      `./alloy` **directory** mount (see `docker-compose.yml`) means the
      container sees the new files; single-file mounts would not.
    - anything else (docs, scripts, terraform) → no reload.
+5. **Liveness guard** (every run, including the no-op path): if the `alloy`
+   container isn't running (`docker inspect` — missing, Exited, or
+   Restarting), the checked-out config is validated out-of-band. If it passes,
+   the script logs `WARN` and runs `docker compose up -d`; if it fails, it logs
+   `ERROR` and leaves the container alone. A down container **never** causes a
+   commit rollback.
 
 Log: `/var/log/alloy-gitops.log` (timestamped, leveled, rotates at 1 MB).
 
