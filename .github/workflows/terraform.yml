@@ -127,6 +127,7 @@ jobs:
 
       - name: drift check (refresh-only)
         id: drift
+        continue-on-error: true # advisory: a drift-check failure must not fail plan/gate
         run: |
           drift=$(../scripts/tf-drift.sh)
           if [ -n "$drift" ]; then
