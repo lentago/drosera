@@ -1,0 +1,54 @@
+name: loki-event
+description: >-
+  Push one structured event (a single JSON log line) to a Grafana Cloud Loki
+  push endpoint. POSIX sh + curl + jq; no third-party actions. See README.md.
+
+inputs:
+  loki_url:
+    description: >-
+      Loki base URL, e.g. https://logs-prod-012.grafana.net (the
+      /loki/api/v1/push path is appended if missing).
+    required: true
+  loki_token:
+    description: >-
+      Basic-auth pair "<loki-instance-id>:<access-policy-token>" with the
+      logs:write scope. Pass from a secret; never inline.
+    required: true
+  cluster:
+    description: Cluster label — the owning org slug (e.g. lentago).
+    required: true
+  source:
+    description: Emitting product slug (e.g. uvularia). Forms log_source=<source>_<stage>.
+    required: true
+  pipeline:
+    description: Pipeline slug within the source (e.g. vault-publish).
+    required: true
+  stage:
+    description: Stage slug within the pipeline (e.g. publish). Forms log_source=<source>_<stage>.
+    required: true
+  repo:
+    description: Repository the event is about, owner/name.
+    required: false
+    default: ${{ github.repository }}
+  payload-json:
+    description: >-
+      JSON object to send as the log line. Per-run detail (run ID, SHA,
+      counts, durations) belongs here, not in labels.
+    required: false
+    default: "{}"
+
+runs:
+  using: composite
+  steps:
+    - name: Push event to Loki
+      shell: sh
+      env:
+        LE_LOKI_URL: ${{ inputs.loki_url }}
+        LE_LOKI_TOKEN: ${{ inputs.loki_token }}
+        LE_CLUSTER: ${{ inputs.cluster }}
+        LE_SOURCE: ${{ inputs.source }}
+        LE_PIPELINE: ${{ inputs.pipeline }}
+        LE_STAGE: ${{ inputs.stage }}
+        LE_REPO: ${{ inputs.repo }}
+        LE_PAYLOAD_JSON: ${{ inputs.payload-json }}
+      run: '"$GITHUB_ACTION_PATH/push.sh"'

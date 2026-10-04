@@ -1,0 +1,151 @@
+# ============================================================================
+# loki-event-test — exercise the Actions → Loki push step and its Python twin
+# ============================================================================
+# Both run against a mock Loki on localhost, so no real token is involved and
+# nothing reaches Grafana Cloud. Each job checks the happy path AND that the
+# failure paths actually fail (HTTP error, bad label, bad payload, bad token);
+# a push step that can't fail would hide a dead pipeline.
+#
+# Not path-filtered, matching docs-check/tf-lint: a path-filtered check that
+# ever becomes required deadlocks non-matching PRs. Both jobs are seconds.
+#
+# Origin: #217 (first non-estate source; source-neutral direction per #131).
+# ============================================================================
+
+name: loki-event-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    env:
+      MOCK: http://127.0.0.1:18080
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Start mock Loki
+        run: |
+          # runner.temp isn't available in job-level env, so export it here.
+          echo "CAPTURE=$RUNNER_TEMP/loki-capture.ndjson" >>"$GITHUB_ENV"
+          nohup python3 .github/actions/loki-event/test/mock_loki.py 18080 \
+            "$RUNNER_TEMP/loki-capture.ndjson" >"$RUNNER_TEMP/mock.log" 2>&1 &
+          for _ in $(seq 50); do
+            curl -s -o /dev/null "$MOCK" && exit 0
+            sleep 0.1
+          done
+          echo "::error::mock Loki did not come up"; exit 1
+
+      - name: Push an event (happy path)
+        uses: ./.github/actions/loki-event
+        with:
+          loki_url: ${{ env.MOCK }}/
+          loki_token: "123456:not-a-real-token"
+          cluster: lentago
+          source: uvularia
+          pipeline: vault-publish
+          stage: publish
+          payload-json: '{"run_id": "${{ github.run_id }}", "note": "quote \" and\nnewline", "n": 3}'
+
+      - name: Assert the request Loki received
+        run: |
+          set -eu
+          test "$(wc -l <"$CAPTURE")" -eq 1
+          jq -e --arg auth "Basic $(printf '123456:not-a-real-token' | base64)" --arg repo "$GITHUB_REPOSITORY" '
+            .path == "/loki/api/v1/push"
+            and .content_type == "application/json"
+            and .authorization == $auth
+            and (.body.streams | length) == 1
+            and .body.streams[0].stream == {
+                  log_source: "uvularia_publish", cluster: "lentago", source: "uvularia",
+                  pipeline: "vault-publish", stage: "publish", repo: $repo }
+            and (.body.streams[0].values | length) == 1
+            and (.body.streams[0].values[0][0] | test("^[0-9]{19}$"))
+            and (.body.streams[0].values[0][1] | contains("\n") | not)
+            and (.body.streams[0].values[0][1] | fromjson) == {
+                  run_id: env.GITHUB_RUN_ID, note: "quote \" and\nnewline", n: 3 }
+          ' "$CAPTURE"
+
+      - name: "Must fail: Loki answers HTTP 500"
+        id: http500
+        continue-on-error: true
+        uses: ./.github/actions/loki-event
+        with:
+          loki_url: ${{ env.MOCK }}/status/500
+          loki_token: "123456:not-a-real-token"
+          cluster: lentago
+          source: uvularia
+          pipeline: vault-publish
+          stage: publish
+
+      - name: "Must fail: hyphen in stage (would break log_source)"
+        id: badstage
+        continue-on-error: true
+        uses: ./.github/actions/loki-event
+        with:
+          loki_url: ${{ env.MOCK }}
+          loki_token: "123456:not-a-real-token"
+          cluster: lentago
+          source: uvularia
+          pipeline: vault-publish
+          stage: pre-publish
+
+      - name: "Must fail: payload is not a JSON object"
+        id: badpayload
+        continue-on-error: true
+        uses: ./.github/actions/loki-event
+        with:
+          loki_url: ${{ env.MOCK }}
+          loki_token: "123456:not-a-real-token"
+          cluster: lentago
+          source: uvularia
+          pipeline: vault-publish
+          stage: publish
+          payload-json: "{not json"
+
+      - name: "Must fail: token without the instance-id half"
+        id: badtoken
+        continue-on-error: true
+        uses: ./.github/actions/loki-event
+        with:
+          loki_url: ${{ env.MOCK }}
+          loki_token: "glc_token_only"
+          cluster: lentago
+          source: uvularia
+          pipeline: vault-publish
+          stage: publish
+
+      - name: Assert every must-fail step failed
+        env:
+          OUTCOMES: >-
+            http500=${{ steps.http500.outcome }}
+            badstage=${{ steps.badstage.outcome }}
+            badpayload=${{ steps.badpayload.outcome }}
+            badtoken=${{ steps.badtoken.outcome }}
+        run: |
+          set -eu
+          rc=0
+          for o in $OUTCOMES; do
+            case "$o" in
+              *=failure) echo "ok   $o" ;;
+              *) echo "::error::expected failure, got $o"; rc=1 ;;
+            esac
+          done
+          # Only the HTTP 500 case should have reached the wire; input
+          # validation must reject the rest before sending anything.
+          n="$(wc -l <"$CAPTURE")"
+          [ "$n" -eq 2 ] || { echo "::error::mock saw $n requests, want 2"; rc=1; }
+          exit "$rc"
+
+  python-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Unit-test clients/loki_push.py
+        run: python3 -m unittest discover -s clients -v
