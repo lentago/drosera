@@ -125,6 +125,23 @@ jobs:
       - name: init
         run: terraform init -input=false
 
+      - name: drift check (refresh-only)
+        id: drift
+        run: |
+          drift=$(../scripts/tf-drift.sh)
+          if [ -n "$drift" ]; then
+            {
+              echo 'drift<<EOF'
+              echo "$drift"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+            {
+              echo "### ⚠ Live drift"
+              echo "This merge's apply will overwrite live-only edits on:"
+              echo "$drift" | sed 's/^/- /'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: plan
         id: plan
         continue-on-error: true
@@ -145,12 +162,22 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PLAN: ${{ steps.plan.outputs.plan }}
+          DRIFT: ${{ steps.drift.outputs.drift }}
           OUTCOME: ${{ steps.plan.outcome }}
         with:
           script: |
             const plan = process.env.PLAN || '(no plan output captured)';
             const outcome = process.env.OUTCOME;
+            const drift = (process.env.DRIFT || '').trim();
+            const warning = drift
+              ? [
+                  "### ⚠ Live drift: this merge's apply will overwrite live-only edits on:",
+                  ...drift.split('\n').map((l) => `- ${l}`),
+                  '',
+                ]
+              : [];
             const body = [
+              ...warning,
               `### terraform plan (${outcome})`,
               '```',
               plan,
@@ -209,6 +236,13 @@ jobs:
 
       - name: init
         run: terraform init -input=false
+
+      # Advisory: record what this apply is about to revert (live-only edits).
+      - name: drift check (refresh-only)
+        run: |
+          ../scripts/tf-drift.sh | while IFS= read -r line; do
+            echo "overwriting live-only changes on $line"
+          done
 
       - name: apply
         run: terraform apply -auto-approve -no-color -input=false

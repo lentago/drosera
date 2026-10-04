@@ -103,6 +103,17 @@ value in Secrets Manager left the ECS log pipeline dead for 16 days: a credentia
 present, well-formed to every system that touches it, and wrong. Prefer guards that assert a
 secret is *usable* over ones that merely assert it is *set*.
 
+### Live-drift warning
+
+Both the PR `plan` job and the `apply` job run `scripts/tf-drift.sh`, a
+`terraform plan -refresh-only` that lists every `grafana_dashboard` /
+`grafana_rule_group` whose live state differs from last-applied state
+(live-only edits). On a PR the list is prepended to the plan comment and the
+job summary ("⚠ Live drift: …"); on merge the apply log gets one
+`overwriting live-only changes on <addr>` line per resource. It is advisory
+only — it never blocks a plan or apply, and a failed refresh just warns.
+See #153 and CLAUDE.md § Live dashboard edits.
+
 ## Adopting a new resource that already exists in Cloud
 
 1. Add an `import` block in `imports.tf`:
