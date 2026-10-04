@@ -185,9 +185,13 @@ resource "grafana_rule_group" "pipeline" {
       }
 
       annotations = {
-        summary          = rule.value.summary
-        description      = rule.value.description
+        summary     = rule.value.summary
+        description = rule.value.description
+        # Grafana requires both or neither: a rule that names the dashboard must
+        # also name the panel it belongs to (the first apply failed with exactly
+        # that 400). Each rule declares the panel it is about.
         __dashboardUid__ = var.dashboard_uid
+        __panelId__      = tostring(rule.value.panel_id)
       }
     }
   }
