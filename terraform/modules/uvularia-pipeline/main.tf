@@ -55,8 +55,9 @@ locals {
   # and the threshold is simply "a series exists" (count > 0).
   rules = [
     {
-      key  = "stale-digest"
-      name = "Uvularia — served digest behind published"
+      key      = "stale-digest"
+      panel_id = 4 # dashboard panel this alert links to (__panelId__)
+      name     = "Uvularia — served digest behind published"
       # The latest published digest, unless that digest has been reported by
       # the Ask function (served refresh or answered turn) in the window.
       # Pending until it has stayed that way for stale_digest_minutes.
@@ -68,8 +69,9 @@ locals {
       description = "Latest uvularia_published digest not seen on uvularia_served or uvularia_asked in the last ${var.stale_digest_minutes}m, sustained ${var.stale_digest_minutes}m."
     },
     {
-      key  = "obligation-gained"
-      name = "Uvularia — obligation went amber or red"
+      key      = "obligation-gained"
+      panel_id = 7 # dashboard panel this alert links to (__panelId__)
+      name     = "Uvularia — obligation went amber or red"
       # Latest standing vs. the latest standing as of 30m ago: fires for 30
       # minutes after a publish whose amber or red count went up (an amber that
       # turned red raises red, so it fires too).
@@ -81,8 +83,9 @@ locals {
       description = "standing.amber or standing.red on uvularia_published rose against the standing as of 30m earlier."
     },
     {
-      key  = "cap-low"
-      name = "Uvularia — Ask daily cap nearly spent"
+      key      = "cap-low"
+      panel_id = 5 # dashboard panel this alert links to (__panelId__)
+      name     = "Uvularia — Ask daily cap nearly spent"
       # cap_remaining / (cap_used + cap_remaining) from the most recent turn in
       # the last hour, or any turn refused for the cap. The hour bounds it to
       # today's cap, which resets at 00:00 UTC.
