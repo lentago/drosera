@@ -212,17 +212,21 @@ locals {
   # `window` is the count_over_time lookback (sized to each stream's cadence);
   # `from_seconds` is the rule's relative_time_range and must cover that window.
   #
-  # firewalla_acl is the one stream the 2026-07-24 design comment on #150 flags as
-  # fragile for pure absence detection: it is event-driven (ACL alarms only emit on
-  # a matching blocked/allowed flow), so a legitimately quiet network can produce a
-  # real zero. The comment's principle — constant-volume streams (zeek_dns/zeek_conn)
-  # alert directly; a heartbeat is the robust mechanism for genuinely quiet streams —
-  # is honoured here two ways: (1) firewalla_acl gets a materially wider 2h window so
-  # a false zero is implausible on any active network, and (2) device_inventory needs
-  # no special handling because its hourly cron IS a heartbeat — a known-cadence
-  # emitter whose absence is unambiguous. A synthetic ACL-liveness heartbeat that
-  # would let firewalla_acl detect faster is the robust long-term fix and is out of
-  # scope for this Loki-only issue (see PR body).
+  # firewalla_acl was originally treated as quiet and event-driven (and given a
+  # wide 2h window) on the assumption that ACL alarms only emit on a matching
+  # flow. Measurement says otherwise: 40,250 lines/2h on 2026-07-25 and 42,067
+  # lines/2h on 2026-10-04 (~350/min) — continuous and high-volume, so the 2h
+  # window is far wider than it needs to be (#176). It does NOT get zeek_dns/
+  # zeek_conn's 30m, though: those are measured the same way but are per-packet
+  # Zeek streams with inherently low burst variance, while firewalla_acl is
+  # discrete alarm events and only 2h-bucket totals were measured here, not
+  # minute-level gaps — a 30m window can't rule out a sub-window quiet stretch
+  # the way the Zeek streams' measurement does. 1h matches the same
+  # conservative class as zeek_http/zeek_files, which carry the same bucket-
+  # only measurement caveat (#233 review). device_inventory needs no special
+  # handling because its hourly cron IS a heartbeat — a known-cadence emitter
+  # whose absence is unambiguous. Principle: constant-volume streams alert
+  # directly; a heartbeat is the robust mechanism for genuinely quiet streams.
   #
   # 2026-08-09 (#183): the four betula#58 streams join the contract. Measured 24h
   # volumes (Loki instant query, 2026-08-09): zeek_ssl 150k, zeek_http 89k,
@@ -285,9 +289,9 @@ locals {
       key          = "firewalla-acl"
       stream       = "firewalla_acl"
       name         = "Ingest absence — firewalla_acl"
-      window       = "2h"
-      from_seconds = 7200
-      summary      = "No firewalla_acl log lines ingested in the last 2h. This is a lower-volume, event-driven stream (ACL alarms); the 2h window is sized so a legitimately quiet network is unlikely to produce a false zero. A sustained gap indicates the ACL alarm shipper has stopped."
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No firewalla_acl log lines ingested in the last 1h. This is a high-volume stream (~350 lines/min; 42,067 lines/2h measured 2026-10-04, 40,250/2h on 2026-07-25), but only 2h-bucket totals are confirmed, not minute-level gaps, so it gets a conservative 1h window — a zero means the ACL alarm shipper has stopped delivering to Cloud Loki."
     },
     {
       key          = "device-inventory"
