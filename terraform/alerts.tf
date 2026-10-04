@@ -1079,3 +1079,41 @@ resource "grafana_rule_group" "lab_availability" {
     }
   }
 }
+
+# ---------------------------------------------------------------------------
+# Uvularia records pipeline (issue #218) — dashboard + rule group for the
+# demonstration client (cluster = "lentago"), via the same module a client
+# applies into their own stack (docs/clients/uvularia.md). The dashboard
+# (dashboards/uvularia-pipeline.json, uid uvularia-pipeline) is wired here
+# rather than through locals.tf so the estate exercises exactly the path a
+# client runs. Three rules: served digest behind published > 30m, obligation
+# gained an amber or red, Ask daily cap below 20%. Loki-sourced, zero new Mimir
+# series. Presence-shaped queries, so no_data_state = "OK" (empty = healthy).
+
+variable "uvularia_contact_point" {
+  type        = string
+  default     = null
+  description = "Contact point for the uvularia pipeline rules. null routes to the stack's existing email contact point (Site probe email)."
+}
+
+variable "uvularia_repeat_interval" {
+  type        = string
+  default     = "4h"
+  description = "Re-notification interval for still-firing uvularia pipeline rules."
+}
+
+variable "uvularia_group_by" {
+  type        = list(string)
+  default     = null
+  description = "Notification grouping labels for the uvularia pipeline rules. null keeps Grafana's default."
+}
+
+module "uvularia_pipeline_lentago" {
+  source = "./modules/uvularia-pipeline"
+
+  cluster         = "lentago"
+  folder_uid      = grafana_folder.lentago.uid
+  contact_point   = coalesce(var.uvularia_contact_point, grafana_contact_point.site_alerts_email.name)
+  repeat_interval = var.uvularia_repeat_interval
+  group_by        = var.uvularia_group_by
+}

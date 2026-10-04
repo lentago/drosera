@@ -3,6 +3,10 @@
 # their JSON is pre-processed — the solidago set deliberately skips the
 # datasource-uid rewrite (see locals.tf) — not because they map to folders any
 # more. Grouping is expressed in the dashboard title.
+#
+# The uvularia pipeline dashboard is not in these maps: it is created by
+# module.uvularia_pipeline_lentago (terraform/alerts.tf), the same module
+# clients apply into their own stacks.
 
 resource "grafana_dashboard" "lab" {
   for_each = local.lab_dashboards
