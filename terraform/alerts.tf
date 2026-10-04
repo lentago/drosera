@@ -215,8 +215,15 @@ locals {
   # firewalla_acl was originally treated as quiet and event-driven (and given a
   # wide 2h window) on the assumption that ACL alarms only emit on a matching
   # flow. Measurement says otherwise: 40,250 lines/2h on 2026-07-25 and 42,067
-  # lines/2h on 2026-10-04 (~350/min) — continuous and high-volume, so it gets a
-  # 30m window like zeek_dns/zeek_conn (#176). device_inventory needs no special
+  # lines/2h on 2026-10-04 (~350/min) — continuous and high-volume, so the 2h
+  # window is far wider than it needs to be (#176). It does NOT get zeek_dns/
+  # zeek_conn's 30m, though: those are measured the same way but are per-packet
+  # Zeek streams with inherently low burst variance, while firewalla_acl is
+  # discrete alarm events and only 2h-bucket totals were measured here, not
+  # minute-level gaps — a 30m window can't rule out a sub-window quiet stretch
+  # the way the Zeek streams' measurement does. 1h matches the same
+  # conservative class as zeek_http/zeek_files, which carry the same bucket-
+  # only measurement caveat (#233 review). device_inventory needs no special
   # handling because its hourly cron IS a heartbeat — a known-cadence emitter
   # whose absence is unambiguous. Principle: constant-volume streams alert
   # directly; a heartbeat is the robust mechanism for genuinely quiet streams.
@@ -282,9 +289,9 @@ locals {
       key          = "firewalla-acl"
       stream       = "firewalla_acl"
       name         = "Ingest absence — firewalla_acl"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No firewalla_acl log lines ingested in the last 30m. This is a continuous high-volume stream (~350 lines/min; 42,067 lines/2h measured 2026-10-04, 40,250/2h on 2026-07-25) — a zero means the ACL alarm shipper has stopped delivering to Cloud Loki."
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No firewalla_acl log lines ingested in the last 1h. This is a high-volume stream (~350 lines/min; 42,067 lines/2h measured 2026-10-04, 40,250/2h on 2026-07-25), but only 2h-bucket totals are confirmed, not minute-level gaps, so it gets a conservative 1h window — a zero means the ACL alarm shipper has stopped delivering to Cloud Loki."
     },
     {
       key          = "device-inventory"
