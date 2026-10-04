@@ -169,6 +169,15 @@ The eight active log streams, keyed by `log_source` (the four `zeek_http`/
 | `zeek_weird` | Protocol-anomaly records ("weirds") — steady low-volume background (~10k lines/day). |
 | `firewalla_acl` | Firewalla ACL alarm events — blocked/allowed flows, rule name, severity. |
 
+**Adding a new `log_source` stream** — checklist:
+
+1. Measure its 24h volume (e.g. `sum(count_over_time({log_source="X"}[24h]))`).
+2. Add a row to the table above, the stream to `EXPECTED` in
+   `scripts/check-loki-labels.sh`, and the value to the `CLAUDE.md` § Loki labels list.
+3. Add a `local.loki_ingest_streams` entry in `terraform/alerts.tf` with a
+   window sized from the measurement — or record why it has none, as
+   `zeek_notice` does (sparse and bursty, so a quiet day is a real zero).
+
 **Change coordination:** the Firewalla side of this pipeline — the Fluent Bit
 config, its direct-to-Loki output block, and the `log_source` label scheme —
 lives in [lentago/betula](https://github.com/lentago/betula) (renamed from
@@ -630,8 +639,9 @@ families) or the rollout will hit `err-mimir-max-active-series`.
 ### Check Loki label health
 
 `scripts/check-loki-labels.sh` queries Loki for active `log_source` values over
-the last 24h and diffs against the expected set (`zeek_dns`, `zeek_conn`,
-`zeek_ssl`, `firewalla_acl`).  Run it manually as a sanity check, or wire it to
+the last 24h and diffs against the expected set (the eight streams in the
+table above: `zeek_dns`, `zeek_conn`, `zeek_ssl`, `zeek_http`, `zeek_files`,
+`zeek_notice`, `zeek_weird`, `firewalla_acl`).  Run it manually as a sanity check, or wire it to
 a cron / GitHub Actions schedule to alert on silent log streams:
 
 ```bash
@@ -639,7 +649,7 @@ source .envrc
 ./scripts/check-loki-labels.sh
 ```
 
-Exits 0 when all four values are present; exits 1 and prints the missing names to
+Exits 0 when all eight values are present; exits 1 and prints the missing names to
 stderr otherwise.
 
 ## Why this layout
