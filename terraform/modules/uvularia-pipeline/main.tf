@@ -126,6 +126,10 @@ resource "grafana_rule_group" "pipeline" {
       data {
         ref_id         = "A"
         datasource_uid = var.loki_datasource_uid
+        query_type     = "instant"
+        # query_type must mirror the model's queryType: the alerting API lifts
+        # it onto the query, and an unset value plans `"instant" -> null` on
+        # every apply (#221).
 
         relative_time_range {
           from = rule.value.from

@@ -29,7 +29,7 @@ resource "grafana_data_source" "solidago_cloudwatch" {
 # side of the capture-once boundary — drosera queries Axiom directly; nothing is
 # teed into Loki/Mimir. The signed `axiomhq-axiom-datasource` plugin this needs is
 # installed by grafana_cloud_plugin_installation.axiom in plugins.tf (pinned to
-# 0.7.0), so the stack requirement is codified rather than a manual prerequisite.
+# 0.7.2), so the stack requirement is codified rather than a manual prerequisite.
 #
 # The API token is NEVER committed (drosera is a public repo). It is declared as a
 # sensitive variable with no default and passed by CI as TF_VAR_axiom_api_token —

@@ -42,10 +42,17 @@ provider "grafana" {
 # The Axiom datasource plugin, required by grafana_data_source.solidago_axiom in
 # datasources.tf. Version is pinned deliberately — an unpinned plugin would drift
 # under us on every apply, and this is the query path for the site traffic panels.
+#
+# The pin must equal the version Grafana Cloud REPORTS as installed, not the one
+# we asked for: `version` is ForceNew and the provider's Read stores the API's
+# installed version. The original 0.7.0 pin came back from Cloud as 0.7.2, so
+# every plan showed `version = "0.7.2" -> "0.7.0" # forces replacement` and
+# reinstalled the plugin on every apply (#221). If that line reappears with a
+# newer version on the left, Cloud has upgraded the plugin — bump this pin to it.
 resource "grafana_cloud_plugin_installation" "axiom" {
   provider = grafana.cloud
 
   stack_slug = var.grafana_stack_slug
   slug       = "axiomhq-axiom-datasource"
-  version    = "0.7.0"
+  version    = "0.7.2"
 }
