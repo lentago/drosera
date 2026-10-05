@@ -108,6 +108,7 @@ module "uvularia_pipeline" {
   # repeat_interval      = "4h"   # how often a still-firing alert re-emails
   # group_by             = null   # Grafana's default notification grouping
   # stale_digest_minutes = 30
+  # served_window_hours  = 12
   # cap_alert_fraction   = 0.2
 }
 ```
@@ -154,7 +155,7 @@ and a rule group — and asks you to type `yes`.
   with your slug in the **Org (cluster)** box at the top. Panels with events
   behind them show numbers; the rest say "no data".
 - **Alerting → Alert rules** shows a group called
-  `Uvularia pipeline — <your slug>` with three rules, all **Normal**.
+  `Uvularia pipeline — <your slug>` with four rules, all **Normal**.
 - To check the email path, open **Alerting → Contact points → Uvularia email
   → Test**. The test mail arrives within a minute.
 
@@ -176,17 +177,20 @@ looked at each publish), and the **demand loop** — the subjects people asked
 about most this week that the box escalated or declined. Each of those bars is
 a record nobody has written yet.
 
-## The three alerts
+## The four alerts
 
 | Alert | Fires when | What to do |
 |---|---|---|
-| **served digest behind published** | the newest published digest hasn't been reported by the Ask box (a `served` refresh or an answered question) for 30 minutes | check the Ask function's refresh; it's answering from an older corpus |
+| **served digest behind published** | the Ask box has reported in (a `served` refresh or an answered question) since the newest publish, and is still on an older digest, for 30 minutes | check the Ask function's refresh; it's answering from an older corpus |
+| **Ask function silent** | no `served` refresh and no answered question at all in 12 hours | check the rules repo's `heartbeat` workflow and its `ASK_HEALTH_URL` variable, then the function's own logs |
 | **obligation went amber or red** | a publish has more amber or red obligations than the one before; stays lit 30 minutes, so you get one email | open your public board and see which obligation slipped |
 | **Ask daily cap nearly spent** | the most recent question in the last hour left under 20 % of the day's cap, or a question was turned away for the cap | it resets at 00:00 UTC; raise `daily_cap` in the rules repo's `policy.yaml` if it's real demand |
 
-All three treat "no events" as calm. They watch for something going wrong in
-events that arrive; they don't notice an emitter that has gone quiet. The
-panels do: a stage with no events reads "no data".
+The first three treat "no events" as calm. They watch for something going
+wrong in events that arrive; they don't notice an emitter that has gone quiet.
+**Ask function silent** is the one exception, because the stale-digest check
+can't judge a box that never reports. For the other stages the panels show
+it: a stage with no events reads "no data".
 
 ## Event contract
 
@@ -211,10 +215,12 @@ All times are Unix seconds (`date +%s`). Nothing in a payload identifies the
 person asking: the question text is truncated and carries no name, address,
 or IP ([lentago/uvularia#52](https://github.com/lentago/uvularia/issues/52)).
 
-> **Heads up.** The stale-digest alert counts on hearing from the Ask box at
-> least every 30 minutes. If your function only refreshes when someone asks a
-> question, a quiet afternoon looks like a stale digest. Send `served` on a
-> schedule (every 15 minutes is plenty) and the alert stays honest.
+> **Heads up.** The silence alert counts on hearing from the Ask box at least
+> every 12 hours. If your function only refreshes when someone asks a
+> question, a quiet day looks like a dead box. Send `served` on a schedule
+> (the rules repo's `heartbeat` workflow does this). GitHub runs those
+> schedules late, often hours apart, which is why the window is 12 hours and
+> not 30 minutes.
 
 > **Heads up.** The Grafana Cloud free tier keeps logs for 14 days. A stage
 > that hasn't reported in that long reads "no data", and a publish older than

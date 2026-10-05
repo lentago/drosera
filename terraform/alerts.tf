@@ -1098,8 +1098,9 @@ resource "grafana_rule_group" "lab_availability" {
 # applies into their own stack (docs/clients/uvularia.md). The dashboard
 # (dashboards/uvularia-pipeline.json, uid uvularia-pipeline) is wired here
 # rather than through locals.tf so the estate exercises exactly the path a
-# client runs. Three rules: served digest behind published > 30m, obligation
-# gained an amber or red, Ask daily cap below 20%. Loki-sourced, zero new Mimir
+# client runs. Four rules: served digest behind published (reported after the
+# publish) > 30m, Ask function silent 12h, obligation gained an amber or red,
+# Ask daily cap below 20%. Loki-sourced, zero new Mimir
 # series. Presence-shaped queries, so no_data_state = "OK" (empty = healthy).
 
 variable "uvularia_contact_point" {

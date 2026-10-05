@@ -243,10 +243,12 @@ for the SLO targets and burn-rate design.
   legitimate idle stretch until claytonia ships an always-on
   `workers/<host>.alive` heartbeat to Loki (boundary: drosera owns the rules,
   claytonia owns the telemetry). See ADR-0009.
-- **`Uvularia pipeline — lentago`** (3 rules, issue #218 — from the
+- **`Uvularia pipeline — lentago`** (4 rules, issue #218 — from the
   [`uvularia-pipeline`](terraform/modules/uvularia-pipeline/main.tf) module, the
   same one clients apply into their own stacks): **served digest behind
-  published** for 30m, **obligation went amber or red** on a publish, and the
+  published** (the Ask function reported an older digest after the latest
+  publish, for 30m; #237), **Ask function silent** (no served/asked event in
+  12h), **obligation went amber or red** on a publish, and the
   **Ask daily cap nearly spent** (under 20% left, or a turn refused for the
   cap). Loki-sourced over `log_source=uvularia_*`, `cluster="lentago"`. Each
   query returns a series only when something is wrong, so `no_data_state =
