@@ -9,7 +9,7 @@ services:
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
     ports:
-      - "3100:3100"   # Loki push receiver (Promtail on the Firewalla points here)
+      - "3100:3100"   # Loki push receiver (claytonia cr-loki.sh + workstation claude-cost-export)
       - "12345:12345" # Alloy debug UI (http://<host>:12345)
     volumes:
       # Mount the whole alloy/ dir (not individual files) so a git-driven

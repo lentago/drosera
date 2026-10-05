@@ -3,8 +3,10 @@
 // Replaces the self-hosted Loki + Prometheus + blackbox-exporter trio. One
 // container running on the same Proxmox LXC that used to host the docker
 // compose stack:
-//   - Listens on :3100 for Loki push (Promtail on the Firewalla keeps its
-//     existing endpoint URL, just the Loki container behind it changes).
+//   - Listens on :3100 for Loki push from the claytonia workers' cr-loki.sh
+//     (job="claude_runner", read by the Bullpen liveness alerts) and the
+//     workstation claude-cost-export timer (job="claude_local"). The
+//     Firewalla's Zeek/ACL and device_inventory streams push direct (#243).
 //   - Native blackbox prober replaces blackbox-exporter (ICMP + HTTP_2xx).
 //   - Scrapes node_exporter on pve/pve2 and Home Assistant's /api/prometheus.
 //   - Forwards everything to Grafana Cloud Mimir / Loki via remote_write.
@@ -18,7 +20,7 @@ logging {
 }
 
 // ----------------------------------------------------------------------------
-// Logs: receive from Promtail (Firewalla) → forward to Grafana Cloud Loki
+// Logs: receive LAN Loki pushes (claytonia, cost-export) → forward to Grafana Cloud Loki
 // ----------------------------------------------------------------------------
 
 loki.source.api "firewalla" {
@@ -27,8 +29,8 @@ loki.source.api "firewalla" {
     listen_port    = 3100
   }
 
-  // Don't add cluster labels here — preserve whatever Promtail sends so the
-  // existing `log_source=zeek_dns|zeek_conn|firewalla_acl` queries keep working.
+  // Don't add per-source labels here — preserve whatever the pusher sends;
+  // cluster comes from loki.write's external_labels.
   forward_to = [loki.write.cloud.receiver]
 }
 

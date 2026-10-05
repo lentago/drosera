@@ -132,7 +132,7 @@ label conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
   CENTRAL ALLOY (LXC 105)                                       │    (lentago)
     blackbox ICMP/HTTP ───────────────── remote_write ─────────┤    ├─ Mimir (metrics)
     Home Assistant /api/prometheus → HA scrape → remote_write ──┤    ├─ Loki  (logs)
-    betula device_inventory    → Loki receiver :3100 ──────────┘    └─ Grafana
+    claytonia + cost-export    → Loki receiver :3100 ──────────┘    └─ Grafana
                                                                           │
   Firewalla Fluent Bit (Zeek/ACL) ── direct Loki push, no relay ─────────┤
                                                                           │
@@ -574,21 +574,26 @@ Dashboards that show raw LAN source IPs (`id_orig_h`) resolve them to device
 names by joining against a **device-inventory log stream**,
 `log_source="device_inventory"`. Grafana Cloud runs queries server-side and
 cannot reach the LAN, and LAN topology must not be published to GitHub — so the
-name↔IP mapping travels the trusted central-Alloy → Cloud Loki channel (see
-[#113](https://github.com/lentago/drosera/issues/113)). **This feed is the
-one remaining user of the central Alloy's `:3100` Loki receiver**
-(`loki.source.api "firewalla"` in [`alloy/config.alloy`](alloy/config.alloy));
-Zeek/ACL logs no longer travel this path (see "Loki output contract" above) —
-don't mistake the receiver block for dead config and remove it.
+name↔IP mapping goes only to Grafana Cloud Loki, the trust domain that already
+holds every LAN IP via the Zeek streams (see
+[#113](https://github.com/lentago/drosera/issues/113), ADR-0006). Since #243 it
+is pushed **directly** over HTTPS, like the Zeek/ACL streams; until then it
+relayed through the central Alloy's `:3100` receiver. That receiver
+(`loki.source.api "firewalla"` in [`alloy/config.alloy`](alloy/config.alloy))
+is **not** dead config: it still serves the claytonia workers' `cr-loki.sh`
+events (`job="claude_runner"`, which the Bullpen liveness alerts read) and the
+workstation `claude-cost-export` timer (`job="claude_local"`, see
+[claude-cost-export/](claude-cost-export/)).
 
 The producer is **betula's** Firewalla device-inventory collector
 ([`lentago/betula` `scripts/device_inventory_publish.sh`](https://github.com/lentago/betula/blob/main/scripts/device_inventory_publish.sh),
 moved from this repo in 2026-10 — betula#115, #151, #243: capture is betula's
 side of the boundary). It runs **on the Firewalla box** (pi user, **hourly**
 from betula's `cron/user_crontab`, straight from betula's gitops clone). It reads the box's
-own device inventory from local redis (`host:mac:*` hashes — no new
-credentials) and pushes one record per (device, IP) pair to the central Alloy
-Loki receiver (`http://<ALLOY_HOST>:3100/loki/api/v1/push`).
+own device inventory from local redis (`host:mac:*` hashes) and pushes one
+record per (device, IP) pair straight to Grafana Cloud Loki, with the same
+endpoint and `GRAFANA_CLOUD_LOGS_*` credentials Fluent Bit uses. It sets
+`cluster="lentago-lab"` itself.
 
 **Stream schema** — one Loki stream per (device, IP):
 

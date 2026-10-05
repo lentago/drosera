@@ -81,3 +81,25 @@ through trusted paths and only in scrubbed form.**
   not on merge to `main`.
 - Privacy and the series budget (ADR-0005) point the same way for the inventory
   feed: log stream, in-Cloud, zero series, out of GitHub.
+
+## Amendment (2026-10-05): device inventory pushes direct to Cloud Loki (#243)
+
+The inventory's producer moved to lentago/betula (betula#115), and it now
+pushes **directly** to Grafana Cloud Loki over HTTPS, with the same endpoint
+and `logs:write` credentials Fluent Bit uses for the Zeek/ACL streams
+(betula#117). It no longer relays through the central Alloy.
+
+The privacy decision above is unchanged. What it requires is that the
+name↔IP mapping never reaches GitHub and lands only in Cloud, the same trust
+domain that already holds every LAN IP via the Zeek streams. The LAN relay was
+the route available then, not part of the requirement, and direct push meets
+it. The publisher now stamps `cluster="lentago-lab"` itself, so the stream's
+label set is unchanged.
+
+The central Alloy's `:3100` receiver stays. It is not dead config: it serves
+the claytonia workers' `cr-loki.sh` events (`job="claude_runner"`, which the
+Bullpen liveness alerts read) and the workstation `claude-cost-export` timer
+(`job="claude_local"`). Earlier docs described `device_inventory` as its "one
+remaining user", which was wrong; retiring the receiver would have silently
+broken the bullpen alerts. Retiring it is a separate question, owned by those
+producers.

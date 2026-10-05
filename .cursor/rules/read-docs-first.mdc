@@ -7,7 +7,7 @@ alwaysApply: true
 
 Before editing this repo or asking the user for architecture/credentials details:
 
-1. **[README.md](../../README.md)** — Grafana Cloud + Alloy architecture; Firewalla Fluent Bit pushes Zeek/ACL logs **directly** to Cloud Loki (no Alloy relay), while the central Alloy's `:3100` Loki receiver serves only the `device_inventory` feed; env vars (`.envrc`), Terraform apply flow, orphan datasource cleanup, public kiosk, CI secrets.
+1. **[README.md](../../README.md)** — Grafana Cloud + Alloy architecture; Firewalla Fluent Bit pushes Zeek/ACL logs **directly** to Cloud Loki (no Alloy relay), as does betula's `device_inventory` collector, while the central Alloy's `:3100` Loki receiver serves only the claytonia worker (`claude_runner`) and workstation `claude-cost-export` (`claude_local`) events; env vars (`.envrc`), Terraform apply flow, orphan datasource cleanup, public kiosk, CI secrets.
 2. **[CLAUDE.md](../../CLAUDE.md)** — Conventions only: dashboard UIDs (`firewalla-*`), `log_source` / LogQL patterns, `node_exporter` on bare metal, office-display IPs, testing commands.
 3. **[terraform/README.md](../../terraform/README.md)** — Terraform state (local, not committed), import blocks, new dashboard workflow.
 4. **[CONTRIBUTING.md](../../CONTRIBUTING.md)** — PR scope and where dashboards live (`dashboards/`).
