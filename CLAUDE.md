@@ -29,7 +29,7 @@ Dashboard JSON lives in [`dashboards/`](dashboards/) and is applied by [`terrafo
 | Layer | What |
 |-------|------|
 | **Grafana Cloud** | UI, `grafanacloud-logs` / `grafanacloud-prom` datasources, dashboards (Terraform-managed) |
-| **Alloy** (single `docker compose` service) | `loki.source.api` on `:3100` (device-inventory publisher only — Zeek/ACL logs push directly to Cloud, bypassing this), `prometheus.exporter.blackbox`, scrapes for node + HA, `remote_write` + `loki.write` to Cloud |
+| **Alloy** (single `docker compose` service) | `loki.source.api` on `:3100` (betula's device-inventory collector only — Zeek/ACL logs push directly to Cloud, bypassing this), `prometheus.exporter.blackbox`, scrapes for node + HA, `remote_write` + `loki.write` to Cloud |
 | **Bare metal** | `node_exporter` on Proxmox hosts (not in Docker) — see `scripts/deploy-node-exporter.sh` |
 
 Legacy self-hosted Loki + Prometheus + Grafana in one compose file is **removed**; do not reintroduce without an issue.

@@ -26,7 +26,8 @@ Two facts constrain the topology case specifically (issue #113):
 through trusted paths and only in scrubbed form.**
 
 - **The name↔IP inventory travels the trusted Alloy → Cloud-Loki channel, never
-  GitHub.** The device-inventory publisher pushes one log line per (device, IP)
+  GitHub.** The device-inventory publisher (since 2026-10 a betula collector,
+  betula#115; its egress path is open in drosera#243) pushes one log line per (device, IP)
   pair into Grafana Cloud Loki (`log_source="device_inventory"`) via the local
   Alloy; dashboards resolve IPs by joining that stream in Grafana
   *transformations* at render time (issue #113 → PR #122, merged 2026-07-03).
