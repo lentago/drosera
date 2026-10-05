@@ -99,8 +99,12 @@ resource "grafana_rule_group" "site_probes" {
       # do NOT suppress NoData — suppressing it (no_data_state = "OK") would mean a
       # real site outage during a lab outage produces NO alert at all. The failure
       # mode of this whole effort must be noise, never silence. See the ADR.
+      # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
+      # failure holds the previous state instead of paging a DatasourceError
+      # under this rule's severity. The "Loki ingest absence" group keeps
+      # "Error" as the canary, so a sustained Cloud outage still notifies.
       no_data_state  = "NoData"
-      exec_err_state = "Error"
+      exec_err_state = "KeepLast"
 
       # A: the raw probe value from Mimir (0/1 for probe_success, seconds-remaining
       # for the cert query). Kept unfiltered so "healthy" is a value, not an empty
@@ -325,6 +329,9 @@ resource "grafana_rule_group" "loki_ingest_absence" {
       # See the block comment above: "no data" is the alerting condition here,
       # NOT an ambiguous vantage-point failure. Getting this backwards produces
       # rules that stay silent through the outage they exist to catch.
+      # exec_err_state stays "Error" here, unlike the KeepLast paging groups
+      # (#238): this group is the canary that still notifies when Cloud
+      # queries fail outright.
       condition      = "C"
       no_data_state  = "Alerting"
       exec_err_state = "Error"
@@ -541,9 +548,13 @@ resource "grafana_rule_group" "site_slo_burn" {
       name = rule.value.name
       for  = rule.value.for
 
+      # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
+      # failure holds the previous state instead of paging a DatasourceError
+      # under this rule's severity. The "Loki ingest absence" group keeps
+      # "Error" as the canary, so a sustained Cloud outage still notifies.
       condition      = "C"
       no_data_state  = "NoData" # see block comment: single-vantage probe, keep failure mode = noise
-      exec_err_state = "Error"
+      exec_err_state = "KeepLast"
 
       # A: burn rate over the LONG window. Burn rate = (1 - availability) / budget
       # fraction, where availability = avg_over_time(probe_success[w]) (the 0/1
@@ -773,11 +784,15 @@ resource "grafana_rule_group" "bullpen_liveness" {
     for_each = { for r in local.bullpen_rules : r.key => r }
 
     content {
+      # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
+      # failure holds the previous state instead of paging a DatasourceError
+      # under this rule's severity. The "Loki ingest absence" group keeps
+      # "Error" as the canary, so a sustained Cloud outage still notifies.
       name           = rule.value.name
       for            = rule.value.for
       condition      = "C"
       no_data_state  = rule.value.no_data_state
-      exec_err_state = "Error"
+      exec_err_state = "KeepLast"
 
       # A: the Loki query — either the distinct-active-worker headcount (rules 1
       # and 3 share local.bullpen_active_workers_expr) or the .retry presence
@@ -1006,11 +1021,15 @@ resource "grafana_rule_group" "lab_availability" {
     for_each = { for r in local.lab_availability_rules : r.key => r }
 
     content {
+      # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
+      # failure holds the previous state instead of paging a DatasourceError
+      # under this rule's severity. The "Loki ingest absence" group keeps
+      # "Error" as the canary, so a sustained Cloud outage still notifies.
       name           = rule.value.name
       for            = rule.value.for
       condition      = "C"
       no_data_state  = rule.value.no_data_state
-      exec_err_state = "Error"
+      exec_err_state = "KeepLast"
 
       # A: the raw Mimir query — probe_success gauge (rules a/b) or
       # absent_over_time(up) (rule c). Kept as a real value, not filtered to
