@@ -12,10 +12,11 @@ set -euo pipefail
 #   1. Copies scripts/device-inventory-publisher/publish-device-inventory.sh into
 #      ~/.firewalla/run/device-inventory/ (a Firewalla-persistent path).
 #   2. Writes a sibling device-inventory.env baking in ALLOY_HOST.
-#   3. Removes the legacy schedule this script used to install: the tagged
+#   3. Verifies the betula-owned schedule is in user_crontab, then removes the
+#      legacy schedule this script used to install: the tagged
 #      `# device-inventory-publisher` line in pi's crontab and the
 #      post_main.d/reinstall-device-inventory-cron.sh hook.
-#   4. Verifies the schedule that replaced them is live.
+#   4. Verifies exactly one live crontab line runs the publisher.
 #
 # The hourly schedule is NOT installed here (#151). It lives in betula's
 # cron/user_crontab, deployed by betula's gitops loop (lentago/betula#114):
@@ -23,8 +24,8 @@ set -euo pipefail
 # config/crontab/*, and config/user_crontab, so a line added with `crontab -`
 # was dropped on every rebuild (feed dead 2026-07-04→13 and 2026-07-17→10-05),
 # and the post_main.d hook — run only on FireMain startup — never restored it.
-# The step-4 check fails the deploy if betula's line is missing, rather than
-# leaving a publisher with no schedule.
+# The step-3 check fails the deploy if betula's line is missing — before any
+# legacy removal — rather than leaving a publisher with no schedule.
 #
 # Usage:
 #   ./scripts/deploy-device-inventory-publisher.sh <ALLOY_HOST>
@@ -109,6 +110,17 @@ ALLOY_HOST="${ALLOY_HOST}"
 ENV_EOF
 chmod 0644 "${REMOTE_DIR}/device-inventory.env"
 
+# --- verify the betula-owned schedule exists BEFORE retiring the legacy one ---
+# Checked first so a deploy that runs ahead of betula#114 fails with the legacy
+# line still in place, instead of leaving the publisher with no schedule.
+if ! grep -v '^[[:space:]]*#' "${USER_CRONTAB}" 2>/dev/null | grep -qF "${PUBLISHER}"; then
+  echo "ERROR: no schedule for ${PUBLISHER} in ${USER_CRONTAB}." >&2
+  echo "       The hourly schedule lives in lentago/betula cron/user_crontab" >&2
+  echo "       (betula#114); merge/deploy that first. The legacy schedule was" >&2
+  echo "       left untouched." >&2
+  exit 1
+fi
+
 # --- retire the legacy schedule (#151) ---
 # The tagged line is the one this script used to add with `crontab -`. Only
 # rewrite the crontab when it is actually there; every other line is kept.
@@ -118,14 +130,7 @@ if crontab -l 2>/dev/null | grep -qF "${LEGACY_TAG}"; then
 fi
 rm -f "${POST_MAIN_D}/reinstall-device-inventory-cron.sh"
 
-# --- verify the betula-owned schedule ---
-if ! grep -v '^[[:space:]]*#' "${USER_CRONTAB}" 2>/dev/null | grep -qF "${PUBLISHER}"; then
-  echo "ERROR: no schedule for ${PUBLISHER} in ${USER_CRONTAB}." >&2
-  echo "       The hourly schedule lives in lentago/betula cron/user_crontab" >&2
-  echo "       (betula#114); merge/deploy that first. The publisher is installed" >&2
-  echo "       but will not run until it lands." >&2
-  exit 1
-fi
+# --- verify exactly one live line ---
 LIVE_LINES=$(crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -cF "${PUBLISHER}" || true)
 if [ "${LIVE_LINES}" != "1" ]; then
   echo "ERROR: expected exactly 1 live crontab line for the publisher, found ${LIVE_LINES}." >&2
