@@ -12,10 +12,19 @@ set -euo pipefail
 #   1. Copies scripts/device-inventory-publisher/publish-device-inventory.sh into
 #      ~/.firewalla/run/device-inventory/ (a Firewalla-persistent path).
 #   2. Writes a sibling device-inventory.env baking in ALLOY_HOST.
-#   3. Installs an hourly cron entry for the pi user.
-#   4. Installs a ~/.firewalla/config/post_main.d/ hook that re-installs the cron
-#      entry — Firewalla's FireMain can regenerate state, and post_main.d/*.sh is
-#      the box's supported persistence mechanism for user customizations.
+#   3. Removes the legacy schedule this script used to install: the tagged
+#      `# device-inventory-publisher` line in pi's crontab and the
+#      post_main.d/reinstall-device-inventory-cron.sh hook.
+#   4. Verifies the schedule that replaced them is live.
+#
+# The hourly schedule is NOT installed here (#151). It lives in betula's
+# cron/user_crontab, deployed by betula's gitops loop (lentago/betula#114):
+# Firewalla's update_crontab.sh rebuilds pi's crontab from the system crontab,
+# config/crontab/*, and config/user_crontab, so a line added with `crontab -`
+# was dropped on every rebuild (feed dead 2026-07-04→13 and 2026-07-17→10-05),
+# and the post_main.d hook — run only on FireMain startup — never restored it.
+# The step-4 check fails the deploy if betula's line is missing, rather than
+# leaving a publisher with no schedule.
 #
 # Usage:
 #   ./scripts/deploy-device-inventory-publisher.sh <ALLOY_HOST>
@@ -26,7 +35,6 @@ set -euo pipefail
 # Overridable via env:
 #   SSH_TARGET    ssh destination (default: pi@firewalla.local)
 #   REMOTE_DIR    install dir on the box (default: ~/.firewalla/run/device-inventory)
-#   CRON_MINUTE   minute field for the hourly cron (default: 17)
 
 # ---------------------------------------------------------------------------
 # Output helpers (match the other scripts/deploy-*.sh)
@@ -53,7 +61,7 @@ esac
 SSH_TARGET="${SSH_TARGET:-pi@firewalla.local}"
 REMOTE_DIR="${REMOTE_DIR:-/home/pi/.firewalla/run/device-inventory}"
 POST_MAIN_D="/home/pi/.firewalla/config/post_main.d"
-CRON_MINUTE="${CRON_MINUTE:-17}"
+USER_CRONTAB="/home/pi/.firewalla/config/user_crontab"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PUBLISHER_SRC="${SCRIPT_DIR}/device-inventory-publisher/publish-device-inventory.sh"
@@ -65,7 +73,7 @@ command -v scp >/dev/null || fail "scp is required but not found."
 info "Deploying to ${SSH_TARGET}"
 info "  ALLOY_HOST  = ${ALLOY_HOST}"
 info "  REMOTE_DIR  = ${REMOTE_DIR}"
-info "  cron        = ${CRON_MINUTE} * * * * (hourly)"
+info "  schedule    = betula cron/user_crontab (verified, not installed)"
 
 # ---------------------------------------------------------------------------
 # 1. Copy the publisher up to a staging path.
@@ -79,15 +87,15 @@ scp -q "${PUBLISHER_SRC}" "${SSH_TARGET}:/tmp/publish-device-inventory.sh" \
 # environment (not string-substituted into the script), so the remote heredoc
 # stays quoted and quoting-safe.
 # ---------------------------------------------------------------------------
-info "Installing publisher, env file, cron entry, and post_main.d hook on the box ..."
+info "Installing publisher and env file, retiring the legacy cron entry + hook ..."
 ssh "${SSH_TARGET}" \
   env ALLOY_HOST="${ALLOY_HOST}" REMOTE_DIR="${REMOTE_DIR}" \
-      POST_MAIN_D="${POST_MAIN_D}" CRON_MINUTE="${CRON_MINUTE}" \
-  bash -s <<'REMOTE' || fail "Remote install failed."
+      POST_MAIN_D="${POST_MAIN_D}" USER_CRONTAB="${USER_CRONTAB}" \
+  bash -s <<'REMOTE' || fail "Remote install failed — see the output above."
 set -eu
 
-CRON_TAG="# device-inventory-publisher"
-CRON_LINE="${CRON_MINUTE} * * * * ${REMOTE_DIR}/publish-device-inventory.sh >> ${REMOTE_DIR}/publish.log 2>&1 ${CRON_TAG}"
+PUBLISHER="${REMOTE_DIR}/publish-device-inventory.sh"
+LEGACY_TAG="# device-inventory-publisher"
 
 # --- install the publisher ---
 mkdir -p "${REMOTE_DIR}"
@@ -101,34 +109,38 @@ ALLOY_HOST="${ALLOY_HOST}"
 ENV_EOF
 chmod 0644 "${REMOTE_DIR}/device-inventory.env"
 
-# --- hourly cron entry for pi (idempotent: drop any prior tagged line) ---
-( crontab -l 2>/dev/null | grep -vF "${CRON_TAG}" || true; echo "${CRON_LINE}" ) | crontab -
+# --- retire the legacy schedule (#151) ---
+# The tagged line is the one this script used to add with `crontab -`. Only
+# rewrite the crontab when it is actually there; every other line is kept.
+if crontab -l 2>/dev/null | grep -qF "${LEGACY_TAG}"; then
+  ( crontab -l 2>/dev/null | grep -vF "${LEGACY_TAG}" ) | crontab -
+  echo "Removed legacy tagged cron line."
+fi
+rm -f "${POST_MAIN_D}/reinstall-device-inventory-cron.sh"
 
-# --- post_main.d hook: re-install the cron entry after FireMain regenerates ---
-mkdir -p "${POST_MAIN_D}"
-HOOK="${POST_MAIN_D}/reinstall-device-inventory-cron.sh"
-# Unquoted heredoc: ${CRON_TAG}/${CRON_LINE} expand now into a self-contained
-# hook; the \${…} refs stay literal so the hook uses its own vars at run time.
-cat > "${HOOK}" <<HOOK_EOF
-#!/usr/bin/env bash
-# Managed by deploy-device-inventory-publisher.sh (drosera, #113).
-# Firewalla runs post_main.d/*.sh on FireMain startup; this re-installs the
-# hourly device-inventory publisher cron for pi in case FireMain reset crontab.
-set -eu
-CRON_TAG="${CRON_TAG}"
-CRON_LINE="${CRON_LINE}"
-( crontab -l 2>/dev/null | grep -vF "\${CRON_TAG}" || true; echo "\${CRON_LINE}" ) | crontab -
-HOOK_EOF
-chmod 0755 "${HOOK}"
+# --- verify the betula-owned schedule ---
+if ! grep -v '^[[:space:]]*#' "${USER_CRONTAB}" 2>/dev/null | grep -qF "${PUBLISHER}"; then
+  echo "ERROR: no schedule for ${PUBLISHER} in ${USER_CRONTAB}." >&2
+  echo "       The hourly schedule lives in lentago/betula cron/user_crontab" >&2
+  echo "       (betula#114); merge/deploy that first. The publisher is installed" >&2
+  echo "       but will not run until it lands." >&2
+  exit 1
+fi
+LIVE_LINES=$(crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -cF "${PUBLISHER}" || true)
+if [ "${LIVE_LINES}" != "1" ]; then
+  echo "ERROR: expected exactly 1 live crontab line for the publisher, found ${LIVE_LINES}." >&2
+  echo "       user_crontab has it; run /home/pi/firewalla/scripts/update_crontab.sh" >&2
+  echo "       as pi to merge it (never a raw 'crontab user_crontab' — betula#67)." >&2
+  exit 1
+fi
 
 echo "Installed:"
-echo "  publisher : ${REMOTE_DIR}/publish-device-inventory.sh"
+echo "  publisher : ${PUBLISHER}"
 echo "  env file  : ${REMOTE_DIR}/device-inventory.env"
-echo "  hook      : ${HOOK}"
-echo "  crontab   :"
-crontab -l 2>/dev/null | grep -F "${CRON_TAG}" | sed 's/^/    /'
+echo "  schedule  : (from ${USER_CRONTAB})"
+crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -F "${PUBLISHER}" | sed 's/^/    /'
 REMOTE
 
 success "Deployed to ${SSH_TARGET}."
 info "Test it now:  ssh ${SSH_TARGET} 'DRY_RUN=1 ${REMOTE_DIR}/publish-device-inventory.sh | head'"
-info "First real push happens at minute ${CRON_MINUTE} of the next hour; logs in ${REMOTE_DIR}/publish.log."
+info "Next push follows the betula schedule (minute 17 hourly); logs in ${REMOTE_DIR}/publish.log."

@@ -605,9 +605,14 @@ the variable value stays the raw IP that `id_orig_h=~"$device_ip"` needs. Any
 unambiguous.
 
 Deploy / update it by **re-running** the deploy script from the operator
-workstation (it scp's the publisher, installs the pi cron entry, and installs a
-`~/.firewalla/config/post_main.d/` hook that re-installs the cron after FireMain
-regenerates state):
+workstation. It scp's the publisher and its env file, and verifies the hourly
+schedule — which it does **not** install. The schedule lives in
+[betula's `cron/user_crontab`](https://github.com/lentago/betula/blob/main/cron/user_crontab)
+and reaches the box through betula's gitops loop: Firewalla's
+`update_crontab.sh` rebuilds pi's crontab from the system crontab and
+`user_crontab`, so a line added any other way is dropped on the next rebuild
+(the cause of the July–October 2026 outages, #151). The deploy fails if
+that line is missing or not merged live:
 
 ```bash
 ./scripts/deploy-device-inventory-publisher.sh <ALLOY_HOST>   # e.g. 192.168.139.20

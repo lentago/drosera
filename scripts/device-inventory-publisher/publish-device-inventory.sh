@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # publish-device-inventory.sh — runs ON the Firewalla box (pi user), hourly via
-# cron. Reads the box's own device inventory from local redis and pushes it to
+# cron (the schedule lives in lentago/betula cron/user_crontab, #151). Reads the box's own device inventory from local redis and pushes it to
 # the central Alloy Loki receiver as the log_source="device_inventory" stream,
 # so Grafana Cloud dashboards can resolve raw LAN IPs to device names via
 # frame-join transformations and a label_values() template variable.
