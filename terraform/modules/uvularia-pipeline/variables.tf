@@ -15,7 +15,7 @@ variable "folder_uid" {
 
 variable "contact_point" {
   type        = string
-  description = "Name of an existing Grafana contact point the three rules route to."
+  description = "Name of an existing Grafana contact point the pipeline rules route to."
 }
 
 variable "repeat_interval" {
@@ -51,7 +51,18 @@ variable "rule_group_name" {
 variable "stale_digest_minutes" {
   type        = number
   default     = 30
-  description = "Fire when the latest published digest has not been reported served for this many minutes."
+  description = "Fire when the Ask function has reported an older digest than the latest publish (after that publish) for this many minutes."
+}
+
+variable "served_window_hours" {
+  type        = number
+  default     = 12
+  description = "How far back to look for the Ask function's latest served/asked report, and how long it may stay silent before the ask-silent rule fires."
+
+  validation {
+    condition     = var.served_window_hours >= 1 && var.served_window_hours <= 336
+    error_message = "served_window_hours must be between 1 and 336 (the 14-day log retention)."
+  }
 }
 
 variable "cap_alert_fraction" {

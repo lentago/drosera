@@ -45,6 +45,12 @@ locals {
   # digest without waiting for the next refresh event.
   served_or_asked = "{log_source=~\"uvularia_(served|asked)\", cluster=\"${var.cluster}\"}"
 
+  # Latest publish and latest Ask-function report, each as one series labelled
+  # by digest with its `at` as the value — so the two can be compared on
+  # digest (unless on (digest)) and on time (> on ()).
+  latest_published = "topk(1, max by (digest) (max_over_time(${local.published} | json digest=\"digest\", v=\"at\" | unwrap v | __error__=\"\" [${local.lookback}])))"
+  latest_served    = "topk(1, max by (digest) (max_over_time(${local.served_or_asked} | json digest=\"digest\", v=\"at\" | digest!=\"\" | unwrap v | __error__=\"\" [${var.served_window_hours}h])))"
+
   # Grafana Cloud free-tier log retention is 14 days; a publish older than that
   # has aged out of Loki and cannot be compared.
   lookback         = "14d"
@@ -58,15 +64,35 @@ locals {
       key      = "stale-digest"
       panel_id = 4 # dashboard panel this alert links to (__panelId__)
       name     = "Uvularia — served digest behind published"
-      # The latest published digest, unless that digest has been reported by
-      # the Ask function (served refresh or answered turn) in the window.
+      # The digest on the Ask function's most recent report (served refresh or
+      # answered turn), unless it is the latest published digest — kept only
+      # when that report is newer than the publish. So it fires when the
+      # function has checked in since the publish and is still on an older
+      # corpus, and stays quiet while it simply hasn't checked in yet: the
+      # earlier "seen in the last 30m" shape fired between every heartbeat,
+      # because GitHub runs the 15-minute schedule every few hours (#237).
       # Pending until it has stayed that way for stale_digest_minutes.
-      expr        = "count(topk(1, max by (digest) (max_over_time(${local.published} | json digest=\"digest\", v=\"at\" | unwrap v | __error__=\"\" [${local.lookback}]))) unless on (digest) sum by (digest) (count_over_time(${local.served_or_asked} | json digest=\"digest\" | digest!=\"\" [${var.stale_digest_minutes}m])))"
+      expr        = "count((${local.latest_served} unless on (digest) ${local.latest_published}) > on () ${local.latest_published})"
       from        = local.lookback_seconds
       for         = "${var.stale_digest_minutes}m"
       severity    = "warning"
-      summary     = "The Ask function for ${var.cluster} has not reported serving the latest published digest for over ${var.stale_digest_minutes} minutes. It is answering from an older corpus (or has stopped reporting): check the function's refresh and its last served event."
-      description = "Latest uvularia_published digest not seen on uvularia_served or uvularia_asked in the last ${var.stale_digest_minutes}m, sustained ${var.stale_digest_minutes}m."
+      summary     = "The Ask function for ${var.cluster} has reported in since the latest publish and is still serving an older digest. It is answering from an older corpus: check the function's refresh and its last served event."
+      description = "Newest uvularia_served/uvularia_asked digest (last ${var.served_window_hours}h) differs from the latest uvularia_published digest and was reported after that publish, sustained ${var.stale_digest_minutes}m."
+    },
+    {
+      key      = "ask-silent"
+      panel_id = 4 # dashboard panel this alert links to (__panelId__)
+      name     = "Uvularia — Ask function silent"
+      # No served refresh and no answered turn at all in the window: the
+      # stale-digest rule cannot judge a box that never reports, so this
+      # covers it. The window is wide because the heartbeat is a best-effort
+      # GitHub schedule (observed gaps of up to ~9h on a */15 cron).
+      expr        = "count(absent_over_time(${local.served_or_asked} [${var.served_window_hours}h]))"
+      from        = var.served_window_hours * 3600
+      for         = "0s"
+      severity    = "warning"
+      summary     = "The Ask function for ${var.cluster} has sent no served or asked event in ${var.served_window_hours} hours. Either the heartbeat schedule has stopped (check the rules repo's heartbeat workflow and ASK_HEALTH_URL) or the function itself is failing."
+      description = "No uvularia_served or uvularia_asked event in the last ${var.served_window_hours}h."
     },
     {
       key      = "obligation-gained"
@@ -117,8 +143,9 @@ resource "grafana_rule_group" "pipeline" {
       name = rule.value.name
       for  = rule.value.for
 
-      # Presence-shaped queries: empty means healthy. A stopped emitter is not
-      # caught here — that is an ingest-absence question, not these three.
+      # Presence-shaped queries: empty means healthy. Only the Ask function's
+      # silence is caught (ask-silent); the other emitters' absence is an
+      # ingest-absence question, not this group's.
       condition      = "C"
       no_data_state  = "OK"
       exec_err_state = "Error"
