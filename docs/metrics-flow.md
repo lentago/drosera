@@ -11,7 +11,7 @@ flowchart LR
     direction TB
     names["neptune · pve · pve2<br/>pve3 · pve4 · pve5"]
     ne["node_exporter :9100"]
-    agent["Alloy agent<br/>scrapes localhost, 15s"]
+    agent["Alloy agent<br/>scrapes localhost, 60s"]
     ne --> agent
   end
 
@@ -37,7 +37,7 @@ flowchart LR
 
   display["Office Display<br/>public dashboard share"]
 
-  agent -- "remote_write 15s · job=node" --> mimir
+  agent -- "remote_write 60s · job=node" --> mimir
   agent -- "journald · job=systemd-journal" --> lokidb
   haos --> hascrape
   bb -- "remote_write · job=integrations/blackbox/*" --> mimir
@@ -59,7 +59,7 @@ flowchart LR
 
 **Node metrics (push).** Every host runs its own Alloy agent that scrapes the
 local `node_exporter` on `127.0.0.1:9100` and `remote_write`s to Mimir every
-15s, labelled `job="node"`, `instance="<host>"`. Hosts own and buffer their own
+60s, labelled `job="node"`, `instance="<host>"`. Hosts own and buffer their own
 shipping; the central collector no longer pulls them. Deploy with
 `scripts/deploy-alloy.sh`. *(Was: central Alloy scraped each host's `:9100` over
 the LAN — replaced because it's tighter, buffers across blips, and scales.)*

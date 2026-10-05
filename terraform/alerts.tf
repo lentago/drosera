@@ -1130,3 +1130,104 @@ module "uvularia_pipeline_lentago" {
   repeat_interval = var.uvularia_repeat_interval
   group_by        = var.uvularia_group_by
 }
+
+# ---------------------------------------------------------------------------
+# Grafana Cloud usage (#239) — billable metric series against the free tier.
+#
+# The series budget (ADR-0005) was tracked in ACTIVE series, but Cloud bills
+# BILLABLE series: 1 data point per minute per series is included, and faster
+# cadences count as extra series. The 15s node push quietly billed ~26k series
+# against 10k included for months; the first signal was Grafana's own email.
+# This rule watches the billed figure directly from the grafanacloud-usage
+# datasource, so the next cadence or cardinality regression pages here first.
+#
+# The usage metrics are org-level and refresh slowly, so the rule waits 1h
+# before firing. The figure only falls once a change has been in effect for a
+# while, so expect the rule to fire for some time after a regression is fixed.
+# NoData means the usage datasource is missing, not that usage is fine; keep it
+# visible.
+# ---------------------------------------------------------------------------
+
+resource "grafana_rule_group" "cloud_usage" {
+  name             = "Grafana Cloud usage"
+  folder_uid       = grafana_folder.lentago.uid
+  interval_seconds = 300
+
+  rule {
+    name      = "Grafana Cloud billable series near cap"
+    condition = "C"
+    for       = "1h"
+
+    no_data_state  = "NoData"
+    exec_err_state = "Error"
+
+    # A: billable / included metric series for the org (1.0 = at the cap).
+    data {
+      ref_id         = "A"
+      datasource_uid = "grafanacloud-usage"
+
+      relative_time_range {
+        from = 3600
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId         = "A"
+        instant       = true
+        range         = false
+        editorMode    = "code"
+        expr          = "max(grafanacloud_org_metrics_billable_series) / max(grafanacloud_org_metrics_included_series)"
+        intervalMs    = 1000
+        maxDataPoints = 43200
+        datasource = {
+          type = "prometheus"
+          uid  = "grafanacloud-usage"
+        }
+      })
+    }
+
+    # C: fire above 90% of the included series.
+    data {
+      ref_id         = "C"
+      datasource_uid = "__expr__"
+
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId = "C"
+        type  = "classic_conditions"
+        datasource = {
+          type = "__expr__"
+          uid  = "__expr__"
+        }
+        conditions = [{
+          type = "query"
+          evaluator = {
+            type   = "gt"
+            params = [0.9]
+          }
+          operator = { type = "and" }
+          query    = { params = ["A"] }
+          reducer  = { type = "last", params = [] }
+        }]
+      })
+    }
+
+    notification_settings {
+      contact_point   = grafana_contact_point.site_alerts_email.name
+      repeat_interval = "24h"
+    }
+
+    labels = {
+      service  = "cloud-usage"
+      severity = "warning"
+    }
+
+    annotations = {
+      summary = "Grafana Cloud billable metric series are above 90% of the free tier's included series (grafanacloud_org_metrics_billable_series / grafanacloud_org_metrics_included_series). Billable = active series × data points per minute, and only 1 DPM is included, so check scrape cadence before cardinality: a source scraped faster than 60s bills as several series. Runbook: ADR-0005 amendment; per-job active series via count by (job) ({__name__=~\".+\"}) on grafanacloud-prom."
+    }
+  }
+}
