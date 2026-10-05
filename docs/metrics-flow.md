@@ -17,7 +17,7 @@ flowchart LR
 
   haos["Home Assistant (HAOS)<br/>/api/prometheus"]
   fw["Firewalla<br/>Fluent Bit: Zeek + ACL logs"]
-  fwdev["Firewalla<br/>device-inventory publisher"]
+  fwdev["Firewalla<br/>device-inventory collector (betula)"]
 
   subgraph central["Central Alloy — LXC 105 (grafana-stack)"]
     direction TB

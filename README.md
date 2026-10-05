@@ -132,7 +132,7 @@ label conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
   CENTRAL ALLOY (LXC 105)                                       │    (lentago)
     blackbox ICMP/HTTP ───────────────── remote_write ─────────┤    ├─ Mimir (metrics)
     Home Assistant /api/prometheus → HA scrape → remote_write ──┤    ├─ Loki  (logs)
-    device_inventory publisher → Loki receiver :3100 ──────────┘    └─ Grafana
+    betula device_inventory    → Loki receiver :3100 ──────────┘    └─ Grafana
                                                                           │
   Firewalla Fluent Bit (Zeek/ACL) ── direct Loki push, no relay ─────────┤
                                                                           │
@@ -575,15 +575,17 @@ names by joining against a **device-inventory log stream**,
 `log_source="device_inventory"`. Grafana Cloud runs queries server-side and
 cannot reach the LAN, and LAN topology must not be published to GitHub — so the
 name↔IP mapping travels the trusted central-Alloy → Cloud Loki channel (see
-[#113](https://github.com/lentago/drosera/issues/113)). **This publisher is the
+[#113](https://github.com/lentago/drosera/issues/113)). **This feed is the
 one remaining user of the central Alloy's `:3100` Loki receiver**
 (`loki.source.api "firewalla"` in [`alloy/config.alloy`](alloy/config.alloy));
 Zeek/ACL logs no longer travel this path (see "Loki output contract" above) —
 don't mistake the receiver block for dead config and remove it.
 
-The publisher
-([`scripts/device-inventory-publisher/publish-device-inventory.sh`](scripts/device-inventory-publisher/publish-device-inventory.sh))
-runs **on the Firewalla box** (pi user, **hourly** via cron). It reads the box's
+The producer is **betula's** Firewalla device-inventory collector
+([`lentago/betula` `scripts/device_inventory_publish.sh`](https://github.com/lentago/betula/blob/main/scripts/device_inventory_publish.sh),
+moved from this repo in 2026-10 — betula#115, #151, #243: capture is betula's
+side of the boundary). It runs **on the Firewalla box** (pi user, **hourly**
+from betula's `cron/user_crontab`, straight from betula's gitops clone). It reads the box's
 own device inventory from local redis (`host:mac:*` hashes — no new
 credentials) and pushes one record per (device, IP) pair to the central Alloy
 Loki receiver (`http://<ALLOY_HOST>:3100/loki/api/v1/push`).
@@ -606,21 +608,19 @@ the variable value stays the raw IP that `id_orig_h=~"$device_ip"` needs. Any
 `|` in a device name is stripped before composing the label so the split stays
 unambiguous.
 
-Deploy / update it by **re-running** the deploy script from the operator
-workstation (it scp's the publisher, installs the pi cron entry, and installs a
-`~/.firewalla/config/post_main.d/` hook that re-installs the cron after FireMain
-regenerates state):
+**The schema above is the interface drosera consumes** — the dashboards' IP→name
+joins, the `dev` template variable, and `Ingest absence — device_inventory`
+depend on it. Changing it takes a matching change on both sides.
+
+Deployment is betula's: a merge to betula's `main` reaches the box through its
+gitops loop, with no deploy step here. Smoke-test on the box without pushing:
 
 ```bash
-./scripts/deploy-device-inventory-publisher.sh <ALLOY_HOST>   # e.g. 192.168.139.20
-# smoke-test on the box without pushing:
-ssh pi@firewalla.local 'DRY_RUN=1 ~/.firewalla/run/device-inventory/publish-device-inventory.sh | head'
+ssh pi@firewalla.local 'DRY_RUN=1 ~/.firewalla/firewalla-axiom-pipeline/scripts/device_inventory_publish.sh | head'
 ```
 
-Like the worker transcript shipper, this publisher is **not gitops-managed** —
-editing the script on `main` does not auto-deploy; you must re-run the deploy
-script. Volume is negligible (~110 devices, hourly; logs not metrics, so it
-does not touch the 15k active-series cap).
+Volume is negligible (~190 devices, hourly; logs not metrics, so it does not
+touch the active-series cap).
 
 ### Series budget / HA export trim
 

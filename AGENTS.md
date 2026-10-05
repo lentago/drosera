@@ -16,7 +16,7 @@ Cursor loads **[.cursor/rules/read-docs-first.mdc](.cursor/rules/read-docs-first
 ## Quick facts
 
 - **Logs (Zeek/ACL):** Firewalla's Fluent Bit (owned by [lentago/betula](https://github.com/lentago/betula)) → **directly** to Grafana Cloud Loki, no LAN relay, central Alloy not in the path.
-- **Logs (`device_inventory`):** the one remaining user of the central Alloy's `loki.source.api` on **:3100** → Grafana Cloud Loki (`GRAFANA_CLOUD_LOGS_*`).
+- **Logs (`device_inventory`):** produced by [lentago/betula](https://github.com/lentago/betula)'s Firewalla device-inventory collector; the one remaining user of the central Alloy's `loki.source.api` on **:3100** → Grafana Cloud Loki (`GRAFANA_CLOUD_LOGS_*`).
 - **Metrics:** Alloy blackbox + node + HA scrapes → Grafana Cloud Mimir (`GRAFANA_CLOUD_METRICS_*`).
 - **Dashboards:** Edit `dashboards/*.json`, then `cd terraform && terraform plan && terraform apply`.
 - **Secrets:** Never commit `.envrc`, `alloy/ha_token`, or `terraform/*.tfstate`.
