@@ -149,7 +149,7 @@ prometheus.scrape "blackbox" {
 
 // node_exporter metrics are no longer pulled from here. Every host (neptune +
 // pve/pve2/pve3/pve4/pve5) now runs a host-local Alloy agent that scrapes its
-// own node_exporter and remote_writes to Mimir at 15s (job="node",
+// own node_exporter and remote_writes to Mimir at 60s (job="node",
 // instance=<host>) — see scripts/deploy-alloy.sh and README § "central pull
 // vs. host-local push". To add a new host: run deploy-alloy.sh on it. To
 // temporarily fall back to central pull for a host, re-add a

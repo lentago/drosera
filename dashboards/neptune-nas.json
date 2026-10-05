@@ -118,7 +118,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg(irate(node_cpu_seconds_total{instance=\"neptune\", mode=\"idle\"}[$__rate_interval])) * 100)",
+          "expr": "100 - (avg(irate(node_cpu_seconds_total{instance=\"neptune\", mode=\"idle\"}[5m])) * 100)",
           "instant": true
         }
       ],
@@ -357,11 +357,11 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (mode) (irate(node_cpu_seconds_total{instance=\"neptune\", mode!=\"idle\"}[$__rate_interval])) * 100 / scalar(count(count by (cpu) (node_cpu_seconds_total{instance=\"neptune\"})))",
+          "expr": "sum by (mode) (irate(node_cpu_seconds_total{instance=\"neptune\", mode!=\"idle\"}[5m])) * 100 / scalar(count(count by (cpu) (node_cpu_seconds_total{instance=\"neptune\"})))",
           "legendFormat": "{{mode}}"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
@@ -584,16 +584,16 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_disk_read_bytes_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval])",
+          "expr": "irate(node_disk_read_bytes_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m])",
           "legendFormat": "{{device}} read"
         },
         {
           "refId": "B",
-          "expr": "irate(node_disk_written_bytes_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval])",
+          "expr": "irate(node_disk_written_bytes_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m])",
           "legendFormat": "{{device}} write"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
@@ -632,16 +632,16 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_disk_reads_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval])",
+          "expr": "irate(node_disk_reads_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m])",
           "legendFormat": "{{device}} read"
         },
         {
           "refId": "B",
-          "expr": "irate(node_disk_writes_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval])",
+          "expr": "irate(node_disk_writes_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m])",
           "legendFormat": "{{device}} write"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "iops",
@@ -680,11 +680,11 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_disk_io_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval]) * 100",
+          "expr": "irate(node_disk_io_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m]) * 100",
           "legendFormat": "{{device}}"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
@@ -732,16 +732,16 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_disk_read_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval]) / clamp_min(irate(node_disk_reads_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval]), 1) * 1000",
+          "expr": "irate(node_disk_read_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m]) / clamp_min(irate(node_disk_reads_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m]), 1) * 1000",
           "legendFormat": "{{device}} read"
         },
         {
           "refId": "B",
-          "expr": "irate(node_disk_write_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval]) / clamp_min(irate(node_disk_writes_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[$__rate_interval]), 1) * 1000",
+          "expr": "irate(node_disk_write_time_seconds_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m]) / clamp_min(irate(node_disk_writes_completed_total{instance=\"neptune\", device=~\"sd[ab]|md1\"}[5m]), 1) * 1000",
           "legendFormat": "{{device}} write"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
@@ -796,16 +796,16 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_network_receive_bytes_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_receive_bytes_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "rx"
         },
         {
           "refId": "B",
-          "expr": "irate(node_network_transmit_bytes_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_transmit_bytes_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "tx"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
@@ -849,26 +849,26 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "irate(node_network_receive_errs_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_receive_errs_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "rx errors"
         },
         {
           "refId": "B",
-          "expr": "irate(node_network_transmit_errs_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_transmit_errs_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "tx errors"
         },
         {
           "refId": "C",
-          "expr": "irate(node_network_receive_drop_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_receive_drop_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "rx drops"
         },
         {
           "refId": "D",
-          "expr": "irate(node_network_transmit_drop_total{instance=\"neptune\", device=\"eth0\"}[$__rate_interval])",
+          "expr": "irate(node_network_transmit_drop_total{instance=\"neptune\", device=\"eth0\"}[5m])",
           "legendFormat": "tx drops"
         }
       ],
-      "interval": "30s",
+      "interval": "1m",
       "fieldConfig": {
         "defaults": {
           "unit": "pps",

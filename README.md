@@ -25,7 +25,7 @@ Git-driven observability for a Firewalla home network, powered by [Grafana
 Cloud](https://grafana.com/products/cloud/) (free tier) on the visualization
 side. Ingestion is per-host, not a single chokepoint: each host runs its own
 [Grafana Alloy](https://grafana.com/docs/alloy/) agent and pushes metrics
-straight to Cloud (`remote_write`, 15s); a central Alloy on the LXC covers
+straight to Cloud (`remote_write`, 60s); a central Alloy on the LXC covers
 what's left over — blackbox probes, the Home Assistant scrape, and one Loki
 receiver (see [Architecture](#architecture) below).
 
@@ -117,7 +117,7 @@ the live Grafana stack directly (vector 2's failure mode) requires a Grafana Clo
 
 ## Architecture
 
-Node metrics **push** from each host (host-local Alloy → Mimir, 15s); the
+Node metrics **push** from each host (host-local Alloy → Mimir, 60s); the
 central Alloy on the LXC handles blackbox probes, the Home Assistant scrape,
 and a Loki receiver used only by the device-inventory feed (see below).
 Zeek/ACL logs bypass the central Alloy entirely — the Firewalla's Fluent Bit
@@ -127,7 +127,7 @@ label conventions: [docs/metrics-flow.md](docs/metrics-flow.md).**
 
 ```
   HOSTS ×6 (neptune, pve, pve2, pve3, pve4, pve5)
-    each: node_exporter:9100 → local Alloy ── remote_write 15s ─┐
+    each: node_exporter:9100 → local Alloy ── remote_write 60s ─┐
                                                                 ├─▶ Grafana Cloud
   CENTRAL ALLOY (LXC 105)                                       │    (lentago)
     blackbox ICMP/HTTP ───────────────── remote_write ─────────┤    ├─ Mimir (metrics)
@@ -361,7 +361,7 @@ docs/clients/uvularia.md       # client export: the uvularia pane into a client'
 scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host
-  deploy-alloy.sh              # install a host-local Alloy push agent (15s remote_write)
+  deploy-alloy.sh              # install a host-local Alloy push agent (60s remote_write)
 .github/actions/
   loki-event/                  # composite action: one event from a workflow to Loki
 .github/workflows/
@@ -523,8 +523,8 @@ supports both side by side with identical labels (`job="node"`,
   `:9100` over the LAN. Add the host to the `prometheus.scrape "node"` target
   list in [`alloy/config.alloy`](alloy/config.alloy).
 - **Host-local push (standardized):** the host runs its own Alloy that scrapes
-  `localhost:9100` and `remote_write`s to Mimir at 15s. Tighter cadence,
-  buffers across network blips, and each host owns its own shipping. Deploy
+  `localhost:9100` and `remote_write`s to Mimir at 60s (#239 — faster
+  cadences bill as extra series). Buffers across network blips, and each host owns its own shipping. Deploy
   with [`scripts/deploy-alloy.sh`](scripts/deploy-alloy.sh):
 
   ```bash

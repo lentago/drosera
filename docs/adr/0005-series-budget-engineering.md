@@ -80,3 +80,35 @@ little of it as possible:
 - The choice to render inventory as logs (this ADR) is the same edit that keeps
   LAN topology out of GitHub and inside the trusted Cloud query domain
   (ADR-0006).
+
+## Amendment (2026-10-05): budget billable series, not active series (#239)
+
+The budget above is denominated in **active** series, but Grafana Cloud bills
+**billable** series: the free tier includes **1 DPM (data point per minute)
+per series** (`grafanacloud_org_metrics_included_dpm_per_series = 1`), and
+any faster cadence is counted as additional series. Billable is therefore
+roughly active × average DPM.
+
+That gap went unnoticed for months. The host-local push agents (ADR-0003)
+ran node_exporter at 15s, so the ~6.6k `job="node"` active series billed at
+~4 DPM: on 2026-10-05, ~7.9k active series showed as **25,993 billable**
+against 10,000 included, and had sat at 26–29k for at least 45 days. Grafana
+Cloud's "exceeded your Free usage limits" email of 2026-10-03 was the first
+signal.
+
+Decision:
+
+- **Cadence is part of the budget.** A source's cost is series × DPM. The
+  default is 60s (1 DPM). Faster cadence has to be argued for in the budget
+  like any new series. Node push moved to 60s (#239). The blackbox probes stay
+  at 30s (~330 series, ~660 billable) because probe resolution feeds the
+  availability and SLO rules. Home Assistant is already at 60s.
+- **Measure billable, not active.** The budget figure to watch is
+  `grafanacloud_org_metrics_billable_series` against
+  `grafanacloud_org_metrics_included_series` (datasource `grafanacloud-usage`).
+  An alert, "Grafana Cloud billable series near cap", fires above 90%.
+- **Query windows follow cadence.** At 60s, `rate`/`irate` windows need at
+  least ~2m to hold two samples. The node dashboards use fixed `[5m]` windows
+  rather than `$__rate_interval`. `$__rate_interval` is computed from the
+  Cloud-provisioned datasource's 15s default scrape interval, which this repo
+  does not manage.

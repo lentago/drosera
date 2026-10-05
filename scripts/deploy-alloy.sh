@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Installs Grafana Alloy from the official apt repo and configures it as a
 # host-local "push" agent: it scrapes the node_exporter already running on
-# localhost:9100 and remote_writes to Grafana Cloud Mimir every 15s. This is
+# localhost:9100 and remote_writes to Grafana Cloud Mimir every 60s. This is
 # the standardized collection model — every important host owns and ships its
 # own metrics (buffered locally across network blips) instead of being pulled
 # by the central Alloy on LXC 105.
@@ -152,7 +152,7 @@ ${SUDO} tee /etc/alloy/config.alloy >/dev/null <<'ALLOY_EOF'
 // Managed by scripts/deploy-alloy.sh in lentago/drosera —
 // edit there, re-run the script; do NOT hand-edit on the host.
 //
-// Metrics: scrapes node_exporter on localhost:9100 → remote_write to Mimir @15s
+// Metrics: scrapes node_exporter on localhost:9100 → remote_write to Mimir @60s
 // (job="node", instance from $ALLOY_INSTANCE).
 // Logs: ships this host's systemd journal → Grafana Cloud Loki
 // (job="systemd-journal", host from $ALLOY_INSTANCE, cluster="lentago-lab").
@@ -169,7 +169,11 @@ prometheus.scrape "node" {
     { __address__ = "127.0.0.1:9100", instance = sys.env("ALLOY_INSTANCE") },
   ]
   forward_to      = [prometheus.relabel.node_trim.receiver]
-  scrape_interval = "15s"
+  // 60s, not 15s (#239): Grafana Cloud bills 1 data point per minute per
+  // series and counts anything faster as extra series, so 15s billed ~4x the
+  // active node series (~26k billable vs. the 10k included). Dashboards and
+  // alerts on node metrics use >= 5m windows, which hold 5+ samples at 60s.
+  scrape_interval = "60s"
   job_name        = "node"
 }
 
@@ -305,7 +309,7 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${GREEN}============================================================${NC}"
-echo -e "${GREEN} Alloy host-agent on '${ALLOY_INSTANCE}': metrics @15s + journald logs.${NC}"
+echo -e "${GREEN} Alloy host-agent on '${ALLOY_INSTANCE}': metrics @60s + journald logs.${NC}"
 echo -e "${YELLOW} If this host is NEW: remove it from the central prometheus.scrape${NC}"
 echo -e "${YELLOW} \"node\" block in alloy/config.alloy (else its metrics double-scrape).${NC}"
 echo -e "${GREEN}============================================================${NC}"

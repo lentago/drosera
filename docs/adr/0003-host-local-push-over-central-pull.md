@@ -70,3 +70,8 @@ Two rules make the standardization safe:
   other would break that guarantee.
 - HAOS remains on central pull by design; a future non-appliance replacement
   would be a candidate to move onto push and out of the central block.
+
+> **Amendment (2026-10-05, #239):** the push cadence is now **60s**, not 15s.
+> At 15s every node series billed as ~4 under Grafana Cloud's 1-DPM free-tier
+> allowance (see ADR-0005's amendment). The model, labels, and never-both rule
+> are unchanged.
