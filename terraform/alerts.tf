@@ -303,7 +303,7 @@ locals {
       name         = "Ingest absence — device_inventory"
       window       = "3h"
       from_seconds = 10800
-      summary      = "No device_inventory entries in the last 3h. This feed is an hourly cron via the central Alloy loki.source.api; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
+      summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
     },
   ]
 }

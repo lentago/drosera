@@ -23,7 +23,7 @@ flowchart LR
     direction TB
     bb["blackbox probes<br/>ICMP / HTTP"]
     hascrape["HA scrape → ha_trim<br/>(drops export noise)"]
-    lokirecv["loki.source.api :3100<br/>(device_inventory only)"]
+    lokirecv["loki.source.api :3100<br/>(claude_runner + claude_local)"]
   end
 
   subgraph cloud["Grafana Cloud (lentago)"]
@@ -42,7 +42,7 @@ flowchart LR
   haos --> hascrape
   bb -- "remote_write · job=integrations/blackbox/*" --> mimir
   hascrape -- "remote_write · job=homeassistant" --> mimir
-  fwdev -- "Loki push" --> lokirecv
+  fwdev -- "direct Loki push, no relay" --> lokidb
   fw -- "direct Loki push, no relay" --> lokidb
   lokirecv -- "loki.write" --> lokidb
   grafana --> display
@@ -88,11 +88,16 @@ betula#82, merged 2026-07-09, dropped that output, so Cloud Loki is now the
 sole destination.) Owned by [lentago/betula](https://github.com/lentago/betula)
 — triage shipping gaps there, not on the central Alloy.
 
-**Device inventory (LAN name↔IP resolution).** A separate publisher on the
-Firewalla box pushes device-name/IP pairs to the central Alloy's
-`loki.source.api` on `:3100`, which forwards them to Cloud Loki via
-`loki.write` — the **one remaining user** of that receiver. See README §
-"Device inventory feed".
+**Device inventory (LAN name↔IP resolution).** betula's collector on the
+Firewalla pushes device-name/IP pairs **directly** to Cloud Loki (since #243;
+it relayed through the central Alloy before). See README § "Device inventory
+feed".
+
+**Agent fleet events (`job="claude_runner"`, `job="claude_local"`).** The
+claytonia workers' `cr-loki.sh` (cost, heartbeat, and job-running events, which
+the Bullpen liveness alerts read) and the workstation `claude-cost-export`
+timer push to the central Alloy's `loki.source.api` on `:3100`, which forwards
+them to Cloud Loki via `loki.write`. These are the receiver's only users.
 
 **Consumption.** Dashboards (Terraform-managed, `dashboards/*.json`) and Explore
 read Mimir + Loki. The public **Office Display** is a shared dashboard.
