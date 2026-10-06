@@ -14,4 +14,4 @@ on:
 
 jobs:
   shellcheck:
-    uses: lentago/shared-workflows/.github/workflows/shellcheck.yml@main
+    uses: lentago/shared-workflows/.github/workflows/shellcheck.yml@v1.2.3
