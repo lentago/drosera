@@ -258,7 +258,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -280,11 +280,11 @@
               "surface": 1,
               "sha": 2,
               "result": 3,
-              "Value": 4,
-              "age": 5
+              "age": 5,
+              "Value #A": 4
             },
             "renameByName": {
-              "Value": "applied_at"
+              "Value #A": "applied_at"
             }
           }
         }
@@ -440,7 +440,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -460,11 +460,11 @@
             "indexByName": {
               "repo": 0,
               "head_sha": 1,
-              "Value": 2,
-              "age": 3
+              "age": 3,
+              "Value #A": 2
             },
             "renameByName": {
-              "Value": "merged_at"
+              "Value #A": "merged_at"
             }
           }
         }
@@ -1346,7 +1346,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -1362,7 +1362,7 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value": true
+              "Value #A": true
             },
             "indexByName": {
               "repo": 0,
