@@ -29,7 +29,7 @@ locals {
   # prefix: uids are load-bearing (cross-dashboard /d/ links, the office-display
   # public share, the import blocks) and changing one is a destroy/create.
   #
-  # These four maps are *groups*, not folders — since the 2026-07-24 flattening
+  # These maps are *groups*, not folders — since the 2026-07-24 flattening
   # every dashboard lands in the one `Lentago` folder, and the grouping is
   # carried by the `<Group> — <What>` dashboard title instead. The maps stay
   # separate because they differ in JSON pre-processing (the solidago set skips
@@ -190,6 +190,36 @@ locals {
 
   slo_dashboard_json = {
     for k, d in local.slo_dashboards :
+    k => replace(
+      replace(
+        replace(
+          file("${local.dashboards_dir}/${d.file}"),
+          "/\"uid\":\\s*\"loki\"/",
+          "\"uid\": \"${local.datasource_uid_rewrites["loki"]}\""
+        ),
+        "/\"uid\":\\s*\"prometheus\"/",
+        "\"uid\": \"${local.datasource_uid_rewrites["prometheus"]}\""
+      ),
+      "/\"uid\":\\s*\"infinity\"/",
+      "\"uid\": \"${local.datasource_uid_rewrites["infinity"]}\""
+    )
+  }
+}
+
+# Change pipeline dashboard (issue #258, ADR-0010) — the fleet-wide merge-to-live
+# view over the GitHub Actions feed and the `live` emitters. All-Loki, so it
+# takes the same datasource-UID rewrite as the lab/claytonia sets; its own map
+# because it belongs to no existing group (title prefix `Change —`).
+locals {
+  change_dashboards = {
+    change_pipeline = {
+      uid  = "change-pipeline"
+      file = "change-pipeline.json"
+    }
+  }
+
+  change_dashboard_json = {
+    for k, d in local.change_dashboards :
     k => replace(
       replace(
         replace(

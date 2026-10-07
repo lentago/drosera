@@ -1,0 +1,1382 @@
+{
+  "uid": "change-pipeline",
+  "title": "Change — Pipeline",
+  "description": "Where every merge stands, keyed by commit SHA (ADR-0010): the live SHA per surface, the newest `main` commit per repo, what is in flight, the stage timeline, merge-to-live latency, and the pre-merge half per branch. Built from the GitHub Actions feed (log_source=github_actions_run|github_actions_job, lentago/betula#113) and the `live` emitters ({pipeline=\"change\", stage=\"live\"}). The joins between those streams are Grafana transforms; the one LogQL vector match is the apply job to run hop (ADR-0010 v1 rule), which needs the run's head_sha as a label.",
+  "tags": [
+    "change-pipeline"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "repo",
+        "label": "Repo",
+        "type": "query",
+        "description": "Repos seen in the GitHub Actions feed.",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values({source=\"github_actions\", cluster=\"lentago\"}, repo)",
+        "query": "label_values({source=\"github_actions\", cluster=\"lentago\"}, repo)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Live now",
+      "description": "The latest change-pipeline `live` event per repo and surface over the last 7 days: the commit each surface runs, the tick's result and when it was emitted. Keyed only on pipeline=\"change\", stage=\"live\" (ADR-0010), so a new `<source>_live` emitter appears here without a dashboard edit. Emitters report every tick, no-ops included, so an age past ~10 minutes means the surface stopped reporting. Terraform surfaces have no emitter; panel \"In flight\" counts their apply job as live (ADR-0010 v1 rule).",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^lentago/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^([0-9a-f]{7}).*$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "applied_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "result"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "applied": {
+                        "text": "applied",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "noop": {
+                        "text": "noop",
+                        "color": "green",
+                        "index": 1
+                      },
+                      "rolled_back": {
+                        "text": "rolled_back",
+                        "color": "red",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "repo",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk by (repo, surface) (1, max by (repo, surface, sha, result) (max_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", result=\"result\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range]))) * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "age",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value"
+                }
+              },
+              "operator": "*",
+              "right": {
+                "fixed": "1"
+              }
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "surface": 1,
+              "sha": 2,
+              "result": 3,
+              "Value": 4,
+              "age": 5
+            },
+            "renameByName": {
+              "Value": "applied_at"
+            }
+          }
+        }
+      ],
+      "timeFrom": "7d"
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Newest main commit per repo",
+      "description": "The newest merge commit on `main` per repo over the last 7 days, from `github_actions_run` events with event=\"push\" and branch=\"main\": its head_sha and when it merged (the earliest push run's created_at for that SHA). Caveat (ADR-0010): repos whose push workflows are path-filtered are missing merges that trigger no push workflow, such as docs-only merges in drosera (terraform.yml and status-page.yml both path-filter), so the newest commit here can trail the real `main` head.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^lentago/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "head_sha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^([0-9a-f]{7}).*$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "repo",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk by (repo) (1, min by (repo, head_sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))) * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "age",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value"
+                }
+              },
+              "operator": "*",
+              "right": {
+                "fixed": "1"
+              }
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "head_sha": 1,
+              "Value": 2,
+              "age": 3
+            },
+            "renameByName": {
+              "Value": "merged_at"
+            }
+          }
+        }
+      ],
+      "timeFrom": "7d"
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "In flight",
+      "description": "Repos whose newest `main` commit (panel \"Newest main commit per repo\") has no `live` event carrying that SHA in the last 7 days. Live means a `live` event from any surface of the repo, or, for the terraform surfaces (.github, kalmia, claytonia, drosera, betula), a `github_actions_job` named `apply` or ending ` / apply` with conclusion=success, matched to its run on (repo, run_id, run_attempt) for the head_sha (ADR-0010 v1 rule). The two queries are joined on repo and sha by the Merge transform; rows with a merge and no live match are kept. budget used = time since merge ÷ the propagation budget (10 min; 20 min for site-* repos): amber past 100%, red past 200%. An empty table means nothing in flight only while \"Live now\" and \"Newest main commit per repo\" have data. A merge whose apply job is skipped by a path filter, in a repo with no emitter, stays listed until a later merge supersedes it.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^lentago/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^([0-9a-f]{7}).*$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "since merge"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "budget used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "budget used",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"merged\", \"\", \"\") * 1000"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "(${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo!~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 600 or (${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 1200"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(min by (repo, sha) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))) or label_replace(label_replace(vector(0), \"repo\", \"-\", \"\", \"\"), \"sha\", \"-\", \"\", \"\"), \"kind\", \"live\", \"\", \"\") * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns",
+            "valueLabel": "kind"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "type": "include",
+            "match": "all",
+            "filters": [
+              {
+                "fieldName": "merged",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              },
+              {
+                "fieldName": "live",
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "live": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "sha": 1,
+              "merged": 2,
+              "budget_used": 3
+            },
+            "renameByName": {
+              "merged": "since merge",
+              "budget_used": "budget used"
+            }
+          }
+        }
+      ],
+      "timeFrom": "7d"
+    },
+    {
+      "id": 4,
+      "type": "state-timeline",
+      "title": "Stage timeline",
+      "description": "One row per repo over the dashboard range, showing the furthest stage reached in each interval: merged (a push-to-main run completed), applied (an `apply` job succeeded) or live (a `live` event with result=\"applied\", i.e. a surface took a new SHA; no-op ticks are left out). Discrete events, not durations: each state holds until the next event. For the terraform surfaces \"applied\" is also their live (ADR-0010 v1 rule). The live row keys only on pipeline=\"change\", stage=\"live\", so a new emitter appears without an edit.",
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "interval": "1m",
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "merged",
+                  "color": "blue",
+                  "index": 0
+                },
+                "2": {
+                  "text": "applied",
+                  "color": "purple",
+                  "index": 1
+                },
+                "3": {
+                  "text": "live",
+                  "color": "green",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max by (repo) (label_replace((sum by (repo) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\" | event=\"push\" | branch=\"main\" [$__interval])) > 0) * 0 + 1, \"stage\", \"merged\", \"\", \"\") or label_replace((sum by (repo) (count_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\"} | json job_name=\"job_name\", conclusion=\"conclusion\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" [$__interval])) > 0) * 0 + 2, \"stage\", \"applied\", \"\", \"\") or label_replace((sum by (repo) (count_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json result=\"result\" | result=\"applied\" [$__interval])) > 0) * 0 + 3, \"stage\", \"live\", \"\", \"\"))",
+          "legendFormat": "{{repo}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Merge to live",
+      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is a Grafana inner join on sha, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined.",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^lentago/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^([0-9a-f]{7}).*$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "merged_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "live_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "latency"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "merged_at",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "M",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(min by (sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range])), \"kind\", \"merged\", \"\", \"\") * 1000"
+        },
+        {
+          "refId": "L",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform\", \"\", \"\"), \"kind\", \"live\", \"\", \"\") * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns",
+            "valueLabel": "kind"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {},
+          "filter": {
+            "id": "byRefId",
+            "options": "M"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {},
+          "filter": {
+            "id": "byRefId",
+            "options": "L"
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "sha",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "latency",
+            "replaceFields": false,
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "live"
+                }
+              },
+              "operator": "-",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "merged"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "sha": 1,
+              "surface": 2,
+              "merged": 3,
+              "live": 4,
+              "latency": 5
+            },
+            "renameByName": {
+              "merged": "merged_at",
+              "live": "live_at"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Merge to live — latency per surface",
+      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is a Grafana inner join on sha, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined. One point per merge, at its merge time; one series per surface.",
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "no data",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 8,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "M",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(min by (sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range])), \"kind\", \"merged\", \"\", \"\") * 1000"
+        },
+        {
+          "refId": "L",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform\", \"\", \"\"), \"kind\", \"live\", \"\", \"\") * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns",
+            "valueLabel": "kind"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {},
+          "filter": {
+            "id": "byRefId",
+            "options": "M"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {},
+          "filter": {
+            "id": "byRefId",
+            "options": "L"
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "sha",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "latency",
+            "replaceFields": false,
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "live"
+                }
+              },
+              "operator": "-",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "merged"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "surface",
+            "rowField": "merged",
+            "valueField": "latency",
+            "emptyValue": "null"
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "merged\\surface",
+                "destinationType": "time"
+              }
+            ],
+            "fields": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "merged\\surface"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Pre-merge half, by branch",
+      "description": "The latest `pull_request` run per repo and branch over the last 7 days: its head_sha, workflow, conclusion and completion time. This half is keyed by the PR head SHA, which differs from the merge commit SHA because the fleet squash-merges (ADR-0010), so these rows do not join to the panels above until the feed carries the PR number (lentago/betula#133). Only completed runs are in the feed, so a branch appears once its first PR workflow finishes.",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "repo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^lentago/(.+)$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "head_sha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^([0-9a-f]{7}).*$",
+                      "result": {
+                        "text": "$1"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "conclusion"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "success": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "failure": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "cancelled": {
+                        "color": "text",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "age",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk by (repo, branch) (1, max by (repo, branch, head_sha, workflow, conclusion) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", workflow=\"workflow\", conclusion=\"conclusion\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format updated_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap updated_ts | __error__=\"\" [$__range]))) * 1000"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "age",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value"
+                }
+              },
+              "operator": "*",
+              "right": {
+                "fixed": "1"
+              }
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "branch": 1,
+              "head_sha": 2,
+              "workflow": 3,
+              "conclusion": 4,
+              "age": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "timeFrom": "7d"
+    }
+  ]
+}
