@@ -125,10 +125,12 @@ The budget runs from `merged` to `live` for the newest `main` commit.
 
 | Surface | Budget | Why |
 |---|---|---|
-| terraform (`.github`, kalmia, claytonia, drosera, betula) | 10 min | apply job queue + run, plus one collector poll |
+| terraform (`.github`, kalmia, claytonia, drosera, betula, solidago) | 10 min | apply job queue + run, plus one collector poll |
 | alloy (`alloy-lxc105`) | 10 min | two 5-min gitops ticks, so one missed tick does not page |
 | Firewalla | 10 min | same shape as alloy: a 5-min gitops timer |
 | sites | 20 min | the deploy workflow's typical duration plus a probe interval |
+
+*Amended 2026-10-07: solidago applies on merge too and was missing from this list; its apply job is named `Terraform Apply`, so consumers match the job name case-insensitively as `(terraform )?apply`, with or without a reusable-workflow prefix.*
 
 **v1: apply-success counts as `live` for the terraform surfaces.** Terraform's
 runtime is the provider's remote state, and nothing on the fleet reports it

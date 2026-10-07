@@ -74,7 +74,7 @@
       "id": 1,
       "type": "table",
       "title": "Live now",
-      "description": "The latest change-pipeline `live` event per repo and surface over the last 7 days: the commit each surface runs, the tick's result and when it was emitted. Keyed only on pipeline=\"change\", stage=\"live\" (ADR-0010), so a new `<source>_live` emitter appears here without a dashboard edit. Emitters report every tick, no-ops included, so an age past ~10 minutes means the surface stopped reporting. Terraform surfaces have no emitter; panel \"In flight\" counts their apply job as live (ADR-0010 v1 rule). The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula); their surface reads terraform:<repo>.",
+      "description": "The latest change-pipeline `live` event per repo and surface over the last 7 days: the commit each surface runs, the tick's result and when it was emitted. Keyed only on pipeline=\"change\", stage=\"live\" (ADR-0010), so a new `<source>_live` emitter appears here without a dashboard edit. Emitters report every tick, no-ops included, so an age past ~10 minutes means the surface stopped reporting. Terraform surfaces have no emitter; panel \"In flight\" counts their apply job as live (ADR-0010 v1 rule). The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula, solidago); their surface reads terraform:<repo>.",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -258,7 +258,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -280,11 +280,11 @@
               "surface": 1,
               "sha": 2,
               "result": 3,
-              "Value": 4,
-              "age": 5
+              "age": 5,
+              "Value #A": 4
             },
             "renameByName": {
-              "Value": "applied_at"
+              "Value #A": "applied_at"
             }
           }
         }
@@ -440,7 +440,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -460,11 +460,11 @@
             "indexByName": {
               "repo": 0,
               "head_sha": 1,
-              "Value": 2,
-              "age": 3
+              "age": 3,
+              "Value #A": 2
             },
             "renameByName": {
-              "Value": "merged_at"
+              "Value #A": "merged_at"
             }
           }
         }
@@ -475,7 +475,7 @@
       "id": 3,
       "type": "table",
       "title": "In flight",
-      "description": "Repos whose newest `main` commit (panel \"Newest main commit per repo\") has no `live` event carrying that SHA in the last 7 days. Live means a `live` event from any surface of the repo, or, for the terraform surfaces (.github, kalmia, claytonia, drosera, betula), a `github_actions_job` named `apply` or ending ` / apply` with conclusion=success, matched to its run on (repo, run_id, run_attempt) for the head_sha (ADR-0010 v1 rule). The two queries are joined on repo and sha by the Merge transform; rows with a merge and no live match are kept. budget used = time since merge ÷ the propagation budget (10 min; 20 min for site-* repos): amber past 100%, red past 200%. An empty table means nothing in flight only while \"Live now\" and \"Newest main commit per repo\" have data. A merge whose apply job is skipped by a path filter, in a repo with no emitter, stays listed until a later merge supersedes it. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula); their surface reads terraform:<repo>.",
+      "description": "Repos with a live source (a `live` emitter, or a terraform apply on merge: .github, kalmia, claytonia, drosera, betula, solidago) whose newest `main` commit has no `live` event carrying that SHA in the last 7 days. Live means a `live` event from any surface of the repo, or a `github_actions_job` whose name is `apply` or `Terraform Apply` (case-insensitive, with or without a reusable-workflow prefix) with conclusion=success, matched to its run on (repo, run_id, run_attempt) for the head_sha (ADR-0010 v1 rule). Repos without a live source (sites until their version probe lands, the uvularia template and demo repos) are left out rather than shown red forever. budget used = time since merge ÷ the propagation budget (10 min; 20 min for site-* repos): amber past 100%, red past 200%. An empty table means nothing is in flight only while \"Live now\" and \"Newest main commit per repo\" have data.",
       "gridPos": {
         "x": 0,
         "y": 8,
@@ -628,7 +628,7 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"merged\", \"\", \"\") * 1000"
+          "expr": "label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"merged\", \"\", \"\") * 1000"
         },
         {
           "refId": "B",
@@ -638,7 +638,7 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "(${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo!~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 600 or (${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 1200"
+          "expr": "(${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\", repo!~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 600 or (${__to} / 1000 - label_replace(topk by (repo) (1, min by (repo, sha) (min_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\", repo=~\"lentago/site-.+\"} | json event=\"event\", branch=\"branch\", sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format merged_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap merged_ts | __error__=\"\" [$__range]))), \"kind\", \"budget_used\", \"\", \"\")) / 1200"
         },
         {
           "refId": "C",
@@ -648,15 +648,19 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "label_replace(min by (repo, sha) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))) or label_replace(label_replace(vector(0), \"repo\", \"-\", \"\", \"\"), \"sha\", \"-\", \"\", \"\"), \"kind\", \"live\", \"\", \"\") * 1000"
+          "expr": "label_replace(min by (repo, sha) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))) or label_replace(label_replace(vector(0), \"repo\", \"-\", \"\", \"\"), \"sha\", \"-\", \"\", \"\"), \"kind\", \"live\", \"\", \"\") * 1000"
         }
       ],
       "transformations": [
         {
-          "id": "labelsToFields",
+          "id": "organize",
           "options": {
-            "mode": "columns",
-            "valueLabel": "kind"
+            "excludeByName": {
+              "Time": true,
+              "kind": true
+            },
+            "indexByName": {},
+            "renameByName": {}
           }
         },
         {
@@ -670,14 +674,14 @@
             "match": "all",
             "filters": [
               {
-                "fieldName": "merged",
+                "fieldName": "Value #A",
                 "config": {
                   "id": "isNotNull",
                   "options": {}
                 }
               },
               {
-                "fieldName": "live",
+                "fieldName": "Value #C",
                 "config": {
                   "id": "isNull",
                   "options": {}
@@ -690,18 +694,17 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true,
-              "live": true
+              "Value #C": true
             },
             "indexByName": {
               "repo": 0,
               "sha": 1,
-              "merged": 2,
-              "budget_used": 3
+              "Value #A": 2,
+              "Value #B": 3
             },
             "renameByName": {
-              "merged": "since merge",
-              "budget_used": "budget used"
+              "Value #A": "since merge",
+              "Value #B": "budget used"
             }
           }
         }
@@ -712,7 +715,7 @@
       "id": 4,
       "type": "state-timeline",
       "title": "Stage timeline",
-      "description": "One row per repo over the dashboard range, showing the furthest stage reached in each interval: merged (a push-to-main run completed), applied (an `apply` job succeeded) or live (a `live` event with result=\"applied\", i.e. a surface took a new SHA; no-op ticks are left out). Discrete events, not durations: each state holds until the next event. For the terraform surfaces \"applied\" is also their live (ADR-0010 v1 rule). The live row keys only on pipeline=\"change\", stage=\"live\", so a new emitter appears without an edit. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula); their surface reads terraform:<repo>.",
+      "description": "One row per repo over the dashboard range, showing the furthest stage reached in each interval (the query ORs the three stages with live first, so a later stage takes precedence): merged (a push-to-main run completed), applied (an `apply` job succeeded) or live (a `live` event with result=\"applied\", i.e. a surface took a new SHA; no-op ticks are left out). Discrete events, not durations: each state holds until the next event. For the terraform surfaces \"applied\" is also their live (ADR-0010 v1 rule). The live row keys only on pipeline=\"change\", stage=\"live\", so a new emitter appears without an edit. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula, solidago); their surface reads terraform:<repo>.",
       "gridPos": {
         "x": 0,
         "y": 15,
@@ -775,7 +778,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -793,7 +796,7 @@
           },
           "editorMode": "code",
           "queryType": "range",
-          "expr": "max by (repo) (label_replace((sum by (repo) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\" | event=\"push\" | branch=\"main\" [$__interval])) > 0) * 0 + 1, \"stage\", \"merged\", \"\", \"\") or label_replace((sum by (repo) (count_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula)\"} | json job_name=\"job_name\", conclusion=\"conclusion\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" [$__interval])) > 0) * 0 + 2, \"stage\", \"applied\", \"\", \"\") or label_replace((sum by (repo) (count_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json result=\"result\" | result=\"applied\" [$__interval])) > 0) * 0 + 3, \"stage\", \"live\", \"\", \"\"))",
+          "expr": "(sum by (repo) (count_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json result=\"result\" | result=\"applied\" [$__interval])) > 0) * 0 + 3 or (sum by (repo) (count_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json job_name=\"job_name\", conclusion=\"conclusion\" | conclusion=\"success\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" [$__interval])) > 0) * 0 + 2 or (sum by (repo) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\" | event=\"push\" | branch=\"main\" [$__interval])) > 0) * 0 + 1",
           "legendFormat": "{{repo}}"
         }
       ]
@@ -802,7 +805,7 @@
       "id": 5,
       "type": "table",
       "title": "Merge to live",
-      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is a Grafana inner join on sha, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula); their surface reads terraform:<repo>.",
+      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is Grafana's Merge transform on the shared sha column, kept only where both sides are present, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula, solidago); their surface reads terraform:<repo>.",
       "gridPos": {
         "x": 0,
         "y": 24,
@@ -946,38 +949,46 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform:$1\", \"repo\", \"lentago/(.+)\"), \"kind\", \"live\", \"\", \"\") * 1000"
+          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform:$1\", \"repo\", \"lentago/(.+)\"), \"kind\", \"live\", \"\", \"\") * 1000"
         }
       ],
       "transformations": [
         {
-          "id": "labelsToFields",
+          "id": "organize",
           "options": {
-            "mode": "columns",
-            "valueLabel": "kind"
+            "excludeByName": {
+              "Time": true,
+              "kind": true
+            },
+            "indexByName": {},
+            "renameByName": {}
           }
         },
         {
           "id": "merge",
-          "options": {},
-          "filter": {
-            "id": "byRefId",
-            "options": "M"
-          }
+          "options": {}
         },
         {
-          "id": "merge",
-          "options": {},
-          "filter": {
-            "id": "byRefId",
-            "options": "L"
-          }
-        },
-        {
-          "id": "joinByField",
+          "id": "filterByValue",
           "options": {
-            "byField": "sha",
-            "mode": "inner"
+            "type": "include",
+            "match": "all",
+            "filters": [
+              {
+                "fieldName": "Value #M",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              },
+              {
+                "fieldName": "Value #L",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              }
+            ]
           }
         },
         {
@@ -990,14 +1001,14 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "live"
+                  "options": "Value #L"
                 }
               },
               "operator": "-",
               "right": {
                 "matcher": {
                   "id": "byName",
-                  "options": "merged"
+                  "options": "Value #M"
                 }
               }
             }
@@ -1006,20 +1017,18 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "Time": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "repo": 0,
               "sha": 1,
               "surface": 2,
-              "merged": 3,
-              "live": 4,
+              "Value #M": 3,
+              "Value #L": 4,
               "latency": 5
             },
             "renameByName": {
-              "merged": "merged_at",
-              "live": "live_at"
+              "Value #M": "merged_at",
+              "Value #L": "live_at"
             }
           }
         }
@@ -1029,7 +1038,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Merge to live — latency per surface",
-      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is a Grafana inner join on sha, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined. One point per merge, at its merge time; one series per surface. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula); their surface reads terraform:<repo>.",
+      "description": "Each merge to `main` in the dashboard range (first push-to-main run per SHA; its created_at is the merge time) joined on sha to the first `live` event carrying the same SHA, per surface. Terraform surfaces use the ADR-0010 v1 rule (apply job success, surface \"terraform\"). The join is Grafana's Merge transform on the shared sha column, kept only where both sides are present, so merges with no live event yet are left out (see \"In flight\"). Merges missing from the push feed (path-filtered repos) cannot be joined. One point per merge, at its merge time; one series per surface. The apply-as-live rule applies only to the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula, solidago); their surface reads terraform:<repo>.",
       "gridPos": {
         "x": 12,
         "y": 24,
@@ -1083,38 +1092,46 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"apply|.+ / apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform:$1\", \"repo\", \"lentago/(.+)\"), \"kind\", \"live\", \"\", \"\") * 1000"
+          "expr": "label_replace(min by (repo, sha, surface) (min_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha=\"sha\", surface=\"surface\", applied_at=\"applied_at\" | label_format live_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap live_ts | __error__=\"\" [$__range])) or label_replace(min by (repo, sha) (min by (repo, run_id, run_attempt) (min_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\" | conclusion=\"success\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" | label_format applied_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap applied_ts | __error__=\"\" [$__range])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" [$__range])))), \"surface\", \"terraform:$1\", \"repo\", \"lentago/(.+)\"), \"kind\", \"live\", \"\", \"\") * 1000"
         }
       ],
       "transformations": [
         {
-          "id": "labelsToFields",
+          "id": "organize",
           "options": {
-            "mode": "columns",
-            "valueLabel": "kind"
+            "excludeByName": {
+              "Time": true,
+              "kind": true
+            },
+            "indexByName": {},
+            "renameByName": {}
           }
         },
         {
           "id": "merge",
-          "options": {},
-          "filter": {
-            "id": "byRefId",
-            "options": "M"
-          }
+          "options": {}
         },
         {
-          "id": "merge",
-          "options": {},
-          "filter": {
-            "id": "byRefId",
-            "options": "L"
-          }
-        },
-        {
-          "id": "joinByField",
+          "id": "filterByValue",
           "options": {
-            "byField": "sha",
-            "mode": "inner"
+            "type": "include",
+            "match": "all",
+            "filters": [
+              {
+                "fieldName": "Value #M",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              },
+              {
+                "fieldName": "Value #L",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              }
+            ]
           }
         },
         {
@@ -1127,14 +1144,14 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "live"
+                  "options": "Value #L"
                 }
               },
               "operator": "-",
               "right": {
                 "matcher": {
                   "id": "byName",
-                  "options": "merged"
+                  "options": "Value #M"
                 }
               }
             }
@@ -1144,7 +1161,7 @@
           "id": "groupingToMatrix",
           "options": {
             "columnField": "surface",
-            "rowField": "merged",
+            "rowField": "Value #M",
             "valueField": "latency",
             "emptyValue": "null"
           }
@@ -1154,7 +1171,7 @@
           "options": {
             "conversions": [
               {
-                "targetField": "merged\\surface",
+                "targetField": "Value #M\\surface",
                 "destinationType": "time"
               }
             ],
@@ -1166,7 +1183,7 @@
           "options": {
             "sort": [
               {
-                "field": "merged\\surface"
+                "field": "Value #M\\surface"
               }
             ]
           }
@@ -1346,7 +1363,7 @@
               "left": {
                 "matcher": {
                   "id": "byName",
-                  "options": "Value"
+                  "options": "Value #A"
                 }
               },
               "operator": "*",
@@ -1362,7 +1379,7 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Value": true
+              "Value #A": true
             },
             "indexByName": {
               "repo": 0,
