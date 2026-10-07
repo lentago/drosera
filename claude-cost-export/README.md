@@ -100,11 +100,14 @@ for the wall display's focus pane
 {"schema": 1, "host": "<hostname>", "session": "<session8>", "repo": "lentago/brasenia", "cwd": "<cwd>", "origin": "operator", "ts": "<RFC 3339 UTC>"}
 ```
 
-`repo` is `owner/name` parsed from `git remote get-url origin` (GitHub https or
-ssh URLs only; otherwise `null`). `origin` comes from `COST_ORIGIN` (default
-`operator`). Written only if `focus/` already exists; a missing share, read-only
-mount or missing `git` means no beacon and a silent exit 0. `cost-hook.sh`
-(`SessionEnd`) deletes the session's beacon. The Loki event is unaffected.
+`repo` is `owner/name` parsed from `git remote get-url origin` (GitHub
+`https://`, `git@github.com:` and `ssh://git@github.com/` forms; anything else,
+a non-git directory, or a missing `git` gives `null`). `origin` comes from
+`COST_ORIGIN` (default `operator`). Written only if `focus/` already exists; a
+missing share or a read-only mount means no beacon and a silent exit 0.
+`cost-hook.sh` (`SessionEnd`) writes the done marker and then deletes the
+session's beacon; a beat racing the hook sees the marker and removes rather
+than recreates it. The Loki event is unaffected.
 
 ## Cost basis
 
