@@ -14,7 +14,11 @@ set -euo pipefail
 # Expected log_source label values — the Alloy pipeline contract (see CLAUDE.md § Loki labels)
 # drosera_live / betula_live: the alloy and Firewalla gitops loops each emit
 # every 5 min (ADR-0010), so 24h of silence is a real failure, not a quiet stream.
-EXPECTED=(zeek_dns zeek_conn zeek_ssl zeek_http zeek_files zeek_notice zeek_weird firewalla_acl drosera_live betula_live)
+# github_actions_run / github_actions_job: betula's Actions feed; every day has runs.
+# change_pipeline_state: pipeline-producer/ on LXC 105 writes it every 30 s (#266).
+# sites_live: the sites probe's live event, every probe tick (ships separately from #266).
+EXPECTED=(zeek_dns zeek_conn zeek_ssl zeek_http zeek_files zeek_notice zeek_weird firewalla_acl drosera_live betula_live
+          github_actions_run github_actions_job change_pipeline_state sites_live)
 
 # Loki datasource UID as provisioned by Grafana Cloud for the lentago stack
 LOKI_UID="grafanacloud-logs"

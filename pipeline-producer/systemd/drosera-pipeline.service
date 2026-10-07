@@ -1,0 +1,28 @@
+# Canonical unit — installed verbatim by pipeline-producer/deploy.sh. Edit here,
+# not on the host.
+[Unit]
+Description=drosera — change-pipeline producer (Loki → pipeline.json on :8611 + change_pipeline_state)
+Documentation=https://github.com/lentago/drosera/tree/main/pipeline-producer
+After=network-online.target
+Wants=network-online.target
+# A missing or bad credential exits 1 at once; stop retrying after five tries
+# so the unit shows failed instead of looping forever.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=drosera-pipeline
+Group=drosera-pipeline
+# 0600 root:root; systemd reads it before dropping to the service user.
+EnvironmentFile=/etc/default/drosera-pipeline
+Environment=PYTHONPATH=/opt/drosera-pipeline PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m pipeline_producer --config /etc/drosera-pipeline/config.json
+Restart=always
+RestartSec=10
+# No mount-namespace hardening (ProtectSystem=, PrivateTmp=, …): those fail
+# with status=226/NAMESPACE in unprivileged LXC guests such as LXC 105.
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

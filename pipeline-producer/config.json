@@ -1,0 +1,20 @@
+{
+  "interval": "30s",
+  "window": "24h",
+  "listen": "0.0.0.0",
+  "port": 8611,
+  "cluster": "lentago",
+  "producer": "drosera pipeline producer on grafana-stack (LXC 105)",
+  "terraform_repos": [
+    "lentago/.github",
+    "lentago/kalmia",
+    "lentago/claytonia",
+    "lentago/drosera",
+    "lentago/betula",
+    "lentago/solidago"
+  ],
+  "budget_minutes": {
+    "default": 10,
+    "site": 20
+  }
+}

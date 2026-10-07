@@ -153,6 +153,15 @@ The eight active log streams, keyed by `log_source` (the four `zeek_http`/
 | `zeek_weird` | Protocol-anomaly records ("weirds") — steady low-volume background (~10k lines/day). |
 | `firewalla_acl` | Firewalla ACL alarm events — blocked/allowed flows, rule name, severity. |
 
+Beyond the Firewalla streams, the change pipeline ([ADR-0010](docs/adr/0010-change-pipeline-keyed-by-sha.md))
+reads and writes these, all with `cluster="lentago"`:
+
+| `log_source` | Contents |
+|---|---|
+| `github_actions_run` / `github_actions_job` | betula's GitHub Actions feed: one line per completed run attempt and per job. |
+| `drosera_live`, `betula_live`, `sites_live` | `live` events (`pipeline="change", stage="live"`): the SHA each surface runs, every reconcile tick. `sites_live` is the sites probe, which ships separately from #266. |
+| `change_pipeline_state` | The [pipeline producer](#change-pipeline-producer)'s write-back: one line per repo and stage every 30 s, one stream per `repo`. It carries no `pipeline`/`stage` labels, so the `live` selector never picks it up. |
+
 **Adding a new `log_source` stream** — checklist:
 
 1. Measure its 24h volume (e.g. `sum(count_over_time({log_source="X"}[24h]))`).
@@ -269,6 +278,32 @@ from their own repo into their own free-tier stack, and nothing of theirs is
 hosted here. How a client applies it, and the payload fields each stage must
 send: [docs/clients/uvularia.md](docs/clients/uvularia.md).
 
+## Change pipeline producer
+
+The `Change — Pipeline` dashboard already draws a per-repo stage strip (the
+collapsed "By repo" row, Graphviz panel). The same pipeline is also available
+as data: [`pipeline-producer/`](pipeline-producer/README.md) is a stdlib Python
+service on LXC 105 (`drosera-pipeline.service`, #266). Every 30 s it reads the
+Actions feed and the `live` events for the last 24 h, computes the six
+ADR-0010 stages for each repo once, and does two things with the result:
+
+- **Serves `pipeline.json`** (schema 1, pinned in #266) on `:8611`. pub's Caddy
+  proxies `http://pub.lan/viewport/pipeline.json` to it (that route lives in
+  kalmia), and the brasenia wall pane reads it there. LXC 105 doesn't mount
+  the web share, so the producer serves the document instead of dropping a
+  file, and nothing on pub needs a Loki token.
+- **Writes `change_pipeline_state`** back to Loki: one line per repo and
+  stage. The stuck alert can then be a one-line query, and the "By repo"
+  strip can stop re-deriving state in LogQL (a follow-up, once the stream has
+  a day of data).
+
+**It needs its own Loki read token.** The collectors' token in
+`/opt/homelab-observability/.env` is `logs:write` only, and a read with it
+gets `401`. Mint a `logs:read` access-policy token on the `lentago` stack and
+pass it to [`deploy.sh`](pipeline-producer/deploy.sh) as `DROSERA_LOKI_TOKEN`.
+The script refuses to start the service without it. Setup, state rules and
+the document schema: [pipeline-producer/README.md](pipeline-producer/README.md).
+
 ## Solidago (AWS) contract
 
 Solidago platform metrics render in this stack via a **query-on-demand
@@ -339,6 +374,10 @@ terraform/                     # manages Cloud-side resources
                                 # alerts.tf (site probe + Loki ingest-absence +
                                 # bullpen + lab availability alert rules)
   modules/uvularia-pipeline/   # uvularia dashboard + rules; estate and clients both use it
+pipeline-producer/             # change-pipeline producer on LXC 105: pipeline.json on :8611 + change_pipeline_state (#266)
+  pipeline_producer/           # stdlib Python 3.10 package (read Loki → compute stages → serve + write back)
+  systemd/ deploy.sh           # drosera-pipeline.service + idempotent installer
+  tests/                       # unit tests against a fake Loki
 clients/                       # source-neutral client emitters (#131)
   loki_push.py                 # stdlib-only Loki push for serverless functions
   README.md                    # token setup + label discipline
@@ -353,6 +392,7 @@ scripts/
 .github/workflows/
   terraform.yml                # fmt/validate/plan on PR
   loki-event-test.yml          # loki-event + loki_push.py against a mock Loki
+  pipeline-producer-tests.yml  # pipeline-producer unit suite on Python 3.10
 ```
 
 ## First-time setup
@@ -632,17 +672,20 @@ families) or the rollout will hit `err-mimir-max-active-series`.
 ### Check Loki label health
 
 `scripts/check-loki-labels.sh` queries Loki for active `log_source` values over
-the last 24h and diffs against the expected set (the eight streams in the
-table above: `zeek_dns`, `zeek_conn`, `zeek_ssl`, `zeek_http`, `zeek_files`,
-`zeek_notice`, `zeek_weird`, `firewalla_acl`).  Run it manually as a sanity check, or wire it to
-a cron / GitHub Actions schedule to alert on silent log streams:
+the last 24h and diffs them against the expected set. That set is the eight
+Firewalla streams (`zeek_dns`, `zeek_conn`, `zeek_ssl`, `zeek_http`,
+`zeek_files`, `zeek_notice`, `zeek_weird`, `firewalla_acl`) plus the change
+pipeline's `drosera_live`, `betula_live`, `sites_live`, `github_actions_run`,
+`github_actions_job` and `change_pipeline_state`. Run it manually as a sanity
+check, or wire it to a cron / GitHub Actions schedule to alert on silent log
+streams:
 
 ```bash
 source .envrc
 ./scripts/check-loki-labels.sh
 ```
 
-Exits 0 when all eight values are present; exits 1 and prints the missing names to
+Exits 0 when all expected values are present; exits 1 and prints the missing names to
 stderr otherwise.
 
 ## Why this layout
