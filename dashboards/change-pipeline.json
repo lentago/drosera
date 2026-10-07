@@ -1394,6 +1394,189 @@
         }
       ],
       "timeFrom": "7d"
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "By repo",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 9,
+          "type": "grafana-graphviz-panel",
+          "title": "$repo",
+          "description": "One strip per repo: the newest SHA at each stage over the dashboard range, coloured by state (green 3 = done, blue 1 = waiting or lagging, red 2 = failed, grey = no signal). pushed, PR open and checks come from the latest `pull_request` run: pushed is its branch, PR open is blue while that run is newer than the newest merge to `main` (no PR number in the feed yet, lentago/betula#133), checks is that run's conclusion. merged is the newest push-to-main run's head_sha. applied is the `apply` / `Terraform Apply` job for the terraform repos ADR-0010 lists (.github, kalmia, claytonia, drosera, betula, solidago) and the push-to-main run's conclusion elsewhere, shown only when it carries the newest merged SHA. live is the newest `live` event per surface: green when it runs the newest merged SHA, blue when not, worst surface wins; terraform repos without an emitter and sites without a version probe stay grey. Squash-merge splits the SHA key, so checks and merged show different SHAs (ADR-0010); a docs-only merge that triggers no push workflow leaves merged on the previous SHA and applied grey.",
+          "pluginVersion": "0.0.7",
+          "repeat": "repo",
+          "repeatDirection": "h",
+          "maxPerRow": 2,
+          "gridPos": {
+            "x": 0,
+            "y": 42,
+            "w": 12,
+            "h": 6
+          },
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "options": {
+            "inputMode": "code",
+            "dotDiagram": "digraph change_pipeline {\n  rankdir=LR; splines=ortho; nodesep=0.3; ranksep=0.45; pad=0.1; bgcolor=\"transparent\";\n  node [shape=box, style=\"rounded,filled\", width=1.9, height=0.9, fontsize=13,\n        color=\"#2c313c\", fillcolor=\"#6b7280\", fontcolor=\"#e5e7eb\"];\n  edge [color=\"#4b5563\", penwidth=1.6, arrowsize=0.8];\n  pushed [label=\"pushed\"]; pr_open [label=\"PR open\"]; checks_green [label=\"checks\"];\n  merged [label=\"merged\"]; applied [label=\"applied\"]; live [label=\"live\"];\n  pushed -> pr_open -> checks_green -> merged -> applied -> live;\n}",
+            "layoutEngine": "dot",
+            "rankDirection": "LR",
+            "splineType": "ortho",
+            "namedThresholds": [
+              {
+                "id": "pipeline_state",
+                "name": "Pipeline state",
+                "steps": [
+                  {
+                    "value": 0,
+                    "color": "#6b7280"
+                  },
+                  {
+                    "value": 1,
+                    "color": "#5794F2"
+                  },
+                  {
+                    "value": 2,
+                    "color": "#F2495C"
+                  },
+                  {
+                    "value": 3,
+                    "color": "#73BF69"
+                  }
+                ]
+              }
+            ],
+            "nodeOverrides": [
+              {
+                "id": "stages",
+                "targetNodeIds": [
+                  "pushed",
+                  "pr_open",
+                  "checks_green",
+                  "merged",
+                  "applied",
+                  "live"
+                ],
+                "matchMode": "manual",
+                "matchFieldName": "stage",
+                "matchPattern": "${id}",
+                "rules": [
+                  {
+                    "kind": "fillColor",
+                    "colorFieldName": "state",
+                    "thresholdId": "pipeline_state"
+                  },
+                  {
+                    "kind": "label",
+                    "labelTemplate": "${stage}\\n${sha}\\n${detail}"
+                  },
+                  {
+                    "kind": "tooltip",
+                    "header": {
+                      "showId": true,
+                      "showTimestamp": false
+                    },
+                    "content": {
+                      "templates": [
+                        "${detail}\\n${when}"
+                      ]
+                    },
+                    "footer": {
+                      "links": [
+                        {
+                          "title": "Open on GitHub",
+                          "url": "${url}",
+                          "openInNewTab": true
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "edgeOverrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "queryType": "instant",
+              "expr": "label_replace(topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, state_code=`3`, detail=`{{ .branch }}`, when=`{{ .updated_at }}`, url=`https://github.com/{{ .repo }}/commit/{{ .head_sha }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, state_code, detail, when, url)), \"stage\", \"pushed\", \"\", \"\") or label_replace(label_replace(label_replace((topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, url=`https://github.com/{{ .repo }}/pulls?q=is:pr+head:{{ .branch }}`, when=`{{ .updated_at }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, when, url)) and on (repo) (topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, url=`https://github.com/{{ .repo }}/pulls?q=is:pr+head:{{ .branch }}`, when=`{{ .updated_at }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, when, url)) <= on (repo) max by (repo) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])))), \"state_code\", \"3\", \"\", \"\"), \"detail\", \"merged or closed\", \"\", \"\") or label_replace(label_replace((topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, url=`https://github.com/{{ .repo }}/pulls?q=is:pr+head:{{ .branch }}`, when=`{{ .updated_at }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, when, url)) unless on (repo) (topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, url=`https://github.com/{{ .repo }}/pulls?q=is:pr+head:{{ .branch }}`, when=`{{ .updated_at }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, when, url)) and on (repo) (topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", updated_at=\"updated_at\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, url=`https://github.com/{{ .repo }}/pulls?q=is:pr+head:{{ .branch }}`, when=`{{ .updated_at }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, when, url)) <= on (repo) max by (repo) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]))))), \"state_code\", \"1\", \"\", \"\"), \"detail\", \"awaiting merge\", \"\", \"\"), \"stage\", \"pr_open\", \"\", \"\") or label_replace(topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", workflow=\"workflow\", conclusion=\"conclusion\", updated_at=\"updated_at\", html_url=\"html_url\" | event=\"pull_request\" | branch!=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, state_code=`{{ if eq .conclusion \"success\" }}3{{ else if eq .conclusion \"failure\" }}2{{ else }}1{{ end }}`, detail=`{{ .workflow }} · {{ .conclusion }}`, when=`{{ .updated_at }}`, url=`{{ .html_url }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, state_code, detail, when, url)), \"stage\", \"checks_green\", \"\", \"\") or label_replace(topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, state_code=`3`, detail=`main`, when=`{{ .created_at }}`, url=`https://github.com/{{ .repo }}/commit/{{ .head_sha }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, state_code, detail, when, url)), \"stage\", \"merged\", \"\", \"\") or label_replace((topk by (repo) (1, max by (repo, sha, state_code, detail, when, url) (last_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"$repo\", repo=~\"lentago/(\\\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\", completed_at=\"completed_at\", html_url=\"html_url\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" | conclusion!=\"skipped\" | label_format state_code=`{{ if eq .conclusion \"success\" }}3{{ else if eq .conclusion \"failure\" }}2{{ else }}1{{ end }}`, detail=`{{ .job_name }} · {{ .conclusion }}`, when=`{{ .completed_at }}`, url=`{{ .html_url }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .completed_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, run_id, run_attempt, state_code, detail, when, url) + on (repo, run_id, run_attempt) group_left (sha) 0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", head_sha=\"head_sha\" | label_format sha=`{{ .head_sha | substr 0 7 }}` [$__range])))) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])))) or (topk by (repo) (1, last_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\", repo!~\"lentago/(\\\\.github|kalmia|claytonia|drosera|betula|solidago)\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", workflow=\"workflow\", conclusion=\"conclusion\", updated_at=\"updated_at\", html_url=\"html_url\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}`, state_code=`{{ if eq .conclusion \"success\" }}3{{ else if eq .conclusion \"failure\" }}2{{ else }}1{{ end }}`, detail=`{{ .workflow }} · {{ .conclusion }}`, when=`{{ .updated_at }}`, url=`{{ .html_url }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, sha, state_code, detail, when, url)) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])))), \"stage\", \"applied\", \"\", \"\") or label_replace(bottomk by (repo) (1, label_replace(topk by (repo, surface) (1, last_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha_full=\"sha\", surface=\"surface\", result=\"result\", applied_at=\"applied_at\" | label_format sha=`{{ .sha_full | substr 0 7 }}`, detail=`{{ .surface }} · {{ .result }}`, when=`{{ .applied_at }}`, url=`https://github.com/{{ .repo }}/commit/{{ .sha_full }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, surface, sha, detail, when, url)) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]))), \"state_code\", \"3\", \"\", \"\") * 0 + 3 or label_replace(topk by (repo, surface) (1, last_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"$repo\"} | json sha_full=\"sha\", surface=\"surface\", result=\"result\", applied_at=\"applied_at\" | label_format sha=`{{ .sha_full | substr 0 7 }}`, detail=`{{ .surface }} · {{ .result }}`, when=`{{ .applied_at }}`, url=`https://github.com/{{ .repo }}/commit/{{ .sha_full }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .applied_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]) by (repo, surface, sha, detail, when, url)) unless on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"$repo\"} | json event=\"event\", branch=\"branch\", head_sha=\"head_sha\", created_at=\"created_at\" | event=\"push\" | branch=\"main\" | label_format sha=`{{ .head_sha | substr 0 7 }}` | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .created_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range]))), \"state_code\", \"1\", \"\", \"\") * 0 + 1), \"stage\", \"live\", \"\", \"\")"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {
+                "mode": "columns"
+              }
+            },
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "convertFieldType",
+              "options": {
+                "conversions": [
+                  {
+                    "targetField": "state_code",
+                    "destinationType": "number"
+                  }
+                ],
+                "fields": {}
+              }
+            },
+            {
+              "id": "calculateField",
+              "options": {
+                "mode": "binary",
+                "alias": "state",
+                "replaceFields": false,
+                "binary": {
+                  "left": {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "state_code"
+                    }
+                  },
+                  "operator": "*",
+                  "right": {
+                    "fixed": "1"
+                  }
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Value": true,
+                  "Value #A": true,
+                  "state_code": true
+                },
+                "indexByName": {},
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
