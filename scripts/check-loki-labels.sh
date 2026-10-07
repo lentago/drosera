@@ -12,7 +12,9 @@ set -euo pipefail
 : "${GRAFANA_SA_TOKEN:?GRAFANA_SA_TOKEN must be set}"
 
 # Expected log_source label values — the Alloy pipeline contract (see CLAUDE.md § Loki labels)
-EXPECTED=(zeek_dns zeek_conn zeek_ssl zeek_http zeek_files zeek_notice zeek_weird firewalla_acl)
+# drosera_live: the alloy gitops loop emits every 5 min (ADR-0010), so 24h of
+# silence is a real failure, not a quiet stream.
+EXPECTED=(zeek_dns zeek_conn zeek_ssl zeek_http zeek_files zeek_notice zeek_weird firewalla_acl drosera_live)
 
 # Loki datasource UID as provisioned by Grafana Cloud for the lentago stack
 LOKI_UID="grafanacloud-logs"

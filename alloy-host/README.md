@@ -41,6 +41,18 @@ instead of being hand-patched. They mirror the kiosk's gitops loop
 
 Log: `/var/log/alloy-gitops.log` (timestamped, leveled, rotates at 1 MB).
 
+**`live` event.** Each tick also pushes one change-pipeline event to the Alloy
+Loki receiver on the same box (`http://127.0.0.1:3100/loki/api/v1/push`), so
+Grafana can see which commit this collector runs
+([ADR-0010](../docs/adr/0010-change-pipeline-keyed-by-sha.md)). The payload
+carries `sha` (now checked out), `previous_sha`, `repo`, `surface=alloy-lxc105`,
+`applied_at`, and `result`: `noop` on a quiet tick, `applied` after a deploy,
+`rolled_back` after a config failed validation (`sha` is then the commit kept,
+`previous_sha` the one rejected). The push is telemetry only: if the receiver
+is down the script logs a `WARN` and carries on with an unchanged exit code.
+See it in Explore with `{log_source="drosera_live", cluster="lentago"} | json`.
+For a dry run, point `ALLOY_GITOPS_LIVE_URL` at another URL.
+
 The `alloy-gitops.{service,timer}` units are **bootstrap-only** — deliberately
 not managed by the loop they drive, so a broken update can't leave the host
 unable to fix itself.
