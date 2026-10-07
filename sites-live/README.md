@@ -76,7 +76,7 @@ gitops-managed: re-run it after changing anything here.
 ## Check it
 
 ```bash
-cd sites-live && python3 -m sites_live --dry-run   # prints what would be pushed
+(cd sites-live && python3 -m sites_live --dry-run)   # prints what would be pushed
 python3 -m unittest discover -s sites-live -t sites-live -v   # from the repo root
 ```
 

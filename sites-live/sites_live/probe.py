@@ -15,6 +15,7 @@ import re
 import socket
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -47,10 +48,27 @@ def version_url(host):
 
 
 def fetch_version(url, timeout=10):
-    """Return the parsed version.json dict, or None when there is no signal."""
+    """Return the parsed version.json dict, or None when there is no signal.
+
+    ``timeout`` bounds the whole fetch, not only each socket operation: the
+    body is read in small chunks against a monotonic deadline, so a server
+    that trickles a byte per socket timeout cannot hold this sequential tick
+    much past ``timeout`` (worst case one extra socket wait) and starve the
+    surfaces probed after it.
+    """
+    deadline = time.monotonic() + timeout
     try:
         with urllib.request.urlopen(url, timeout=timeout) as resp:
-            raw = resp.read(MAX_BODY + 1)
+            raw = b""
+            while len(raw) <= MAX_BODY:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("fetch exceeded the %ss deadline" % timeout)
+                # read1 returns as soon as any bytes arrive; read(n) would
+                # block until n bytes or EOF and defeat the deadline check.
+                chunk = resp.read1(1024)
+                if not chunk:
+                    break
+                raw += chunk
     except urllib.error.HTTPError as e:
         log.info("no signal from %s: HTTP %s", url, e.code)
         return None

@@ -17,13 +17,29 @@ SHA_B = "b" * 40
 
 
 class FakeSite(BaseHTTPRequestHandler):
-    """Serves whatever `behaviour` says: ('json', obj) | ('raw', bytes) | ('status', n) | ('sleep', s)."""
+    """Serves whatever `behaviour` says: ('json', obj) | ('raw', bytes) | ('status', n) | ('sleep', s) | ('trickle', s)."""
     behaviour = {}
 
     def do_GET(self):
         kind, arg = FakeSite.behaviour.get(self.headers["Host"], ("status", 404))
         if kind == "sleep":
             time.sleep(arg)
+        if kind == "trickle":
+            # Headers at once, then one byte every `arg` seconds for a while:
+            # each read returns before the socket timeout, so only a total
+            # deadline can end the fetch.
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", "4096")
+            self.end_headers()
+            try:
+                for _ in range(40):
+                    self.wfile.write(b"{")
+                    self.wfile.flush()
+                    time.sleep(arg)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
             return
         body = b""
         code = 200
@@ -112,6 +128,14 @@ class ProbeTest(unittest.TestCase):
                 self.serve(behaviour)
                 self.assertEqual(self.tick([self.site()], timeout=0.2), [])
         self.assertEqual(self.pushes, [])
+
+    def test_trickling_body_hits_the_total_deadline(self):
+        self.serve(("trickle", 0.1))
+        started = time.monotonic()
+        self.assertEqual(self.tick([self.site()], timeout=0.4), [])
+        # One deadline plus at most one extra socket wait; a per-read timeout
+        # alone would let the 40 trickled bytes take about four seconds.
+        self.assertLess(time.monotonic() - started, 1.5)
 
     def test_connection_refused_does_not_raise(self):
         out = probe.run([self.site()], self.state, "u", "1:t",
