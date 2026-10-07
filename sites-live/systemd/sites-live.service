@@ -1,0 +1,24 @@
+[Unit]
+Description=Report the commit each public site serves (change-pipeline live events)
+Documentation=https://github.com/lentago/drosera/blob/main/sites-live/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# GRAFANA_CLOUD_LOGS_URL / _USER / _TOKEN, 0600 root (written by deploy.sh).
+EnvironmentFile=/etc/default/sites-live
+# /var/lib/sites-live holds the last SHA seen per surface; systemd exports it
+# as $STATE_DIRECTORY.
+DynamicUser=yes
+StateDirectory=sites-live
+WorkingDirectory=/opt/sites-live
+ExecStart=/usr/bin/python3 -m sites_live --sites /opt/sites-live/sites.json
+# A site with no signal is not a failure, so a non-zero exit is a real error
+# (missing credentials, unreadable config).
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal

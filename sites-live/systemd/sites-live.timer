@@ -1,0 +1,13 @@
+[Unit]
+Description=Probe the public sites for the commit they serve every 5 minutes
+Documentation=https://github.com/lentago/drosera/blob/main/sites-live/README.md
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+Unit=sites-live.service
+
+[Install]
+WantedBy=timers.target

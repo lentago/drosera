@@ -1,0 +1,6 @@
+[
+  {"host": "lentago.dev", "repo": "lentago/site-lentago-dev", "surface": "site-lentago-dev"},
+  {"host": "icecreamtofightwith.com", "repo": "lentago/site-icecreamtofightwith-com", "surface": "site-icecreamtofightwith-com"},
+  {"host": "pondviewlane.com", "repo": "lentago/site-pondviewlane-com", "surface": "site-pondviewlane-com"},
+  {"host": "essexcrossingatmontserrat.com", "repo": "lentago/site-pondviewlane-com", "surface": "site-essexcrossingatmontserrat-com"}
+]
