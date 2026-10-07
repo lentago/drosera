@@ -25,3 +25,4 @@ presented as historical deliberation.
 | [0005](0005-series-budget-engineering.md) | Series-budget engineering under the free-tier active-series cap | 2026-06-10 |
 | [0006](0006-privacy-shaped-egress.md) | Privacy-shaped egress — LAN topology out of GitHub, transcripts scrubbed | 2026-06-17 |
 | [0007](0007-flat-lentago-folder-frozen-uids.md) | One flat `Lentago` folder + frozen dashboard UIDs | 2026-07-25 |
+| [0010](0010-change-pipeline-keyed-by-sha.md) | The change pipeline, keyed by commit SHA | 2026-10-07 |
