@@ -49,12 +49,14 @@ provider "grafana" {
 # every plan showed `version = "0.7.2" -> "0.7.0" # forces replacement` and
 # reinstalled the plugin on every apply (#221). If that line reappears with a
 # newer version on the left, Cloud has upgraded the plugin — bump this pin to it.
+# It did again on 2026-10-07 (0.7.2 -> 0.7.3, seen on the #263 plan), hence the
+# current pin.
 resource "grafana_cloud_plugin_installation" "axiom" {
   provider = grafana.cloud
 
   stack_slug = var.grafana_stack_slug
   slug       = "axiomhq-axiom-datasource"
-  version    = "0.7.2"
+  version    = "0.7.3"
 }
 
 # The Graphviz panel (Grafana Labs, Private Preview), used by the per-repo stage
