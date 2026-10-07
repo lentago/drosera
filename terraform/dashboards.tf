@@ -1,5 +1,5 @@
 # Every dashboard lands in the single `lentago` folder (see folders.tf). The
-# four maps below are kept as separate resources because they differ in how
+# maps below are kept as separate resources because they differ in how
 # their JSON is pre-processed — the solidago set deliberately skips the
 # datasource-uid rewrite (see locals.tf) — not because they map to folders any
 # more. Grouping is expressed in the dashboard title.
@@ -46,4 +46,12 @@ resource "grafana_dashboard" "slo" {
   folder      = grafana_folder.lentago.uid
   overwrite   = true
   config_json = local.slo_dashboard_json[each.key]
+}
+
+resource "grafana_dashboard" "change" {
+  for_each = local.change_dashboards
+
+  folder      = grafana_folder.lentago.uid
+  overwrite   = true
+  config_json = local.change_dashboard_json[each.key]
 }
