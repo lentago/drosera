@@ -58,6 +58,7 @@ claude-cost-export/         # local-session cost exporter + session_running hear
 - **Log parsing**: Zeek panels use `| json | line_format "{{.log}}" | json` to unwrap nested JSON.
 - **Template variables**: DNS & Traffic dashboards use `$device_ip` for per-device filtering.
 - **Dashboard JSON**: Grafana schema v39 — no `__inputs` or `__requires` (repo is source of truth, not “import package”).
+- **LogQL string escapes in dashboard JSON**: write a regex dot inside a label matcher as `\\.` in the LogQL string, which is `\\\\.` in the JSON file (for example `repo=~"lentago/(\\\\.github|kalmia)"`). Grafana's frontend parses every LogQL expression before it runs it, and it rejects a bare `\.` inside a double-quoted LogQL string as an invalid escape even though Loki tolerates one; the panel then errors with no message. You will not catch this with a server-side `/api/ds/query` test, only by rendering the panel. Learned on `change-pipeline.json` (#258 follow-ups).
 
 ## node_exporter
 
