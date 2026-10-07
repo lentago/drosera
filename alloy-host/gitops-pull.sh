@@ -22,6 +22,13 @@ readonly LOG_FILE="/var/log/alloy-gitops.log"
 readonly LOG_MAX_BYTES=1048576
 readonly CONTAINER="alloy"
 
+# Change-pipeline `live` event (docs/adr/0010-change-pipeline-keyed-by-sha.md):
+# one push per tick to the Alloy Loki receiver on this box (loki.source.api on
+# :3100, alloy/config.alloy). Override the URL only for a dry run.
+readonly LIVE_URL="${ALLOY_GITOPS_LIVE_URL:-http://127.0.0.1:3100/loki/api/v1/push}"
+readonly LIVE_REPO="lentago/drosera"
+readonly LIVE_SURFACE="alloy-lxc105"
+
 log() {
   local level="$1"
   shift
@@ -88,6 +95,37 @@ ensure_alive() {
   return 0
 }
 
+# Push one `live` event: result (applied|noop|rolled_back), the SHA now
+# checked out, and the SHA before it. Telemetry only: a receiver outage logs a
+# WARN and returns 0, so it never changes what the script does or exits with.
+emit_live() {
+  local result="$1" sha="$2" previous_sha="$3"
+  local ts applied_at line body err
+  ts=$(date +%s%N)
+  applied_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  if command -v jq >/dev/null 2>&1; then
+    line=$(jq -cn --arg sha "${sha}" --arg previous_sha "${previous_sha}" \
+      --arg repo "${LIVE_REPO}" --arg surface "${LIVE_SURFACE}" \
+      --arg result "${result}" --arg applied_at "${applied_at}" \
+      '{sha: $sha, previous_sha: $previous_sha, repo: $repo, surface: $surface, result: $result, applied_at: $applied_at}')
+    body=$(jq -cn --arg ts "${ts}" --arg line "${line}" --arg repo "${LIVE_REPO}" \
+      '{streams: [{stream: {log_source: "drosera_live", cluster: "lentago", source: "drosera",
+        pipeline: "change", stage: "live", repo: $repo}, values: [[$ts, $line]]}]}')
+  else
+    # Every value is a hex SHA, a fixed slug or a timestamp, so nothing needs
+    # escaping beyond the quotes of the nested line.
+    line=$(printf '{\\"sha\\":\\"%s\\",\\"previous_sha\\":\\"%s\\",\\"repo\\":\\"%s\\",\\"surface\\":\\"%s\\",\\"result\\":\\"%s\\",\\"applied_at\\":\\"%s\\"}' \
+      "${sha}" "${previous_sha}" "${LIVE_REPO}" "${LIVE_SURFACE}" "${result}" "${applied_at}")
+    body=$(printf '{"streams":[{"stream":{"log_source":"drosera_live","cluster":"lentago","source":"drosera","pipeline":"change","stage":"live","repo":"%s"},"values":[["%s","%s"]]}]}' \
+      "${LIVE_REPO}" "${ts}" "${line}")
+  fi
+  if ! err=$(curl -sS -m 5 -f -o /dev/null -H 'Content-Type: application/json' \
+    --data-binary "${body}" "${LIVE_URL}" 2>&1); then
+    log WARN "live event (${result}, ${sha:0:7}) not delivered to ${LIVE_URL}: ${err}"
+  fi
+  return 0
+}
+
 main() {
   rotate_log
 
@@ -115,6 +153,7 @@ main() {
   if [[ "${old}" == "${new}" ]]; then
     ensure_alive
     log INFO "no-op, at ${new:0:7}"
+    emit_live noop "${new}" "${old}" || true
     exit 0
   fi
 
@@ -133,6 +172,7 @@ main() {
     if ! validate_config; then
       log ERROR "alloy fmt failed on the new config — rolling back to ${old:0:7}, not reloading"
       git reset --hard --quiet "${old}"
+      emit_live rolled_back "${old}" "${new}" || true
       exit 1
     fi
   fi
@@ -156,6 +196,7 @@ main() {
   fi
 
   log INFO "Deployed ${new:0:7}"
+  emit_live applied "${new}" "${old}" || true
 }
 
 main_locked() {
