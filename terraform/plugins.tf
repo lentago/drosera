@@ -56,3 +56,17 @@ resource "grafana_cloud_plugin_installation" "axiom" {
   slug       = "axiomhq-axiom-datasource"
   version    = "0.7.2"
 }
+
+# The Graphviz panel (Grafana Labs, Private Preview), used by the per-repo stage
+# strip on Change — Pipeline (#262): a DOT graph laid out left-to-right with each
+# node coloured and labelled from a query row matched by node id. Preview status
+# is why the version is pinned and bumped deliberately rather than tracked; the
+# same "pin what Cloud reports" rule as the Axiom entry applies if a plan ever
+# shows a forced replacement here. Needs Grafana >= 12.3 (the stack runs 13.x).
+resource "grafana_cloud_plugin_installation" "graphviz" {
+  provider = grafana.cloud
+
+  stack_slug = var.grafana_stack_slug
+  slug       = "grafana-graphviz-panel"
+  version    = "0.0.7"
+}
