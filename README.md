@@ -2,7 +2,7 @@
      Regenerate there; do not hand-edit the banner or badge URLs. -->
 <a href="https://lentago.dev"><img src="./assets/banner.svg" alt="drosera — Observability suite · git-driven, no chokepoint" width="100%"></a>
 
-[![main](https://img.shields.io/github/check-runs/lentago/drosera/main?style=flat-square&labelColor=0e2b1a&color=1b4b2e&label=main)](https://github.com/lentago/drosera/actions) [![License](https://img.shields.io/github/license/lentago/drosera?style=flat-square&labelColor=0e2b1a&color=1b4b2e)](https://github.com/lentago/drosera/blob/main/LICENSE) [![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-1b4b2e?style=flat-square&labelColor=0e2b1a&logo=readthedocs&logoColor=E0A81C)](https://deepwiki.com/lentago/drosera)
+[![main](https://img.shields.io/github/check-runs/lentago/drosera/main?style=flat-square&labelColor=0e2b1a&color=1b4b2e&label=main)](https://github.com/lentago/drosera/actions) [![License](https://img.shields.io/github/license/lentago/drosera?style=flat-square&labelColor=0e2b1a&color=1b4b2e)](https://github.com/lentago/drosera/blob/main/LICENSE)
 
 ![Grafana](https://img.shields.io/badge/Grafana-1b4b2e?style=flat-square&labelColor=0e2b1a&logo=grafana&logoColor=E0A81C) ![Terraform](https://img.shields.io/badge/Terraform-1b4b2e?style=flat-square&labelColor=0e2b1a&logo=terraform&logoColor=E0A81C) ![Alloy](https://img.shields.io/badge/Alloy-1b4b2e?style=flat-square&labelColor=0e2b1a) ![Prometheus](https://img.shields.io/badge/Prometheus-1b4b2e?style=flat-square&labelColor=0e2b1a&logo=prometheus&logoColor=E0A81C)
 
@@ -39,22 +39,6 @@ Everything is declarative:
   [`alloy/config.alloy`](alloy/config.alloy) spun up by `docker compose`;
   per-host push agents run from the config embedded in
   [`scripts/deploy-alloy.sh`](scripts/deploy-alloy.sh).
-
-## 📚 Ask this codebase (DeepWiki)
-
-<a href="https://deepwiki.com/lentago/drosera"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" height="32"></a>
-
-> [DeepWiki](https://deepwiki.com/lentago/drosera) maintains an AI-generated wiki over this
-> repository — architecture pages, diagrams, and a Q&A box grounded in the actual code. Every
-> public Lentago Labs repo is indexed ([deepwiki.com/lentago](https://deepwiki.com/lentago));
-> it is the fastest way to orient before reading source. It is AI-generated: trust it to orient
-> you, verify against the code before you act on it.
-
-**Good first questions:**
-
-- How does a per-host node_exporter metric get from the host to a Grafana Cloud dashboard, and where does the central Alloy on LXC 105 fit in versus per-host push agents?
-- What happens in CI when I open a PR that only changes a dashboard JSON file, versus one that changes both `terraform/` and `dashboards/` — which jobs run and what gates the merge?
-- How does drosera coordinate the Loki `log_source` label contract with lentago/betula so a schema change on one side doesn't silently break dashboards on the other?
 
 ## 🧭 What this repo demonstrates
 
@@ -690,5 +674,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 > 🌱 **Lentago Labs** is a pro-bono operations practice for organizations that
 > run on volunteers, donations, and one overworked tech person. Everything here
 > is free to take, and we practice what we publish: our own estate runs this
-> way, in the open. Start at the [org profile](https://github.com/lentago), and
-> read this repo on [DeepWiki](https://deepwiki.com/lentago/drosera).
+> way, in the open. Start at the [org profile](https://github.com/lentago).
