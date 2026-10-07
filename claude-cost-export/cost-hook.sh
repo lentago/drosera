@@ -19,6 +19,17 @@ fi
 [ -z "$sid" ] && sid="$(printf '%s' "$payload" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')"
 
 [ -z "$sid" ] && exit 0
-mkdir -p "$DONE_DIR" 2>/dev/null || exit 0
-: > "$DONE_DIR/$sid" 2>/dev/null || true
+
+# Done marker first, best effort: a heartbeat beat detached a moment ago checks
+# for it and will not recreate the beacon. If the marker cannot be written the
+# beacon is still removed below.
+{ mkdir -p "$DONE_DIR" 2>/dev/null && : > "$DONE_DIR/$sid" 2>/dev/null; } || true
+
+# Drop this session's viewport focus beacon (see session-heartbeat.sh); best
+# effort.
+beacon_dir="${VIEWPORT_DIR:-/mnt/lentago/web/viewport}/focus"
+if [ -d "$beacon_dir" ]; then
+  sess="$(printf '%s' "${sid:0:8}" | tr -c 'A-Za-z0-9_-' '_')"
+  rm -f "$beacon_dir/$(hostname)-$sess.json" "$beacon_dir/$(hostname)-$sess.json.partial" 2>/dev/null || true
+fi
 exit 0

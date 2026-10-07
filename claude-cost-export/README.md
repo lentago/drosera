@@ -88,6 +88,27 @@ are merely open". A continuously-busy session draws a solid band; long pauses sh
 as gaps. The dashboard query (`count_over_time(... session_running [2m]) > bool 0`,
 stacked by `worker`) bridges beats within a 2-minute window.
 
+## Viewport beacon
+
+Alongside each (throttled) heartbeat, `session-heartbeat.sh` writes a focus beacon
+for the wall display's focus pane
+([lentago/brasenia#26](https://github.com/lentago/brasenia/issues/26)) to
+`${VIEWPORT_DIR:-/mnt/lentago/web/viewport}/focus/<host>-<session8>.json`
+(write-then-rename from `.json.partial`):
+
+```json
+{"schema": 1, "host": "<hostname>", "session": "<session8>", "repo": "lentago/brasenia", "cwd": "<cwd>", "origin": "operator", "ts": "<RFC 3339 UTC>"}
+```
+
+`repo` is `owner/name` parsed from `git remote get-url origin` (GitHub
+`https://`, `git@github.com:` and `ssh://git@github.com/` forms; anything else,
+a non-git directory, or a missing `git` gives `null`). `origin` comes from
+`COST_ORIGIN` (default `operator`). Written only if `focus/` already exists; a
+missing share or a read-only mount means no beacon and a silent exit 0.
+`cost-hook.sh` (`SessionEnd`) writes the done marker and then deletes the
+session's beacon; a beat racing the hook sees the marker and removes rather
+than recreates it. The Loki event is unaffected.
+
 ## Cost basis
 
 Cost is **computed** (CC doesn't write dollars to the transcript) as
@@ -102,7 +123,7 @@ same API-list-price basis the fleet reports — an estimate, not a billed amount
 `COST_STATE_DIR` · `COST_PROJECTS_DIR` · `COST_PRICING` · `COST_LOKI_URL`
 (default `http://192.168.139.20:3100/loki/api/v1/push`) · `COST_IDLE_MIN` (30) ·
 `COST_LOOKBACK_DAYS` (14) · `COST_WORKER` (hostname) · `COST_REJECT_OLD_H` (160) ·
-`COST_HEARTBEAT_SEC` (30, heartbeat throttle).
+`COST_HEARTBEAT_SEC` (30, heartbeat throttle) · `VIEWPORT_DIR` · `COST_ORIGIN` (`operator`).
 
 ## Known limits
 
