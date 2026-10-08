@@ -82,7 +82,10 @@ class Producer:
         with self._lock:
             self._body = body
         if self.out:
-            write_out(self.out, body)
+            try:
+                write_out(self.out, body)
+            except OSError as exc:  # a full disk must not take the HTTP server down with it
+                log.warning("could not write %s: %s", self.out, exc)
         if self.pusher:
             try:
                 self.pusher.push(state.state_streams(document, self.cfg.cluster, time.time_ns()))

@@ -233,8 +233,10 @@ curl -s http://127.0.0.1:8611/pipeline.json | python3 -m json.tool | head -40
 To compute one document without pushing, using the installed credentials:
 
 ```bash
-sudo env $(sudo grep -v '^#' /etc/default/drosera-pipeline | xargs) PYTHONPATH=/opt/drosera-pipeline \
-  python3 -B -m pipeline_producer --config /etc/drosera-pipeline/config.json --once --no-push --out -
+sudo bash -c 'set -a; . /etc/default/drosera-pipeline; set +a; \
+  PYTHONPATH=/opt/drosera-pipeline exec python3 -B -m pipeline_producer \
+    --config /etc/drosera-pipeline/config.json --once --no-push --out -'
+# (sourced inside a root shell so the tokens never appear on a command line that `ps` can show)
 ```
 
 In Grafana, **Explore** on the Loki datasource:

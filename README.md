@@ -158,8 +158,8 @@ reads and writes these, all with `cluster="lentago"`:
 
 | `log_source` | Contents |
 |---|---|
-| `github_actions_run` / `github_actions_job` | betula's GitHub Actions feed: one line per completed run attempt and per job. |
-| `drosera_live`, `betula_live`, `sites_live` | `live` events (`pipeline="change", stage="live"`): the SHA each surface runs, every reconcile tick. `sites_live` is the sites probe, which ships separately from #266. |
+| `github_actions_run` / `github_actions_job` | betula's GitHub Actions feed ([`clients/github`](https://github.com/lentago/betula/tree/main/clients/github), betula#113): one line per completed run attempt and per job. |
+| `drosera_live`, `betula_live`, `sites_live` | `live` events (`pipeline="change", stage="live"`, contract in [ADR-0010](docs/adr/0010-change-pipeline-keyed-by-sha.md)): the SHA each surface runs, every reconcile tick, from [`alloy-host/gitops-pull.sh`](alloy-host/gitops-pull.sh), betula's [`gitops-sync.sh`](https://github.com/lentago/betula/blob/main/scripts/gitops-sync.sh) (betula#132) and the [sites probe](sites-live/README.md) (#268). The "By repo" row of [`dashboards/change-pipeline.json`](dashboards/change-pipeline.json) is the query that keys on those two labels. |
 | `change_pipeline_state` | The [pipeline producer](#change-pipeline-producer)'s write-back: one line per repo and stage every 30 s, one stream per `repo`. It carries no `pipeline`/`stage` labels, so the `live` selector never picks it up. |
 
 **Adding a new `log_source` stream** — checklist:
