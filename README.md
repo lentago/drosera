@@ -189,7 +189,7 @@ look for `device_inventory` gaps (below) and for the metrics pipeline.
 ## Alerting
 
 Terraform provisions the stack's alerting end to end —
-[`terraform/alerts.tf`](terraform/alerts.tf): **40 rules** across six rule
+[`terraform/alerts.tf`](terraform/alerts.tf): **42 rules** across seven rule
 groups in the `Lentago` folder, plus the stack's first contact point. See
 [docs/adr/0001-grafana-native-alerting-for-site-probes.md](docs/adr/0001-grafana-native-alerting-for-site-probes.md)
 for why this lives in Grafana instead of AWS, and
@@ -251,7 +251,10 @@ for the SLO targets and burn-rate design.
   [docs/clients/uvularia.md](docs/clients/uvularia.md).
 - **`Change pipeline`** (2 rules, issue #270, ADR-0010): **change stuck**
   when a repo's newest `main` commit (`github_branch_head`) has no `live`
-  event carrying its SHA after the budget: 10 min for gitops and terraform
+  event carrying its SHA after the surface's propagation budget
+  ([ADR-0010](docs/adr/0010-change-pipeline-keyed-by-sha.md) defines both:
+  the `live` event is what each runtime emits with the SHA it runs, and the
+  budget is how long a merge may take to get there): 10 min for gitops and terraform
   repos, 20 min for sites. One alert instance per `repo`/`sha`. A terraform
   repo only counts when a terraform push run exists for the head, because
   every apply workflow is path-filtered and a docs merge applies nothing.

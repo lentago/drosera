@@ -1330,7 +1330,7 @@ locals {
 
   # Head age in seconds by (repo, sha), newest head per repo only.
   change_pipeline_head = {
-    for k, re in local.change_pipeline_repo_re : k => "(max by (repo, sha) (last_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", committed_at=\"committed_at\", observed_at=\"observed_at\" | label_format head_age=`{{ sub (toDate \"2006-01-02T15:04:05Z07:00\" .observed_at | unixEpoch) (toDate \"2006-01-02T15:04:05Z07:00\" .committed_at | unixEpoch) }}` | unwrap head_age | __error__=\"\" [10m])) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", committed_at=\"committed_at\" | label_format committed_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .committed_at | unixEpoch }}` | unwrap committed_ts | __error__=\"\" [10m]))))"
+    for k, re in local.change_pipeline_repo_re : k => "(max by (repo, sha) (last_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", committed_at=\"committed_at\", observed_at=\"observed_at\" | label_format head_age=`{{ sub (toDate \"2006-01-02T15:04:05Z07:00\" .observed_at | unixEpoch) (toDate \"2006-01-02T15:04:05Z07:00\" .committed_at | unixEpoch) }}` | unwrap head_age | __error__=\"\" [10m])) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", observed_at=\"observed_at\" | label_format observed_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .observed_at | unixEpoch }}` | unwrap observed_ts | __error__=\"\" [10m]))))"
   }
 
   # SHAs any `live` event reported in the last 24h, by (repo, sha).
@@ -1450,7 +1450,7 @@ resource "grafana_rule_group" "change_pipeline" {
           }
           conditions = [{
             evaluator = {
-              type   = "gt"
+              type   = "gte"
               params = [rule.value.budget_seconds]
             }
           }]
