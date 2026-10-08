@@ -1,0 +1,34 @@
+# ============================================================================
+# pipeline-producer-tests — the change-pipeline producer's unit suite
+# ============================================================================
+# Runs pipeline-producer/tests against an in-process fake Loki, so it needs no
+# token and nothing reaches Grafana Cloud. Python 3.10 is what LXC 105 runs.
+#
+# Not path-filtered, matching loki-event-test/docs-check/tf-lint: a
+# path-filtered check that ever becomes required deadlocks non-matching PRs.
+# The suite takes a few seconds.
+#
+# Origin: #266.
+# ============================================================================
+
+name: pipeline-producer-tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.10'
+      - name: Unit-test pipeline-producer (Python 3.10)
+        working-directory: pipeline-producer
+        run: python3 -B -m unittest discover -s tests -t . -v
