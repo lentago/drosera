@@ -1250,3 +1250,229 @@ resource "grafana_rule_group" "cloud_usage" {
     }
   }
 }
+
+# ---------------------------------------------------------------------------
+# Change pipeline (#270, part of #251) — the newest main commit with no live
+# event after its propagation budget.
+#
+# WHY: the absence half of #204. A red main-branch run tells the author; nothing
+# tells anyone when a merge never reaches its runtime (a stopped gitops timer, a
+# deploy that "succeeded" with the wrong image). ADR-0010 defines a change as
+# stuck once the newest main commit of its repo has had no `live` event for
+# longer than its surface's budget; these two rules are that definition.
+#
+# THE QUERY: the head-age series, `unless on (repo, sha)` the live-SHA series,
+# then `> budget_seconds` as a Grafana threshold. Dimensions are repo and sha,
+# so each stuck repo is its own alert instance (threshold expression, not the
+# classic_conditions the groups above use, which collapses to one instance).
+#   * Head: `github_branch_head` (betula#134), one line per repo every 5 min
+#     with sha / committed_at / observed_at. Age = observed_at - committed_at,
+#     so it is at most one poll stale. The topk keeps only the newest head when
+#     a merge lands inside the 10m window, so a superseded commit never alerts.
+#   * Gitops repos: a `live` event (any surface) carrying the head SHA in 24h.
+#   * Terraform repos: every one path-filters its `push` trigger, so a docs-only
+#     merge produces no apply job at all, and "no apply carries the head SHA"
+#     would fire after every such merge. The head is only expected to apply
+#     when a terraform push run exists for it (the gate), and it counts as live
+#     once that SHA has a successful `(terraform )?apply` job (joined to its
+#     run's head_sha on (repo, run_id, run_attempt), as the "In flight" panel
+#     does) or a successful terraform run (the apply job can skip by design).
+#     Known gap: the feed only emits completed runs, so a run that never
+#     completes never opens the gate.
+#   * drosera and betula are in both lists: the gitops side (alloy, Firewalla)
+#     reports every main commit; the terraform side catches a failed apply of
+#     a terraform-touching merge while the gitops surface is current.
+#
+# Repos with no surface (the uvularia templates, music-curator, …) never match
+# a selector, so they never alert. Adding a surface is one line in a list below.
+#
+# no_data_state = "OK": the query returns a series only for a repo whose head
+# is not live, so empty is the healthy case (same stance as the presence checks
+# above). If `github_branch_head` itself stops, this group goes quiet rather
+# than firing; that feed's absence is an ingest-absence concern.
+#
+# Budgets from ADR-0010 § Propagation budgets. Firing needs budget + `for`
+# (5m, so one late tick does not page) + up to one 5-min head poll: a stuck
+# gitops change fires 15–20 min after its merge.
+locals {
+  # Repos whose runtime emits a `<source>_live` event for every main commit.
+  change_pipeline_gitops_repos = [
+    "lentago/drosera", # drosera_live, alloy-lxc105
+    "lentago/betula",  # betula_live, Firewalla
+  ]
+
+  # Repos that apply terraform on merge; apply-success counts as live (v1).
+  change_pipeline_terraform_repos = [
+    "lentago/.github",
+    "lentago/kalmia",
+    "lentago/claytonia",
+    "lentago/drosera",
+    "lentago/betula",
+    "lentago/solidago",
+  ]
+
+  # Site repos probed by sites-live (sites_live). Every main push deploys.
+  change_pipeline_site_repos = [
+    "lentago/site-lentago-dev",
+    "lentago/site-icecreamtofightwith-com",
+    "lentago/site-pondviewlane-com",
+  ]
+
+  # Each list as a LogQL regex. A regex dot is `\\.` inside the LogQL string
+  # (CLAUDE.md § LogQL string escapes), which is "\\\\." in HCL source.
+  change_pipeline_repo_re = {
+    for k, repos in {
+      gitops    = local.change_pipeline_gitops_repos
+      terraform = local.change_pipeline_terraform_repos
+      sites     = local.change_pipeline_site_repos
+    } : k => "(${join("|", [for r in repos : replace(r, ".", "\\\\.")])})"
+  }
+
+  # Head age in seconds by (repo, sha), newest head per repo only.
+  change_pipeline_head = {
+    for k, re in local.change_pipeline_repo_re : k => "(max by (repo, sha) (last_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", committed_at=\"committed_at\", observed_at=\"observed_at\" | label_format head_age=`{{ sub (toDate \"2006-01-02T15:04:05Z07:00\" .observed_at | unixEpoch) (toDate \"2006-01-02T15:04:05Z07:00\" .committed_at | unixEpoch) }}` | unwrap head_age | __error__=\"\" [10m])) and on (repo, sha) topk by (repo) (1, max by (repo, sha) (max_over_time({log_source=\"github_branch_head\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\", committed_at=\"committed_at\" | label_format committed_ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .committed_at | unixEpoch }}` | unwrap committed_ts | __error__=\"\" [10m]))))"
+  }
+
+  # SHAs any `live` event reported in the last 24h, by (repo, sha).
+  change_pipeline_live = {
+    for k, re in local.change_pipeline_repo_re : k => "count by (repo, sha) (count_over_time({pipeline=\"change\", stage=\"live\", cluster=\"lentago\", repo=~\"${re}\"} | json sha=\"sha\" | __error__=\"\" [24h]))"
+  }
+
+  # Terraform push runs on main, by (repo, sha): any conclusion (the gate) and
+  # successful only (nothing left to apply).
+  change_pipeline_tf_run = {
+    for k, extra in { any = "", success = " | conclusion=\"success\"" } : k => "count by (repo, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"${local.change_pipeline_repo_re.terraform}\"} | json event=\"event\", branch=\"branch\", workflow=\"workflow\", conclusion=\"conclusion\", sha=\"head_sha\" | event=\"push\" | branch=\"main\" | workflow=~\"(?i)terraform\"${extra} | __error__=\"\" [24h]))"
+  }
+
+  # Successful apply jobs, carried to their run's head_sha.
+  change_pipeline_tf_applied = "count by (repo, sha) (count by (repo, run_id, run_attempt) (count_over_time({log_source=\"github_actions_job\", cluster=\"lentago\", repo=~\"${local.change_pipeline_repo_re.terraform}\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", job_name=\"job_name\", conclusion=\"conclusion\" | conclusion=\"success\" | job_name=~\"(?i)(.* / )?(terraform )?apply\" | __error__=\"\" [24h])) + on (repo, run_id, run_attempt) group_left (sha) (0 * max by (repo, run_id, run_attempt, sha) (count_over_time({log_source=\"github_actions_run\", cluster=\"lentago\", repo=~\"${local.change_pipeline_repo_re.terraform}\"} | json run_id=\"run_id\", run_attempt=\"run_attempt\", sha=\"head_sha\" | __error__=\"\" [24h]))))"
+
+  change_pipeline_rules = [
+    {
+      key            = "gitops-terraform"
+      name           = "Change stuck — gitops and terraform"
+      budget_seconds = 600
+      expr           = "(${local.change_pipeline_head.gitops} unless on (repo, sha) ${local.change_pipeline_live.gitops}) or ((${local.change_pipeline_head.terraform} and on (repo, sha) ${local.change_pipeline_tf_run.any}) unless on (repo, sha) (${local.change_pipeline_tf_run.success} or ${local.change_pipeline_tf_applied}))"
+      surface        = "its gitops surface has not reported it (alloy-gitops.timer on LXC 105 for drosera, the Firewalla gitops timer for betula) or its terraform apply did not succeed"
+    },
+    {
+      key            = "sites"
+      name           = "Change stuck — sites"
+      budget_seconds = 1200
+      expr           = "${local.change_pipeline_head.sites} unless on (repo, sha) ${local.change_pipeline_live.sites}"
+      surface        = "no site serves it in version.json (check the repo's deploy workflow, then the sites-live probe on LXC 105)"
+    },
+  ]
+}
+
+resource "grafana_rule_group" "change_pipeline" {
+  name             = "Change pipeline"
+  folder_uid       = grafana_folder.lentago.uid
+  interval_seconds = 60
+
+  dynamic "rule" {
+    for_each = { for r in local.change_pipeline_rules : r.key => r }
+
+    content {
+      # KeepLast on evaluation errors (#238), as in the groups above.
+      name           = rule.value.name
+      for            = "5m"
+      condition      = "C"
+      no_data_state  = "OK"
+      exec_err_state = "KeepLast"
+
+      # A: head age in seconds for each (repo, sha) not yet live. The windows
+      # live in the LogQL itself; the range below only bounds the evaluation.
+      data {
+        ref_id         = "A"
+        datasource_uid = "grafanacloud-logs"
+        query_type     = "instant"
+        # query_type must mirror the model's queryType (#221).
+
+        relative_time_range {
+          from = 86400
+          to   = 0
+        }
+
+        model = jsonencode({
+          refId         = "A"
+          expr          = rule.value.expr
+          queryType     = "instant"
+          editorMode    = "code"
+          intervalMs    = 1000
+          maxDataPoints = 43200
+          datasource = {
+            type = "loki"
+            uid  = "grafanacloud-logs"
+          }
+        })
+      }
+
+      # B: one number per series, keeping the repo and sha labels.
+      data {
+        ref_id         = "B"
+        datasource_uid = "__expr__"
+
+        relative_time_range {
+          from = 0
+          to   = 0
+        }
+
+        model = jsonencode({
+          refId      = "B"
+          type       = "reduce"
+          expression = "A"
+          reducer    = "last"
+          datasource = {
+            type = "__expr__"
+            uid  = "__expr__"
+          }
+        })
+      }
+
+      # C: past the surface's budget. A threshold keeps one instance per series.
+      data {
+        ref_id         = "C"
+        datasource_uid = "__expr__"
+
+        relative_time_range {
+          from = 0
+          to   = 0
+        }
+
+        model = jsonencode({
+          refId      = "C"
+          type       = "threshold"
+          expression = "B"
+          datasource = {
+            type = "__expr__"
+            uid  = "__expr__"
+          }
+          conditions = [{
+            evaluator = {
+              type   = "gt"
+              params = [rule.value.budget_seconds]
+            }
+          }]
+        })
+      }
+
+      # The red-main alert (#204) has not landed; this is the contact point
+      # every group in this file uses, and the one #204 will reuse.
+      notification_settings {
+        contact_point   = grafana_contact_point.site_alerts_email.name
+        repeat_interval = "6h"
+      }
+
+      labels = {
+        service  = "change-pipeline"
+        severity = "warning"
+      }
+
+      annotations = {
+        summary     = "{{ $labels.repo }}: main head {{ slice $labels.sha 0 7 }} is not live {{ humanizeDuration $values.B.Value }} after its merge (budget ${rule.value.budget_seconds / 60}m)."
+        description = "The newest main commit of {{ $labels.repo }} ({{ $labels.sha }}) has no live event: ${rule.value.surface}. Merged {{ humanizeDuration $values.B.Value }} ago. Change — Pipeline: https://${var.grafana_stack_slug}.grafana.net/d/change-pipeline?var-repo={{ urlquery $labels.repo }}"
+      }
+    }
+  }
+}

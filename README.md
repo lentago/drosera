@@ -249,6 +249,13 @@ for the SLO targets and burn-rate design.
   `uvularia_repeat_interval` / `uvularia_group_by` variables; the contact point
   defaults to `Site probe email`. See
   [docs/clients/uvularia.md](docs/clients/uvularia.md).
+- **`Change pipeline`** (2 rules, issue #270, ADR-0010): **change stuck**
+  when a repo's newest `main` commit (`github_branch_head`) has no `live`
+  event carrying its SHA after the budget: 10 min for gitops and terraform
+  repos, 20 min for sites. One alert instance per `repo`/`sha`. A terraform
+  repo only counts when a terraform push run exists for the head, because
+  every apply workflow is path-filtered and a docs merge applies nothing.
+  `no_data_state = "OK"`. The repo lists are locals in `terraform/alerts.tf`.
 - **Contact point:** one email contact point (`Site probe email`), reused by
   every group. The recipient is `TF_VAR_alert_email`, a sensitive
   Terraform variable with no default, supplied via CI/`.envrc` and never
