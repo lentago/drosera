@@ -1237,7 +1237,7 @@ resource "grafana_rule_group" "cloud_usage" {
 
     notification_settings {
       contact_point   = grafana_contact_point.site_alerts_email.name
-      repeat_interval = "24h"
+      repeat_interval = "1d" # Grafana normalises 24h to 1d; writing 24h is a perpetual in-place diff
     }
 
     labels = {
