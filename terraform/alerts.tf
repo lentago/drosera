@@ -1283,7 +1283,7 @@ resource "grafana_rule_group" "cloud_usage" {
 #     reports every main commit; the terraform side catches a failed apply of
 #     a terraform-touching merge while the gitops surface is current.
 #
-# Repos with no surface (the uvularia templates, music-curator, …) never match
+# Repos with no surface (the uvularia templates, repo-template, …) never match
 # a selector, so they never alert. Adding a surface is one line in a list below.
 #
 # no_data_state = "OK": the query returns a series only for a repo whose head
