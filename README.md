@@ -379,6 +379,7 @@ dashboards/                    # source of truth for Grafana dashboard JSON
   uvularia-pipeline.json       # Uvularia — Records pipeline (Loki events, cluster variable)
   change-pipeline.json         # Change — Pipeline: merge-to-live per SHA (Actions feed + live events, ADR-0010)
                                #   + collapsed "By repo" row: one Graphviz stage strip per repo (grafana-graphviz-panel)
+  github-actions.json          # GitHub — Actions: fleet-wide run history, failures, durations, queue time (Actions feed, #234)
 terraform/                     # manages Cloud-side resources
   *.tf                         # incl. datasources.tf (solidago-cloudwatch) and
                                 # alerts.tf (site probe + Loki ingest-absence +

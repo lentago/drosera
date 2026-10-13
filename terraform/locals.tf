@@ -216,6 +216,11 @@ locals {
       uid  = "change-pipeline"
       file = "change-pipeline.json"
     }
+    # GitHub — Actions (#234): the same Actions feed, all-Loki.
+    github_actions = {
+      uid  = "github-actions"
+      file = "github-actions.json"
+    }
   }
 
   change_dashboard_json = {

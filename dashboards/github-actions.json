@@ -1,0 +1,862 @@
+{
+  "uid": "github-actions",
+  "title": "GitHub — Actions",
+  "description": "Fleet-wide GitHub Actions history from betula's Actions feed (log_source=github_actions_run|github_actions_job, lentago/betula#113; contract in betula clients/github/README.md): failures over time, what is red on main now, run duration, job queue time with the self-hosted runner on its own, and the recent runs. The cluster variable is the GitHub owner, so a second org appears once the collector lists it, with no dashboard edit. Only completed runs and jobs are in the feed, so nothing here shows what is still running.",
+  "tags": [
+    "github-actions",
+    "ci"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Owner (cluster)",
+        "type": "query",
+        "description": "The GitHub owner: the cluster label betula's collector puts on every Actions event.",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values({source=\"github_actions\"}, cluster)",
+        "query": "label_values({source=\"github_actions\"}, cluster)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "current": {
+          "text": "lentago",
+          "value": "lentago"
+        },
+        "options": []
+      },
+      {
+        "name": "repo",
+        "label": "Repo",
+        "type": "query",
+        "description": "Repos seen in the Actions feed for the selected owner.",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values({source=\"github_actions\", cluster=\"$cluster\"}, repo)",
+        "query": "label_values({source=\"github_actions\", cluster=\"$cluster\"}, repo)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Failures over time, by repo and workflow",
+      "description": "Completed run attempts with conclusion=\"failure\", counted per repo and workflow in each interval (at least 1h). A re-run is a new attempt, so a run that fails twice counts twice. Runs are stamped at their updated_at, so a failure lands in the interval it finished in.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 14,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "interval": "1h",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "no data",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum by (repo, workflow) (count_over_time({log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", conclusion=\"conclusion\" | conclusion=\"failure\" [$__interval]))",
+          "legendFormat": "{{repo}} · {{workflow}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Currently red on main",
+      "description": "Each repo and workflow whose latest decisive run on `main` in the dashboard range failed. Query A gives the newest completion time per repo, workflow and conclusion; the transforms sort by that time, group by repo and workflow, and keep the last conclusion. Only rows whose last conclusion is `failure` remain. Skipped and cancelled runs are left out, so a cancelled run does not clear a red workflow. Query B counts the failures on `main` in the range. This is not a consecutive-failure streak: LogQL cannot compute one. A workflow with no `main` run in the range does not appear, so widen the range if a quiet repo is missing. The alert on red `main` runs is #204.",
+      "gridPos": {
+        "x": 14,
+        "y": 0,
+        "w": 10,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "last run"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failures in range"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "last run",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "max by (repo, workflow, conclusion) (max_over_time({log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", branch=\"branch\", conclusion=\"conclusion\", updated_at=\"updated_at\" | branch=\"main\" | conclusion!~\"skipped|cancelled\" | label_format ts=`{{ toDate \"2006-01-02T15:04:05Z07:00\" .updated_at | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])) * 1000"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (repo, workflow, conclusion) (count_over_time({log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", branch=\"branch\", conclusion=\"conclusion\" | branch=\"main\" | conclusion=\"failure\" [$__range]))"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Value #A",
+                "desc": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "repo": {
+                "operation": "groupby"
+              },
+              "workflow": {
+                "operation": "groupby"
+              },
+              "conclusion": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "last"
+                ]
+              },
+              "Value #A": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "max"
+                ]
+              },
+              "Value #B": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "sum"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "type": "include",
+            "match": "all",
+            "filters": [
+              {
+                "fieldName": "conclusion (last)",
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "failure"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "conclusion (last)": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "workflow": 1,
+              "Value #A (max)": 2,
+              "Value #B (sum)": 3
+            },
+            "renameByName": {
+              "Value #A (max)": "last run",
+              "Value #B (sum)": "failures in range"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Job queue time p50 / p95, self-hosted vs GitHub-hosted",
+      "description": "queue_s (started_at − created_at) per completed job, split on the feed's self_hosted field. Skipped jobs are excluded: they never wait for a runner. A job cancelled before any runner picked it up has no started_at, so it has no queue_s and is not counted here. Quantiles are taken per interval (at least 1h), so a quiet interval with few jobs is noisy.",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "interval": "1h",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "no data",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "quantile_over_time(0.5, {log_source=\"github_actions_job\", cluster=\"$cluster\", repo=~\"$repo\"} | json conclusion=\"conclusion\", self_hosted=\"self_hosted\", queue_s=\"queue_s\" | conclusion!=\"skipped\" | label_format hosting=`{{ if eq .self_hosted \"true\" }}self-hosted{{ else }}GitHub-hosted{{ end }}` | unwrap queue_s | __error__=\"\" [$__interval]) by (hosting)",
+          "legendFormat": "{{hosting}} p50"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "quantile_over_time(0.95, {log_source=\"github_actions_job\", cluster=\"$cluster\", repo=~\"$repo\"} | json conclusion=\"conclusion\", self_hosted=\"self_hosted\", queue_s=\"queue_s\" | conclusion!=\"skipped\" | label_format hosting=`{{ if eq .self_hosted \"true\" }}self-hosted{{ else }}GitHub-hosted{{ end }}` | unwrap queue_s | __error__=\"\" [$__interval]) by (hosting)",
+          "legendFormat": "{{hosting}} p95"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Self-hosted runner — job queue time",
+      "description": "Queue time for jobs that ran on a self-hosted runner (self_hosted=true), split by runner_name. Today that is the one runner on LXC 115 (labels self-hosted, lan), which gates the kalmia and claytonia terraform apply-on-merge pipelines, so a rising p95 or max here delays those applies. Skipped jobs are excluded; a job cancelled while still queued has no queue_s and does not appear.",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "interval": "1h",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "no data",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "quantile_over_time(0.5, {log_source=\"github_actions_job\", cluster=\"$cluster\", repo=~\"$repo\"} | json conclusion=\"conclusion\", self_hosted=\"self_hosted\", runner_name=\"runner_name\", queue_s=\"queue_s\" | conclusion!=\"skipped\" | self_hosted=\"true\" | unwrap queue_s | __error__=\"\" [$__interval]) by (runner_name)",
+          "legendFormat": "{{runner_name}} p50"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "quantile_over_time(0.95, {log_source=\"github_actions_job\", cluster=\"$cluster\", repo=~\"$repo\"} | json conclusion=\"conclusion\", self_hosted=\"self_hosted\", runner_name=\"runner_name\", queue_s=\"queue_s\" | conclusion!=\"skipped\" | self_hosted=\"true\" | unwrap queue_s | __error__=\"\" [$__interval]) by (runner_name)",
+          "legendFormat": "{{runner_name}} p95"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "max_over_time({log_source=\"github_actions_job\", cluster=\"$cluster\", repo=~\"$repo\"} | json conclusion=\"conclusion\", self_hosted=\"self_hosted\", runner_name=\"runner_name\", queue_s=\"queue_s\" | conclusion!=\"skipped\" | self_hosted=\"true\" | unwrap queue_s | __error__=\"\" [$__interval]) by (runner_name)",
+          "legendFormat": "{{runner_name}} max"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Run duration p50 / p95 by workflow (approximate)",
+      "description": "duration_s per completed run attempt over the dashboard range, per repo and workflow. The value is approximate: the run object has no completed_at, so the feed computes updated_at − run_started_at, and updated_at can move after the run finishes. Workflows are kept per repo because names such as `terraform` repeat across repos. Skipped and cancelled runs are excluded.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "runs"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.5, {log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", conclusion=\"conclusion\", duration_s=\"duration_s\" | conclusion!~\"skipped|cancelled\" | unwrap duration_s | __error__=\"\" [$__range]) by (repo, workflow)"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "quantile_over_time(0.95, {log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", conclusion=\"conclusion\", duration_s=\"duration_s\" | conclusion!~\"skipped|cancelled\" | unwrap duration_s | __error__=\"\" [$__range]) by (repo, workflow)"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (repo, workflow) (count_over_time({log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"} | json workflow=\"workflow\", conclusion=\"conclusion\", duration_s=\"duration_s\" | conclusion!~\"skipped|cancelled\" [$__range]))"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "repo": 0,
+              "workflow": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4
+            },
+            "renameByName": {
+              "Value #A": "p50",
+              "Value #B": "p95",
+              "Value #C": "runs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Recent runs",
+      "description": "The newest 200 completed run attempts in the dashboard range, read straight from the run stream: the JSON line is unpacked with an Extract fields transform. duration_s is the feed's approximate updated_at − run_started_at. The run column opens the run on GitHub.",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "updated_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "finished"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_s"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "duration"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run_attempt"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "attempt"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "conclusion"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "success": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "failure": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "cancelled": {
+                        "color": "text",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "html_url"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "run"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the run on GitHub",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^https://.+$",
+                      "result": {
+                        "text": "open ↗"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "finished",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{log_source=\"github_actions_run\", cluster=\"$cluster\", repo=~\"$repo\"}",
+          "maxLines": 200
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "updated_at",
+                "repo",
+                "workflow",
+                "branch",
+                "event",
+                "conclusion",
+                "run_attempt",
+                "duration_s",
+                "html_url"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "updated_at": 0,
+              "repo": 1,
+              "workflow": 2,
+              "branch": 3,
+              "event": 4,
+              "conclusion": 5,
+              "run_attempt": 6,
+              "duration_s": 7,
+              "html_url": 8
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    }
+  ]
+}
