@@ -708,13 +708,137 @@
       ]
     },
     {
+      "id": 21,
+      "type": "table",
+      "title": "Runners underway (by submitter)",
+      "description": "Jobs with a job_running beat in the last minute. submitter is a line field; \"-\" is a hand-dropped job.",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "format": "table",
+          "expr": "label_replace(sum by (runid, worker, project, model, submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" | runid=~\"$runid\" [1m])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true
+            },
+            "indexByName": {
+              "submitter": 0,
+              "runid": 1,
+              "project": 2,
+              "model": 3,
+              "worker": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Jobs by submitter (range)",
+      "description": "job_complete events over the dashboard range, by submitter (line field). \"-\" is a hand-dropped job.",
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "format": "table",
+          "expr": "label_replace(sum by (submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "format": "table",
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "Jobs",
+              "Value #B": "Cost (USD)"
+            },
+            "indexByName": {
+              "submitter": 0,
+              "Value #A": 1,
+              "Value #B": 2
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cost (USD)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": 201,
       "type": "row",
       "title": "Recent activity",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 31,
         "w": 24,
         "h": 1
       }
@@ -725,7 +849,7 @@
       "title": "Recent runner jobs",
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 32,
         "w": 12,
         "h": 9
       },
@@ -746,7 +870,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | line_format \"{{.status}} {{.project}} {{.model}} ${{.cost_usd}} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
+          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | line_format \"{{.status}} {{.project}} {{.model}} {{ or .submitter \\\"-\\\" }} ${{.cost_usd}} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
         }
       ]
     },
@@ -756,7 +880,7 @@
       "title": "Recent local sessions",
       "gridPos": {
         "x": 12,
-        "y": 24,
+        "y": 32,
         "w": 12,
         "h": 9
       },
@@ -788,7 +912,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 41,
         "w": 24,
         "h": 1
       }
@@ -799,7 +923,7 @@
       "title": "Job duration (avg / max)",
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 42,
         "w": 24,
         "h": 8
       },
@@ -847,7 +971,7 @@
       "description": "Live open-PR review queue from the GitHub Search API via the Infinity datasource: currently-open PRs authored by lentago-claude-runner[bot] across the Lentago Labs org, oldest first. Reflects real state \u2014 merged/closed PRs drop off. The Loki job_complete stream records pr_url only at open time and never observes the later merge, so it cannot track which PRs are still open.",
       "gridPos": {
         "x": 0,
-        "y": 42,
+        "y": 50,
         "w": 24,
         "h": 7
       },
@@ -1004,7 +1128,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 49,
+        "y": 57,
         "w": 24,
         "h": 1
       }
@@ -1016,7 +1140,7 @@
       "description": "Live, near-real-time reasoning for bullpen worker claude-runner. One always-present pane per fleet runner (not gated on recent activity, so an idle or not-yet-deployed worker shows an empty pane rather than vanishing). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 50,
+        "y": 58,
         "w": 24,
         "h": 10
       },
@@ -1051,7 +1175,7 @@
       "description": "Live, near-real-time reasoning for bullpen worker claude-runner-2. One always-present pane per fleet runner (not gated on recent activity, so an idle or not-yet-deployed worker shows an empty pane rather than vanishing). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 68,
         "w": 24,
         "h": 10
       },
@@ -1086,7 +1210,7 @@
       "description": "Live, near-real-time reasoning for bullpen worker claude-runner-3. One always-present pane per fleet runner (not gated on recent activity, so an idle or not-yet-deployed worker shows an empty pane rather than vanishing). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 70,
+        "y": 78,
         "w": 24,
         "h": 10
       },
@@ -1121,7 +1245,7 @@
       "description": "Live, near-real-time reasoning for bullpen worker claude-runner-4. One always-present pane per fleet runner (not gated on recent activity, so an idle or not-yet-deployed worker shows an empty pane rather than vanishing). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 80,
+        "y": 88,
         "w": 24,
         "h": 10
       },
@@ -1156,7 +1280,7 @@
       "description": "Live, near-real-time reasoning for bullpen worker claude-runner-5. One always-present pane per fleet runner (not gated on recent activity, so an idle or not-yet-deployed worker shows an empty pane rather than vanishing). Tool-call noise is suppressed: tool-only turns are dropped and the trailing \"[TOOL] ...\" tag is stripped from mixed turns, leaving just the narration. Scrubbed for offsite egress (no thinking, no tool inputs). Filter by project with $project. For true websocket tailing, open this query in Explore.",
       "gridPos": {
         "x": 0,
-        "y": 90,
+        "y": 98,
         "w": 24,
         "h": 10
       },
