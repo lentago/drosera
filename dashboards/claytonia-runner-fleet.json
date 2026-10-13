@@ -777,7 +777,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         },
         {
           "refId": "B",
@@ -787,7 +787,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         }
       ],
       "transformations": [
