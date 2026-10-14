@@ -25,7 +25,7 @@ locals {
     "infinity"   = "grafanacloud-infinity"
   }
 
-  # Lentago Lab (homelab-source) dashboards. Uids keep the legacy firewalla-
+  # On-prem dashboards. Uids keep the legacy firewalla-
   # prefix: uids are load-bearing (cross-dashboard /d/ links, the office-display
   # public share, the import blocks) and changing one is a destroy/create.
   #
@@ -34,7 +34,7 @@ locals {
   # carried by the `<Group> — <What>` dashboard title instead. The maps stay
   # separate because they differ in JSON pre-processing (the solidago set skips
   # the datasource-uid rewrite).
-  lab_dashboards = {
+  onprem_dashboards = {
     network_overview = {
       uid  = "firewalla-network-overview"
       file = "network-overview.json"
@@ -64,8 +64,8 @@ locals {
   # Read each dashboard JSON file and rewrite datasource UIDs in one pass.
   # The regex tolerates either `"uid": "loki"` or `"uid":"loki"` (and similar
   # for prometheus) so we don't depend on the formatter's whitespace.
-  lab_dashboard_json = {
-    for k, d in local.lab_dashboards :
+  onprem_dashboard_json = {
+    for k, d in local.onprem_dashboards :
     k => replace(
       replace(
         replace(
@@ -82,7 +82,7 @@ locals {
   }
 }
 
-# Claytonia (agent fleet) dashboards. Same datasource-UID rewrite as the lab
+# Claytonia (agent fleet) dashboards. Same datasource-UID rewrite as the on-prem
 # set — the runner-fleet dashboard is all-Loki (plus Infinity), so it carries
 # the legacy self-hosted "loki" placeholder uid. The dashboard uid keeps the
 # legacy claude-runner-fleet name so existing links survive the rename.
@@ -112,10 +112,10 @@ locals {
   }
 }
 
-# Solidago (AWS) dashboards — separate map from the lab set, and
+# Solidago (AWS) dashboards — separate map from the on-prem set, and
 # deliberately NOT routed through the datasource-UID-rewrite machinery above:
 # Solidago dashboard JSON references "solidago-cloudwatch" directly, a uid WE
-# choose in datasources.tf — unlike the lab dashboards, which predate
+# choose in datasources.tf — unlike the on-prem dashboards, which predate
 # the stack and carry legacy self-hosted uids that must be rewritten at
 # apply time.
 locals {
@@ -178,7 +178,7 @@ locals {
 # SLO / error-budget dashboard (issue #195) — a cross-site aggregate, not a
 # per-site board, so it lives in its own map rather than sites_dashboards (whose
 # entries are one-per-public-site, uid = site-<domain>). All-Mimir probe panels,
-# so it takes the same datasource-UID rewrite as the lab/site sets. Its uid
+# so it takes the same datasource-UID rewrite as the on-prem/site sets. Its uid
 # (sites-slo-error-budget) is the alerting group's dashboard counterpart.
 locals {
   slo_dashboards = {
@@ -208,7 +208,7 @@ locals {
 
 # Change pipeline dashboard (issue #258, ADR-0010) — the fleet-wide merge-to-live
 # view over the GitHub Actions feed and the `live` emitters. All-Loki, so it
-# takes the same datasource-UID rewrite as the lab/claytonia sets; its own map
+# takes the same datasource-UID rewrite as the on-prem/claytonia sets; its own map
 # because it belongs to no existing group (title prefix `Change —`).
 locals {
   change_dashboards = {

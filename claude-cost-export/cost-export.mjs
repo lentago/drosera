@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * cost-export.mjs — capture finished Claude Code interactive sessions and ship
- * them to the Lentago lab Loki receiver so local cost lands on the "Claude Runner
+ * them to the on-prem Loki receiver so local cost lands on the "Claude Runner
  * Fleet" Grafana dashboard alongside the bullpen agents.
  *
  * Two phases, run in sequence (default) or individually:

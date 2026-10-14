@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code heartbeat hook: while a local session is actively working, push a
-# lightweight event="session_running" to the Lentago lab Loki receiver, throttled to
+# lightweight event="session_running" to the on-prem Loki receiver, throttled to
 # one push per session per ~30s, so the "Local sessions underway" Grafana panel
 # has an in-flight signal. The cost-export sweep still ships the authoritative
 # session_complete at the end — this only adds the live band.

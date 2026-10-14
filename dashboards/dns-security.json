@@ -1,6 +1,6 @@
 {
   "uid": "firewalla-dns-security",
-  "title": "Lentago Lab — DNS & Security",
+  "title": "On-prem — DNS & Security",
   "description": "DNS query analysis, NXDOMAIN anomaly detection, and blocked connection tracking",
   "tags": ["firewalla", "dns", "security"],
   "timezone": "browser",
