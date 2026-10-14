@@ -1,6 +1,7 @@
 # Metrics & logs flow
 
-How telemetry gets from the on-prem hosts into Grafana Cloud, after the move to
+How telemetry gets from the on-prem hosts (the machines in our own building) into
+Grafana Cloud, after the move to
 **host-local Alloy push** for node metrics (see README §
 "Collection models"). This is the canonical flow diagram, replacing an earlier hand-drawn diagram
 from the pull-model era.

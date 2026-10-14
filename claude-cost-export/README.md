@@ -5,8 +5,9 @@
 > heartbeat feed the **Claytonia — Runner Fleet** dashboard managed in this
 > repo — so it lives here with the rest of the pipeline.
 
-Ship the cost of **local, interactive** Claude Code sessions to the on-prem
-Grafana **"Claytonia — Runner Fleet"** dashboard, so a workstation shows up next to
+Ship the cost of **local, interactive** Claude Code sessions through the on-prem
+Loki receiver (on-prem: the machines in our own building) to the Grafana Cloud
+**"Claytonia — Runner Fleet"** dashboard, so a workstation shows up next to
 the [Claytonia](https://github.com/lentago/claytonia) agents under a **Local
 sessions** row (`source="local"`, `worker=<hostname>`).
 
