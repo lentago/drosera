@@ -34,9 +34,9 @@
       "includeVars": false,
       "keepTime": true,
       "tags": [
-        "lentago-lab"
+        "onprem"
       ],
-      "title": "Lentago lab dashboards",
+      "title": "On-prem dashboards",
       "type": "dashboards"
     }
   ],
@@ -1526,7 +1526,7 @@
   "refresh": "30s",
   "schemaVersion": 42,
   "tags": [
-    "lentago-lab",
+    "onprem",
     "infrastructure",
     "fleet"
   ],
@@ -1577,7 +1577,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Lentago Lab — Infrastructure Health",
+  "title": "On-prem — Infrastructure Health",
   "uid": "firewalla-infra-health",
   "weekStart": ""
 }

@@ -1,6 +1,6 @@
 # Agent guidance
 
-This repository is **git-first Lentago lab observability**: Grafana Cloud for UI and storage, **Grafana Alloy** on a Proxmox LXC for ingestion, **Terraform** for Cloud-side resources, dashboard JSON under **`dashboards/`**.
+This repository is **git-first on-prem observability**: Grafana Cloud for UI and storage, **Grafana Alloy** on a Proxmox LXC for ingestion, **Terraform** for Cloud-side resources, dashboard JSON under **`dashboards/`**.
 
 ## Read in this order
 

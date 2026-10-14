@@ -1,6 +1,6 @@
 # Contributing
 
-Lentago lab observability: **Grafana Cloud** + **Grafana Alloy** on a Proxmox LXC, with dashboards and Cloud resources driven from this git repo. Stability and clarity matter.
+On-prem observability: **Grafana Cloud** + **Grafana Alloy** on a Proxmox LXC, with dashboards and Cloud resources driven from this git repo. Stability and clarity matter.
 
 **Before opening a PR or asking setup questions**, read [README.md](README.md) (architecture, Firewalla → Cloud log/metric paths, credentials, Terraform apply, public kiosk) and [terraform/README.md](terraform/README.md) (state, imports).
 

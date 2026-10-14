@@ -10,7 +10,7 @@
 
 **Drosera** (sundew — the botanical codename line alongside `lentago`,
 `solidago`, and `kalmia`) is the Lentago Labs observability suite. Today it
-watches the Lentago lab and renders AWS telemetry from the Lentago cloud
+watches the on-prem estate (the machines in our own building) and renders AWS telemetry from the Lentago cloud
 estate (Solidago) on demand via a live CloudWatch datasource; deeper AWS
 ingestion is the next scope expansion. Renamed from `homelab-observability` on
 2026-07-04 —
@@ -21,7 +21,7 @@ old prefix, as do the live `/opt/homelab-observability` checkouts on hosts.
 
 **Agents / contributors:** setup, architecture, and credentials are documented here. Conventions (LogQL, dashboard UIDs, `node_exporter` model, kiosk) are in [CLAUDE.md](CLAUDE.md); PR norms in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Git-driven observability for a Firewalla home network, powered by [Grafana
+Git-driven observability for the on-prem network behind a Firewalla, powered by [Grafana
 Cloud](https://grafana.com/products/cloud/) (free tier) on the visualization
 side. Ingestion is per-host, not a single chokepoint: each host runs its own
 [Grafana Alloy](https://grafana.com/docs/alloy/) agent and pushes metrics
@@ -198,12 +198,12 @@ for the SLO targets and burn-rate design.
 
 - **`Site probe alerts`** (8 rules — "Site down" on `probe_success` and "TLS
   cert expiring" on `probe_ssl_earliest_cert_expiry` under a 21-day threshold,
-  for each of the 4 site dashboards). These metrics come from the lab Alloy's
+  for each of the 4 site dashboards). These metrics come from the on-prem Alloy's
   blackbox exporter and exist nowhere in CloudWatch, so Solidago's AWS-native
   alerting (CloudWatch alarms → SNS, solidago ADR-0001) can't see them.
-  `no_data_state = "NoData"` deliberately: the probes run from one lab vantage
-  point, so a lab/WAN outage looks identical to a real site outage, and
-  alerting on NoData would misfire on every lab hiccup instead of a real one.
+  `no_data_state = "NoData"` deliberately: the probes run from one on-prem vantage
+  point, so an on-prem/WAN outage looks identical to a real site outage, and
+  alerting on NoData would misfire on every on-prem hiccup instead of a real one.
 - **`Loki ingest absence`** (8 rules — one each for `zeek_dns`, `zeek_conn`,
   `zeek_ssl`, `zeek_http`, `zeek_files`, `zeek_weird`, `firewalla_acl`,
   `device_inventory`): fires when a stream goes quiet longer than its expected
@@ -383,7 +383,7 @@ dashboards/                    # source of truth for Grafana dashboard JSON
 terraform/                     # manages Cloud-side resources
   *.tf                         # incl. datasources.tf (solidago-cloudwatch) and
                                 # alerts.tf (site probe + Loki ingest-absence +
-                                # bullpen + lab availability alert rules)
+                                # bullpen + on-prem availability alert rules)
   modules/uvularia-pipeline/   # uvularia dashboard + rules; estate and clients both use it
 pipeline-producer/             # change-pipeline producer on LXC 105: pipeline.json on :8611 + change_pipeline_state (#266)
   pipeline_producer/           # stdlib Python 3.10 package (read Loki → compute stages → serve + write back)
@@ -479,7 +479,7 @@ After Alloy is up:
 - Confirm logs arrive in Cloud: **Explore → grafanacloud-lentago-logs** → `{cluster="lentago-lab"}`.
 - Confirm metrics arrive: **Explore → grafanacloud-lentago-prom** →
   `up{cluster="lentago-lab"}` should return 1 for each scrape target.
-- Visit a dashboard (e.g. **Lentago / Lentago Lab — Network Overview**) and
+- Visit a dashboard (e.g. **Lentago / On-prem — Network Overview**) and
   confirm panels render data.
 
 ### 5. Office display (kiosk)
@@ -525,7 +525,7 @@ comment) on every PR touching `terraform/**` or `dashboards/**`, and **`apply
 ### Add a new dashboard
 
 1. Drop a new JSON file in `dashboards/`. Title it `<Group> — <What>`
-   (`Lentago Lab — …`, `Claytonia — …`, `Solidago — …`, `Sites — <domain>`):
+   (`On-prem — …`, `Claytonia — …`, `Solidago — …`, `Sites — <domain>`):
    every dashboard lives in one flat `Lentago` folder, so the title prefix is
    the only thing that groups the list.
 2. Add an entry to the matching per-group local (`lab_dashboards`,

@@ -39,7 +39,7 @@
       "url": ""
     }
   ],
-  "description": "Availability SLOs (99.9% / rolling 30d) and multi-window burn-rate view for the three public sites, from the lab Alloy blackbox probes (Mimir). Alerting counterpart: terraform/alerts.tf group 'Site SLO burn rate'. See docs/adr/0008.",
+  "description": "Availability SLOs (99.9% / rolling 30d) and multi-window burn-rate view for the three public sites, from the on-prem Alloy blackbox probes (Mimir). Alerting counterpart: terraform/alerts.tf group 'Site SLO burn rate'. See docs/adr/0008.",
   "panels": [
     {
       "id": 1,
@@ -53,7 +53,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "### Sites \u2014 Availability SLOs & Error Budget\n\n**Objective: 99.9% availability over a rolling 30-day window** (43.2 min of allowed downtime / 30d), measured from the lab Alloy's outside-in blackbox probes (`probe_success` \u2192 Mimir).\n\n**Burn rate** = (fraction of failed probes over the window) \u00f7 0.001. A burn rate of **1** exactly exhausts the month's budget in 30 days; **14.4** exhausts it in ~50h. Alerts (see `terraform/alerts.tf`, group *Site SLO burn rate*): **fast-burn pages** at \u226514.4 (1h \u2227 5m), **slow-burn tickets** at \u22653 (24h \u2227 2h).\n\nThree public sites only \u2014 essexcrossingatmontserrat.com shares pondviewlane's ECS service, and the claytonia queue SLO is tracked in #200."
+        "content": "### Sites \u2014 Availability SLOs & Error Budget\n\n**Objective: 99.9% availability over a rolling 30-day window** (43.2 min of allowed downtime / 30d), measured from the on-prem Alloy's outside-in blackbox probes (`probe_success` \u2192 Mimir).\n\n**Burn rate** = (fraction of failed probes over the window) \u00f7 0.001. A burn rate of **1** exactly exhausts the month's budget in 30 days; **14.4** exhausts it in ~50h. Alerts (see `terraform/alerts.tf`, group *Site SLO burn rate*): **fast-burn pages** at \u226514.4 (1h \u2227 5m), **slow-burn tickets** at \u22653 (24h \u2227 2h).\n\nThree public sites only \u2014 essexcrossingatmontserrat.com shares pondviewlane's ECS service, and the claytonia queue SLO is tracked in #200."
       }
     },
     {

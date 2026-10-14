@@ -8,12 +8,12 @@
 # module.uvularia_pipeline_lentago (terraform/alerts.tf), the same module
 # clients apply into their own stacks.
 
-resource "grafana_dashboard" "lab" {
-  for_each = local.lab_dashboards
+resource "grafana_dashboard" "onprem" {
+  for_each = local.onprem_dashboards
 
   folder      = grafana_folder.lentago.uid
   overwrite   = true
-  config_json = local.lab_dashboard_json[each.key]
+  config_json = local.onprem_dashboard_json[each.key]
 }
 
 resource "grafana_dashboard" "claytonia" {

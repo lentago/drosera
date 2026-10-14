@@ -96,13 +96,13 @@
       "url": ""
     }
   ],
-  "description": "Per-site health for icecreamtofightwith.com (ECS service solidago-dev-app on the shared Solidago platform). Status row: outside-in blackbox probes from the lab Alloy (Mimir). Traffic/runtime rows: query-on-demand CloudWatch \u2014 every render bills GetMetricData; overnight gaps are the nightly DR teardown drill. ALB panels use SEARCH expressions on stable name fragments because TargetGroup/LoadBalancer dimension hashes rotate on the nightly rebuild. Refresh floor is 5m.",
+  "description": "Per-site health for icecreamtofightwith.com (ECS service solidago-dev-app on the shared Solidago platform). Status row: outside-in blackbox probes from the on-prem Alloy (Mimir). Traffic/runtime rows: query-on-demand CloudWatch \u2014 every render bills GetMetricData; overnight gaps are the nightly DR teardown drill. ALB panels use SEARCH expressions on stable name fragments because TargetGroup/LoadBalancer dimension hashes rotate on the nightly rebuild. Refresh floor is 5m.",
   "panels": [
     {
       "id": 1,
       "type": "stat",
       "title": "Up",
-      "description": "Outside-in HTTPS probe from the lab Alloy (30s).",
+      "description": "Outside-in HTTPS probe from the on-prem Alloy (30s).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"

@@ -1,13 +1,13 @@
 # Metrics & logs flow
 
-How telemetry gets from the Lentago lab into Grafana Cloud, after the move to
+How telemetry gets from the on-prem hosts into Grafana Cloud, after the move to
 **host-local Alloy push** for node metrics (see README §
 "Collection models"). This is the canonical flow diagram, replacing an earlier hand-drawn diagram
 from the pull-model era.
 
 ```mermaid
 flowchart LR
-  subgraph hosts["Lentago lab hosts (×6)"]
+  subgraph hosts["On-prem hosts (×6)"]
     direction TB
     names["neptune · pve · pve2<br/>pve3 · pve4 · pve5"]
     ne["node_exporter :9100"]

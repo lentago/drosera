@@ -10,26 +10,26 @@ import {
 }
 
 import {
-  to = grafana_dashboard.lab["network_overview"]
+  to = grafana_dashboard.onprem["network_overview"]
   id = "firewalla-network-overview"
 }
 
 import {
-  to = grafana_dashboard.lab["dns_security"]
+  to = grafana_dashboard.onprem["dns_security"]
   id = "firewalla-dns-security"
 }
 
 import {
-  to = grafana_dashboard.lab["traffic_devices"]
+  to = grafana_dashboard.onprem["traffic_devices"]
   id = "firewalla-traffic-devices"
 }
 
 import {
-  to = grafana_dashboard.lab["infra_health"]
+  to = grafana_dashboard.onprem["infra_health"]
   id = "firewalla-infra-health"
 }
 
 import {
-  to = grafana_dashboard.lab["office_display"]
+  to = grafana_dashboard.onprem["office_display"]
   id = "firewalla-office-display"
 }

@@ -96,13 +96,13 @@
       "url": ""
     }
   ],
-  "description": "Per-site health for essexcrossingatmontserrat.com (ECS service solidago-dev-pondview on the shared Solidago platform). NOTE: essexcrossingatmontserrat.com is a second public hostname of the lentago/site-pondviewlane-com repo — both domains are served by the same nginx container and the same ECS service (solidago-dev-pondview). The Traffic/Runtime rows therefore show identical data to site-pondviewlane-com; that is correct and expected, not a copy-paste error. The Status row (blackbox probes) is domain-specific: a TLS certificate gap, a DNS regression, or an ALB listener rule change that affects only this hostname will appear here and not on the pondviewlane.com dashboard. Status row: outside-in blackbox probes from the lab Alloy (Mimir). Traffic/runtime rows: query-on-demand CloudWatch — every render bills GetMetricData; overnight gaps are the nightly DR teardown drill. ALB panels use SEARCH expressions on stable name fragments because TargetGroup/LoadBalancer dimension hashes rotate on the nightly rebuild. Refresh floor is 5m.",
+  "description": "Per-site health for essexcrossingatmontserrat.com (ECS service solidago-dev-pondview on the shared Solidago platform). NOTE: essexcrossingatmontserrat.com is a second public hostname of the lentago/site-pondviewlane-com repo — both domains are served by the same nginx container and the same ECS service (solidago-dev-pondview). The Traffic/Runtime rows therefore show identical data to site-pondviewlane-com; that is correct and expected, not a copy-paste error. The Status row (blackbox probes) is domain-specific: a TLS certificate gap, a DNS regression, or an ALB listener rule change that affects only this hostname will appear here and not on the pondviewlane.com dashboard. Status row: outside-in blackbox probes from the on-prem Alloy (Mimir). Traffic/runtime rows: query-on-demand CloudWatch — every render bills GetMetricData; overnight gaps are the nightly DR teardown drill. ALB panels use SEARCH expressions on stable name fragments because TargetGroup/LoadBalancer dimension hashes rotate on the nightly rebuild. Refresh floor is 5m.",
   "panels": [
     {
       "id": 1,
       "type": "stat",
       "title": "Up",
-      "description": "Outside-in HTTPS probe from the lab Alloy (30s).",
+      "description": "Outside-in HTTPS probe from the on-prem Alloy (30s).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"

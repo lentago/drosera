@@ -42,3 +42,17 @@ moved {
   from = grafana_folder.lab
   to   = grafana_folder.lentago
 }
+
+# 2026-10-14 wording sweep (lentago/.github#269): the on-prem half of the
+# estate is "on-prem", so the resource addresses follow. Renames in state only;
+# the rule-group *name* change is a replace of that group (rules recreated in
+# the same apply), the dashboards are untouched on the wire.
+moved {
+  from = grafana_dashboard.lab
+  to   = grafana_dashboard.onprem
+}
+
+moved {
+  from = grafana_rule_group.lab_availability
+  to   = grafana_rule_group.onprem_availability
+}

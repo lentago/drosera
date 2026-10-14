@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Grafana Alloy host-agent deployment for Lentago lab hosts (Debian 12).
+# Grafana Alloy host-agent deployment for on-prem hosts (Debian 12).
 # Idempotent — safe to re-run.
 #
 # Installs Grafana Alloy from the official apt repo and configures it as a

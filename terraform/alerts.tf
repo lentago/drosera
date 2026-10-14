@@ -4,7 +4,7 @@
 # alerting-for-site-probes.md for the decision and its boundary.
 #
 # WHY this lives in Grafana and not AWS: `probe_success` and
-# `probe_ssl_earliest_cert_expiry` are produced by the lab Alloy's blackbox
+# `probe_ssl_earliest_cert_expiry` are produced by the on-prem Alloy's blackbox
 # exporter and remote-written to Mimir. They exist NOWHERE in CloudWatch, so the
 # AWS-native alerting posture from solidago ADR-0001 (ALB/ECS/RDS → CloudWatch →
 # SNS) physically cannot see them. This file covers ONLY those probe-derived
@@ -94,10 +94,10 @@ resource "grafana_rule_group" "site_probes" {
       condition = "C"
       for       = rule.value.for
 
-      # LAN-vantage blind spot: the probes run from a single lab vantage point,
-      # so a lab/WAN outage is indistinguishable from a site outage. We deliberately
+      # LAN-vantage blind spot: the probes run from a single on-prem vantage point,
+      # so an on-prem/WAN outage is indistinguishable from a site outage. We deliberately
       # do NOT suppress NoData — suppressing it (no_data_state = "OK") would mean a
-      # real site outage during a lab outage produces NO alert at all. The failure
+      # real site outage during an on-prem outage produces NO alert at all. The failure
       # mode of this whole effort must be noise, never silence. See the ADR.
       # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
       # failure holds the previous state instead of paging a DatasourceError
@@ -308,8 +308,8 @@ locals {
   ]
 }
 
-# One rule group for the four homelab-source feeds (Zeek/ACL from the Firewalla,
-# device_inventory from the lab Alloy). This group was already in the folder that
+# One rule group for the four on-prem-source feeds (Zeek/ACL from the Firewalla,
+# device_inventory from the on-prem Alloy). This group was already in the folder that
 # the 2026-07-24 flattening renamed to "Lentago", so the reference change below is
 # uid-identical and the group is updated in place, not replaced.
 resource "grafana_rule_group" "loki_ingest_absence" {
@@ -426,7 +426,7 @@ resource "grafana_rule_group" "loki_ingest_absence" {
 #
 # WHY this is a distinct group from "Site probe alerts" above: those rules are
 # SYMPTOM alerts — "probe_success == 0 right now" — which page on every blip,
-# including a 30-second lab-WAN hiccup that consumes a trivial slice of the
+# including a 30-second on-prem-WAN hiccup that consumes a trivial slice of the
 # month's budget. These rules are OBJECTIVE alerts: they page only when the
 # rate of failure is fast enough to threaten the monthly error budget, and
 # ticket when slow erosion is eating it. The symptom rules answer "is it down?";
@@ -435,7 +435,7 @@ resource "grafana_rule_group" "loki_ingest_absence" {
 #
 # THE SLO. 99.9% availability, measured as the fraction of successful outside-in
 # blackbox probes over a rolling 30-day window. 99.9% is the honest target for a
-# free-tier, homelab-fronted lab: the probe path crosses a residential WAN, a
+# free-tier, on-prem-fronted estate: the probe path crosses a residential WAN, a
 # Proxmox LXC, and Grafana Cloud's free tier, none of which carry a four-nines
 # guarantee — claiming 99.99% (52 min/YEAR) would be theatre when a single
 # 5-minute home-internet blip already blows a year of that budget. 99.9% over
@@ -454,8 +454,8 @@ resource "grafana_rule_group" "loki_ingest_absence" {
 #
 # no_data_state = "NoData", identical to the "Site probe alerts" group and for
 # the same LAN-vantage reason: a single-vantage probe can't tell a real outage
-# from a lab/WAN outage, so suppressing NoData (→ "OK") would silence a genuine
-# site outage that coincides with a lab outage. The failure mode stays noise,
+# from an on-prem/WAN outage, so suppressing NoData (→ "OK") would silence a genuine
+# site outage that coincides with an on-prem outage. The failure mode stays noise,
 # never silence.
 locals {
   # 1 - target, hardcoded (not `1 - 0.999`) to keep the generated PromQL a clean
@@ -510,9 +510,9 @@ locals {
         severity        = "critical"
         repeat_interval = "1h"
         # Runbook line: exhausting the budget at this rate empties the whole
-        # 30-day allowance in ~50h. Confirm a real outage (not a lab/WAN blip)
+        # 30-day allowance in ~50h. Confirm a real outage (not an on-prem/WAN blip)
         # via the site dashboard's probe panels, then treat as a live incident.
-        summary = "Fast SLO burn on ${domain}: failed-probe rate is >14.4x the 99.9%/30d budget over both 1h and 5m. At this rate the full monthly error budget (43.2 min) is gone in ~50h — respond now. Runbook: check the site dashboard (/d/site-${replace(domain, ".", "-")}) to rule out a lab/WAN-only outage, then escalate as a live incident."
+        summary = "Fast SLO burn on ${domain}: failed-probe rate is >14.4x the 99.9%/30d budget over both 1h and 5m. At this rate the full monthly error budget (43.2 min) is gone in ~50h — respond now. Runbook: check the site dashboard (/d/site-${replace(domain, ".", "-")}) to rule out an on-prem/WAN-only outage, then escalate as a live incident."
       },
       {
         key             = "${domain}-slow-burn"
@@ -879,7 +879,7 @@ resource "grafana_rule_group" "bullpen_liveness" {
 }
 
 # ---------------------------------------------------------------------------
-# Lab availability alerts (issue: 2026-08-29 pve3 outage post-mortem).
+# On-prem availability alerts (issue: 2026-08-29 pve3 outage post-mortem).
 #
 # WHY: on 2026-08-29 18:55 EDT pve3's onboard Intel I219-V NIC hit an e1000e TX
 # unit hang. The PHY link stayed UP while transmit died, so the host was
@@ -889,7 +889,7 @@ resource "grafana_rule_group" "bullpen_liveness" {
 # homeassistant-http"} sat at 0 continuously from 2026-08-29T23:00Z to
 # 2026-08-30T16:00Z. It was an ALERTING gap — before this group, every rule in
 # this file covered the public sites, Loki ingest, context-ledger, or the
-# bullpen, and NOTHING watched lab host or Home Assistant availability. These
+# bullpen, and NOTHING watched on-prem host or Home Assistant availability. These
 # rules close that gap; rule (a) alone would have caught the outage in 5 minutes.
 #
 # TWO INDEPENDENT VANTAGES, DELIBERATELY (rules b and c are belt-and-braces):
@@ -917,7 +917,7 @@ resource "grafana_rule_group" "bullpen_liveness" {
 # copied:
 #   * rules (a)/(b) query the raw probe_success gauge (0 down / 1 up) and fire on
 #     `lt 1`. NoData means the single-vantage probe returned nothing, an
-#     ambiguous lab/WAN-vs-target failure — so no_data_state = "NoData", exactly
+#     ambiguous on-prem/WAN-vs-target failure — so no_data_state = "NoData", exactly
 #     as the "Site probe alerts" group above, keeping the failure mode noise not
 #     silence.
 #   * rule (c) uses absent_over_time, which returns EMPTY (→ NoData) precisely
@@ -933,7 +933,7 @@ locals {
   # and cannot migrate, so pve3 down = Home Assistant down (this outage). neptune
   # (the NAS) is CRITICAL too; the rest are warning. The address is carried only
   # to put a concrete "ping this IP" first step in the summary.
-  lab_reachability_hosts = [
+  onprem_reachability_hosts = [
     { host = "pve", address = "192.168.139.8", severity = "warning" },
     { host = "pve2", address = "192.168.139.7", severity = "warning" },
     { host = "pve3", address = "192.168.139.55", severity = "critical" },
@@ -948,13 +948,13 @@ locals {
   # instance=<host>}; firewalla and ap-office run no Alloy and so are absent here
   # by design — an absent_over_time rule on a series that never exists would fire
   # forever.
-  lab_node_hosts = ["pve", "pve2", "pve3", "pve4", "pve5", "neptune"]
+  onprem_node_hosts = ["pve", "pve2", "pve3", "pve4", "pve5", "neptune"]
 
   # All three rule kinds share one flat schema (key/name/expr/from_seconds/
   # evaluator_type/threshold/for/no_data_state/severity/repeat_interval/summary)
   # so a single dynamic "rule" block fans them all out, exactly as the
   # bullpen group above does.
-  lab_availability_rules = concat(
+  onprem_availability_rules = concat(
     [
       {
         # Rule (a) — the one that would have caught the 2026-08-29 outage in 5m.
@@ -968,13 +968,13 @@ locals {
         no_data_state   = "NoData" # single-vantage probe: NoData is ambiguous, not "healthy"
         severity        = "critical"
         repeat_interval = "1h"
-        summary         = "Home Assistant is unreachable — the outside-in HTTP probe (probe_success, job integrations/blackbox/homeassistant-http) has read 0 for 5m. This is the exact signal that sat at 0 for 17 hours during the 2026-08-29 pve3 NIC (e1000e TX hang) outage with nobody paged. First diagnostic: check whether pve3 itself is up (see 'Lab host unreachable — pve3'). If pve3 is up but HA is down, the HAOS VM or its network is the fault; if pve3 is down, fix the host first — HAOS (VM 100) is USB-pinned to pve3 and cannot migrate."
+        summary         = "Home Assistant is unreachable — the outside-in HTTP probe (probe_success, job integrations/blackbox/homeassistant-http) has read 0 for 5m. This is the exact signal that sat at 0 for 17 hours during the 2026-08-29 pve3 NIC (e1000e TX hang) outage with nobody paged. First diagnostic: check whether pve3 itself is up (see 'On-prem host unreachable — pve3'). If pve3 is up but HA is down, the HAOS VM or its network is the fault; if pve3 is down, fix the host first — HAOS (VM 100) is USB-pinned to pve3 and cannot migrate."
       },
     ],
     [
-      for h in local.lab_reachability_hosts : {
+      for h in local.onprem_reachability_hosts : {
         key             = "host-unreachable-${h.host}"
-        name            = "Lab host unreachable — ${h.host}"
+        name            = "On-prem host unreachable — ${h.host}"
         expr            = "probe_success{job=\"integrations/blackbox/${h.host}\"}"
         from_seconds    = 600
         evaluator_type  = "lt"
@@ -983,11 +983,11 @@ locals {
         no_data_state   = "NoData"
         severity        = h.severity
         repeat_interval = h.severity == "critical" ? "1h" : "4h"
-        summary         = "Lab host ${h.host} is unreachable — the outside-in ICMP probe (probe_success, job integrations/blackbox/${h.host}) has read 0 for 5m from the LXC 105 vantage. Something between the prober and the host is down: the host itself, its NIC, or the LAN path. First diagnostic: ping ${h.host} (${h.address}) from another host and check its console. This is the outside-in half of a belt-and-braces pair — the inside-out 'Host metrics silent — ${h.host}' rule fails independently, so if only one of the two fires, suspect the probe/scrape path rather than the host."
+        summary         = "On-prem host ${h.host} is unreachable — the outside-in ICMP probe (probe_success, job integrations/blackbox/${h.host}) has read 0 for 5m from the LXC 105 vantage. Something between the prober and the host is down: the host itself, its NIC, or the LAN path. First diagnostic: ping ${h.host} (${h.address}) from another host and check its console. This is the outside-in half of a belt-and-braces pair — the inside-out 'Host metrics silent — ${h.host}' rule fails independently, so if only one of the two fires, suspect the probe/scrape path rather than the host."
       }
     ],
     [
-      for host in local.lab_node_hosts : {
+      for host in local.onprem_node_hosts : {
         key  = "host-metrics-silent-${host}"
         name = "Host metrics silent — ${host}"
         # absent_over_time, NOT `up == 0` — see the block comment. Host-local
@@ -1001,24 +1001,24 @@ locals {
         no_data_state   = "OK" # EMPTY result == series present == host healthy; do not flip to "Alerting"
         severity        = "warning"
         repeat_interval = "4h"
-        summary         = "Host ${host}'s node_exporter metrics have stopped arriving in Mimir — up{job=\"node\", instance=\"${host}\"} has been ABSENT (not 0) for 10m. node_exporter here is host-local push: ${host}'s own Alloy scrapes localhost and remote_writes, so a dead or islanded host makes the series vanish rather than report 0 (verified: during the 2026-08-29 pve3 outage the series simply stopped, with no zero samples). First diagnostic: is the host reachable (see 'Lab host unreachable — ${host}')? If reachable, its Alloy agent is the fault — `systemctl status alloy` on ${host}; if unreachable, fix the host. This is the inside-out half of a belt-and-braces pair with the ICMP reachability rule; they fail independently."
+        summary         = "Host ${host}'s node_exporter metrics have stopped arriving in Mimir — up{job=\"node\", instance=\"${host}\"} has been ABSENT (not 0) for 10m. node_exporter here is host-local push: ${host}'s own Alloy scrapes localhost and remote_writes, so a dead or islanded host makes the series vanish rather than report 0 (verified: during the 2026-08-29 pve3 outage the series simply stopped, with no zero samples). First diagnostic: is the host reachable (see 'On-prem host unreachable — ${host}')? If reachable, its Alloy agent is the fault — `systemctl status alloy` on ${host}; if unreachable, fix the host. This is the inside-out half of a belt-and-braces pair with the ICMP reachability rule; they fail independently."
       }
     ],
   )
 }
 
-# One rule group for all lab-availability rules. Same folder, contact point, and
+# One rule group for all on-prem-availability rules. Same folder, contact point, and
 # per-rule routing model as the five groups above. The per-rule
 # evaluator_type/threshold/no_data_state/severity/repeat_interval A+C shape is
 # the bullpen template reused verbatim (all queries hit Mimir,
 # so datasource_uid is hardcoded grafanacloud-prom like the site_probes group).
-resource "grafana_rule_group" "lab_availability" {
-  name             = "Lab availability"
+resource "grafana_rule_group" "onprem_availability" {
+  name             = "On-prem availability"
   folder_uid       = grafana_folder.lentago.uid
   interval_seconds = 60
 
   dynamic "rule" {
-    for_each = { for r in local.lab_availability_rules : r.key => r }
+    for_each = { for r in local.onprem_availability_rules : r.key => r }
 
     content {
       # KeepLast on evaluation errors (#238): a transient Grafana Cloud query
@@ -1100,7 +1100,7 @@ resource "grafana_rule_group" "lab_availability" {
       }
 
       labels = {
-        service  = "lab-availability"
+        service  = "onprem-availability"
         severity = rule.value.severity
       }
 
