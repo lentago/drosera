@@ -104,6 +104,81 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Step 4b — LVM thin pool textfile collector
+# node_exporter has no LVM collector. On hosts with lvm2, a root timer writes
+# lvm_thin_pool_* and lvm_vg_free_bytes into the textfile directory every
+# minute; the "On-prem storage" alert rules read them. Hosts without lvm2
+# (neptune) get the empty directory only.
+# ---------------------------------------------------------------------------
+info "Creating textfile collector directory..."
+${SUDO:+sudo }install -d -m 0755 /var/lib/node_exporter/textfile \
+  || fail "Failed to create /var/lib/node_exporter/textfile"
+
+if command -v lvs &>/dev/null; then
+  info "Installing LVM thin pool textfile collector..."
+  ${SUDO:+sudo }tee /usr/local/bin/lvm-thin-textfile > /dev/null <<'COLLECTOR_EOF'
+#!/usr/bin/env bash
+# Writes LVM thin pool usage for node_exporter's textfile collector.
+# Deployed by homelab-observability scripts/deploy-node-exporter.sh.
+set -euo pipefail
+out=/var/lib/node_exporter/textfile/lvm_thin.prom
+tmp="${out}.$$"
+{
+  echo "# HELP lvm_thin_pool_data_percent Thin pool data space used, percent."
+  echo "# TYPE lvm_thin_pool_data_percent gauge"
+  echo "# HELP lvm_thin_pool_metadata_percent Thin pool metadata space used, percent."
+  echo "# TYPE lvm_thin_pool_metadata_percent gauge"
+  echo "# HELP lvm_thin_pool_size_bytes Thin pool data size."
+  echo "# TYPE lvm_thin_pool_size_bytes gauge"
+  lvs --noheadings --nosuffix --units b --separator ' ' -S 'segtype=thin-pool' \
+      -o vg_name,lv_name,data_percent,metadata_percent,lv_size |
+    awk '{ l = sprintf("vg=\"%s\",lv=\"%s\"", $1, $2)
+           printf "lvm_thin_pool_data_percent{%s} %s\n", l, $3
+           printf "lvm_thin_pool_metadata_percent{%s} %s\n", l, $4
+           printf "lvm_thin_pool_size_bytes{%s} %s\n", l, $5 }'
+  echo "# HELP lvm_vg_free_bytes Unallocated volume group space (autoextend headroom)."
+  echo "# TYPE lvm_vg_free_bytes gauge"
+  vgs --noheadings --nosuffix --units b -o vg_name,vg_free |
+    awk '{ printf "lvm_vg_free_bytes{vg=\"%s\"} %s\n", $1, $2 }'
+} > "$tmp"
+chmod 0644 "$tmp"
+mv "$tmp" "$out"
+COLLECTOR_EOF
+  ${SUDO:+sudo }chmod 0755 /usr/local/bin/lvm-thin-textfile
+
+  ${SUDO:+sudo }tee /etc/systemd/system/lvm-thin-textfile.service > /dev/null <<'UNIT_EOF'
+[Unit]
+Description=Write LVM thin pool metrics for node_exporter
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/lvm-thin-textfile
+UNIT_EOF
+
+  ${SUDO:+sudo }tee /etc/systemd/system/lvm-thin-textfile.timer > /dev/null <<'UNIT_EOF'
+[Unit]
+Description=Refresh LVM thin pool metrics every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+
+[Install]
+WantedBy=timers.target
+UNIT_EOF
+
+  ${SUDO:+sudo }systemctl daemon-reload \
+    || fail "systemctl daemon-reload failed"
+  ${SUDO:+sudo }systemctl enable --now lvm-thin-textfile.timer \
+    || fail "Failed to enable lvm-thin-textfile.timer"
+  ${SUDO:+sudo }systemctl start lvm-thin-textfile.service \
+    || fail "lvm-thin-textfile collector failed — run 'journalctl -u lvm-thin-textfile' to diagnose."
+  success "LVM thin pool collector installed."
+else
+  info "lvm2 not installed — skipping the LVM thin pool collector."
+fi
+
+# ---------------------------------------------------------------------------
 # Step 5 — Write systemd unit file
 # ---------------------------------------------------------------------------
 info "Writing /etc/systemd/system/node_exporter.service..."
@@ -120,6 +195,7 @@ Group=node_exporter
 Type=simple
 ExecStart=/usr/local/bin/node_exporter \
   --collector.filesystem.mount-points-exclude="^/(sys|proc|dev|run)($|/)" \
+  --collector.textfile.directory=/var/lib/node_exporter/textfile \
   --collector.netclass.ignored-devices="^(veth|docker|br-).*" \
   --web.listen-address=":9100"
 Restart=on-failure
@@ -137,9 +213,13 @@ info "Reloading systemd daemon..."
 ${SUDO:+sudo }systemctl daemon-reload \
   || fail "systemctl daemon-reload failed"
 
-info "Enabling and starting node_exporter..."
-${SUDO:+sudo }systemctl enable --now node_exporter \
-  || fail "Failed to enable/start node_exporter service"
+info "Enabling and (re)starting node_exporter..."
+# restart, not just `enable --now`: a re-run must pick up a changed unit
+# (e.g. the textfile flag) on a host where node_exporter is already running.
+${SUDO:+sudo }systemctl enable node_exporter \
+  || fail "Failed to enable node_exporter service"
+${SUDO:+sudo }systemctl restart node_exporter \
+  || fail "Failed to (re)start node_exporter service"
 
 success "node_exporter service enabled and started."
 
@@ -168,6 +248,14 @@ if echo "${METRICS}" | grep -q "node_cpu_seconds_total"; then
   success "Metrics endpoint is healthy — node_cpu_seconds_total confirmed."
 else
   fail "Metrics endpoint reachable but node_cpu_seconds_total never appeared after 15s — check service logs."
+fi
+
+if command -v lvs &>/dev/null; then
+  if echo "${METRICS}" | grep -q "^lvm_thin_pool_data_percent"; then
+    success "LVM thin pool metrics are available — lvm_thin_pool_* series detected."
+  else
+    warn "lvm_thin_pool_data_percent is missing from /metrics — check /var/lib/node_exporter/textfile/lvm_thin.prom."
+  fi
 fi
 
 if echo "${METRICS}" | grep -q "node_zfs_"; then
