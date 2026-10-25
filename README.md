@@ -550,6 +550,13 @@ Bare-metal node_exporter on each host is the metric source. Run
 `scripts/deploy-node-exporter.sh` against any new host you add. How those
 metrics reach Grafana Cloud depends on the collection model below.
 
+On hosts with lvm2 (the five Proxmox nodes) the script also installs
+`lvm-thin-textfile`, a one-minute root timer that writes `lvm_thin_pool_*`
+and `lvm_vg_free_bytes` into node_exporter's textfile directory. The thin pool
+and root filesystem rules in the "On-prem availability" group read them. Re-run
+the script on each node after changing it, and before merging rule changes
+that depend on new series, or they start in NoData.
+
 ### Collection models: central pull vs. host-local push
 
 There are two ways a host's node_exporter metrics get to Mimir, and the repo

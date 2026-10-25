@@ -950,6 +950,15 @@ locals {
   # forever.
   onprem_node_hosts = ["pve", "pve2", "pve3", "pve4", "pve5", "neptune"]
 
+  # Storage rules (2026-10-25 guest storage audit): every guest disk sits on
+  # its node's single-SSD lvmthin pool, overprovisioned 123% (pve4) and 157%
+  # (pve5), and a full pool takes every guest on the node down at once.
+  # lvm_thin_pool_* come from the textfile collector that
+  # scripts/deploy-node-exporter.sh installs; kalmia's pve_host role sets
+  # autoextend at 80%, so data above 85% for 15m means autoextend failed or the
+  # VG is spent. Root fs covers `local`, which once held a VM disk.
+  onprem_pve_hosts = ["pve", "pve2", "pve3", "pve4", "pve5"]
+
   # All three rule kinds share one flat schema (key/name/expr/from_seconds/
   # evaluator_type/threshold/for/no_data_state/severity/repeat_interval/summary)
   # so a single dynamic "rule" block fans them all out, exactly as the
@@ -1004,6 +1013,62 @@ locals {
         summary         = "Host ${host}'s node_exporter metrics have stopped arriving in Mimir — up{job=\"node\", instance=\"${host}\"} has been ABSENT (not 0) for 10m. node_exporter here is host-local push: ${host}'s own Alloy scrapes localhost and remote_writes, so a dead or islanded host makes the series vanish rather than report 0 (verified: during the 2026-08-29 pve3 outage the series simply stopped, with no zero samples). First diagnostic: is the host reachable (see 'On-prem host unreachable — ${host}')? If reachable, its Alloy agent is the fault — `systemctl status alloy` on ${host}; if unreachable, fix the host. This is the inside-out half of a belt-and-braces pair with the ICMP reachability rule; they fail independently."
       }
     ],
+    flatten([
+      for host in local.onprem_pve_hosts : [
+        {
+          key             = "thin-pool-filling-${host}"
+          name            = "Thin pool filling — ${host}"
+          expr            = "max(lvm_thin_pool_data_percent{job=\"node\", instance=\"${host}\"})"
+          from_seconds    = 600
+          evaluator_type  = "gt"
+          threshold       = 85
+          for             = "15m"
+          no_data_state   = "NoData" # collector silent is not "healthy"
+          severity        = "warning"
+          repeat_interval = "4h"
+          summary         = "${host}'s local-lvm thin pool (pve/data) has been above 85% data for 15m. Autoextend grows it at 80%, so it either failed or the VG has no free extents left. Every guest disk on ${host} lives in this pool; at 100% they all hit write errors together. First diagnostic: `lvs pve/data; vgs pve` on ${host}, then `journalctl -u dm-event` for the extension. Relief: `pct fstrim` the CTs (pve-lxc-fstrim), fstrim inside VMs, or move a disk to another node."
+        },
+        {
+          key             = "thin-pool-critical-${host}"
+          name            = "Thin pool nearly full — ${host}"
+          expr            = "max(lvm_thin_pool_data_percent{job=\"node\", instance=\"${host}\"})"
+          from_seconds    = 600
+          evaluator_type  = "gt"
+          threshold       = 95
+          for             = "5m"
+          no_data_state   = "NoData"
+          severity        = "critical"
+          repeat_interval = "1h"
+          summary         = "${host}'s local-lvm thin pool (pve/data) is above 95% data. When it reaches 100% every guest on ${host} gets I/O errors and can corrupt its filesystem. Act now: free space (`pct fstrim`, fstrim in VMs, delete snapshots) or move a guest disk off ${host}. See 'Thin pool filling — ${host}' for diagnostics."
+        },
+        {
+          key             = "thin-pool-metadata-${host}"
+          name            = "Thin pool metadata filling — ${host}"
+          expr            = "max(lvm_thin_pool_metadata_percent{job=\"node\", instance=\"${host}\"})"
+          from_seconds    = 600
+          evaluator_type  = "gt"
+          threshold       = 80
+          for             = "15m"
+          no_data_state   = "NoData"
+          severity        = "warning"
+          repeat_interval = "4h"
+          summary         = "${host}'s local-lvm thin pool metadata has been above 80% for 15m. Full metadata fails the pool just like full data, and snapshots consume it fastest. First diagnostic: `lvs -a pve` on ${host}; extend with `lvextend --poolmetadatasize +1G pve/data`."
+        },
+        {
+          key             = "root-fs-low-${host}"
+          name            = "Root filesystem low — ${host}"
+          expr            = "100 * node_filesystem_avail_bytes{job=\"node\", instance=\"${host}\", mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"node\", instance=\"${host}\", mountpoint=\"/\"}"
+          from_seconds    = 600
+          evaluator_type  = "lt"
+          threshold       = 15
+          for             = "15m"
+          no_data_state   = "NoData"
+          severity        = "warning"
+          repeat_interval = "4h"
+          summary         = "${host}'s root filesystem has had under 15% free for 15m. On a PVE node / also holds `local` (/var/lib/vz: ISOs, templates, any stray disk image) and /var/log; a full root stops pmxcfs and guest starts. First diagnostic: `du -xsh /var/lib/vz/* /var/log` on ${host}."
+        },
+      ]
+    ]),
   )
 }
 
