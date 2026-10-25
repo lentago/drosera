@@ -240,25 +240,25 @@ info "Checking metrics endpoint..."
 METRICS=""
 for _ in $(seq 1 15); do
   METRICS=$(curl -fsSL http://localhost:9100/metrics 2>/dev/null || true)
-  echo "${METRICS}" | grep -q "node_cpu_seconds_total" && break
+  grep -q "node_cpu_seconds_total" <<< "${METRICS}" && break
   sleep 1
 done
 
-if echo "${METRICS}" | grep -q "node_cpu_seconds_total"; then
+if grep -q "node_cpu_seconds_total" <<< "${METRICS}"; then
   success "Metrics endpoint is healthy — node_cpu_seconds_total confirmed."
 else
   fail "Metrics endpoint reachable but node_cpu_seconds_total never appeared after 15s — check service logs."
 fi
 
 if command -v lvs &>/dev/null; then
-  if echo "${METRICS}" | grep -q "^lvm_thin_pool_data_percent"; then
+  if grep -q "^lvm_thin_pool_data_percent" <<< "${METRICS}"; then
     success "LVM thin pool metrics are available — lvm_thin_pool_* series detected."
   else
     warn "lvm_thin_pool_data_percent is missing from /metrics — check /var/lib/node_exporter/textfile/lvm_thin.prom."
   fi
 fi
 
-if echo "${METRICS}" | grep -q "node_zfs_"; then
+if grep -q "node_zfs_" <<< "${METRICS}"; then
   success "ZFS metrics are available — node_zfs_* series detected."
 else
   info "ZFS collector found no pools (node_zfs_* absent). This is expected on hosts without ZFS."
