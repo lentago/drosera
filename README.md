@@ -13,9 +13,9 @@
 watches the on-prem estate (the machines in our own building) and renders AWS telemetry from the Lentago cloud
 estate (Solidago) on demand via a live CloudWatch datasource; deeper AWS
 ingestion is the next scope expansion. Renamed from `homelab-observability` on
-2026-07-04 —
-AWS-side resource names (the OIDC CI role, the Terraform state key) keep the
-old prefix, as do the live `/opt/homelab-observability` checkouts on hosts.
+2026-07-04. The OIDC CI role and the Terraform state key took the new name in
+#169; the live `/opt/homelab-observability` checkouts on hosts still carry the
+old one until #169's host steps are done.
 
 **Authorship:** The Terraform, Alloy config, dashboards, scripts, and documentation in this repo are co-written with [Claude](https://claude.ai) (Anthropic). I direct the work and review the output; Claude writes the code. I'm an infrastructure operator, not a software engineer — please don't read this repo as a portfolio of coding ability.
 
@@ -517,7 +517,7 @@ Both must be non-empty. If either is missing, the job fails immediately with a
 clear log message instead of a misleading Terraform provider error.
 
 AWS (for the S3 state backend) is reached via GitHub **OIDC** — no AWS secrets are
-stored; the jobs assume `homelab-observability-github-actions-terraform` in account
+stored; the jobs assume `drosera-github-actions-terraform` in account
 `365184644049`. The workflow runs `fmt -check` + `validate` + `plan` (posted as a PR
 comment) on every PR touching `terraform/**` or `dashboards/**`, and **`apply
 -auto-approve` on push to `main`** — so merges deploy automatically. See

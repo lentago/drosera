@@ -17,15 +17,22 @@ around. Drift introduced via the Grafana UI gets overwritten on the next `apply`
 ## State
 
 Remote state in **S3** ([`backend.tf`](backend.tf)): solidago's state bucket
-`solidago-tfstate-365184644049`, key `homelab-observability/terraform.tfstate`, region
+`solidago-tfstate-365184644049`, key `drosera/terraform.tfstate`, region
 `us-east-1`, with DynamoDB lock table `solidago-tfstate-lock`. The bucket is versioned +
 encrypted, so the old "back up the local `tfstate` to the NAS" step is gone — S3 is the
 single authoritative store shared by local runs and CI.
 
 Local `terraform` uses your own AWS creds (the `default` profile / `cpitzi-iac` user); CI
-assumes the `homelab-observability-github-actions-terraform` OIDC role (the role and state key keep the pre-rename `homelab-observability` prefix — the repo became `drosera` on 2026-07-04), scoped to **only**
+assumes the `drosera-github-actions-terraform` OIDC role (defined in solidago's `modules/iam`), scoped to **only**
 this state key + the lock table — it cannot touch solidago's own state. (History: state was
-laptop-local until 2026-06-19, migrated into S3 to enable apply-on-merge — see CI below.)
+laptop-local until 2026-06-19, migrated into S3 to enable apply-on-merge — see CI below. Until
+#169 the key was `homelab-observability/terraform.tfstate` and the role
+`homelab-observability-github-actions-terraform`, from before the 2026-07-04 rename.)
+
+**Never point `backend.tf` at a new key without copying the state first** (`terraform init
+-migrate-state`). From an empty key the next apply would try to create every dashboard,
+folder and rule group again. The `plan` and `apply` jobs refuse to run when `terraform state
+list` is empty.
 
 ## Prerequisites
 
@@ -55,7 +62,7 @@ touching `terraform/**` or `dashboards/**`:
 
 CI authenticates to Grafana via the `GRAFANA_URL` / `GRAFANA_AUTH` repo secrets, and to AWS
 (for S3 state) via GitHub **OIDC**, assuming
-`arn:aws:iam::365184644049:role/homelab-observability-github-actions-terraform` (least
+`arn:aws:iam::365184644049:role/drosera-github-actions-terraform` (least
 privilege: this state key + the lock table only). The `apply` job uses a `terraform-apply`
 concurrency group so two quick merges serialize instead of racing.
 

@@ -25,7 +25,7 @@ permissions:
 
 env:
   # OIDC role (least-privilege: this repo's S3 state key + the lock table only).
-  AWS_ROLE: arn:aws:iam::365184644049:role/homelab-observability-github-actions-terraform
+  AWS_ROLE: arn:aws:iam::365184644049:role/drosera-github-actions-terraform
   AWS_REGION: us-east-1
 
 jobs:
@@ -126,6 +126,25 @@ jobs:
       - name: init
         run: terraform init -input=false
 
+      # The backend key must hold the copied state (#169). From an empty key the
+      # apply would try to create every dashboard, folder and rule group again,
+      # so refuse to plan or apply with no resources in state.
+      - name: state is not empty
+        id: state_guard
+        run: |
+          # A failing `state list` is a backend or credentials problem, not an
+          # empty state; report it as such (no `| wc -l`, which would hide it).
+          if ! list=$(terraform state list); then
+            echo "::error::terraform state list failed: a backend or credentials problem, not an empty state (see this step's log)."
+            exit 1
+          fi
+          n=$(printf '%s' "$list" | grep -c . || true)
+          if [ "$n" -eq 0 ]; then
+            echo "::error::Terraform state is empty. If backend.tf now points at a new key, copy the state first (see terraform/README.md § State)."
+            exit 1
+          fi
+          echo "state holds $n resources"
+
       - name: drift check (refresh-only)
         id: drift
         continue-on-error: true # advisory: a drift-check failure must not fail plan/gate
@@ -166,9 +185,12 @@ jobs:
           PLAN: ${{ steps.plan.outputs.plan }}
           DRIFT: ${{ steps.drift.outputs.drift }}
           OUTCOME: ${{ steps.plan.outcome }}
+          GUARD: ${{ steps.state_guard.outcome }}
         with:
           script: |
-            const plan = process.env.PLAN || '(no plan output captured)';
+            const plan = process.env.PLAN || (process.env.GUARD === 'failure'
+              ? '(plan not run: the "state is not empty" step failed; its log says whether the state is empty or the backend could not be read)'
+              : '(no plan output captured)');
             const outcome = process.env.OUTCOME;
             const drift = (process.env.DRIFT || '').trim();
             const warning = drift
@@ -238,6 +260,25 @@ jobs:
 
       - name: init
         run: terraform init -input=false
+
+      # The backend key must hold the copied state (#169). From an empty key the
+      # apply would try to create every dashboard, folder and rule group again,
+      # so refuse to plan or apply with no resources in state.
+      - name: state is not empty
+        id: state_guard
+        run: |
+          # A failing `state list` is a backend or credentials problem, not an
+          # empty state; report it as such (no `| wc -l`, which would hide it).
+          if ! list=$(terraform state list); then
+            echo "::error::terraform state list failed: a backend or credentials problem, not an empty state (see this step's log)."
+            exit 1
+          fi
+          n=$(printf '%s' "$list" | grep -c . || true)
+          if [ "$n" -eq 0 ]; then
+            echo "::error::Terraform state is empty. If backend.tf now points at a new key, copy the state first (see terraform/README.md § State)."
+            exit 1
+          fi
+          echo "state holds $n resources"
 
       # Advisory: record what this apply is about to revert (live-only edits).
       - name: drift check (refresh-only)
