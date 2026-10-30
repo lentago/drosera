@@ -33,3 +33,13 @@ import {
   to = grafana_dashboard.onprem["office_display"]
   id = "firewalla-office-display"
 }
+
+# brasenia-viewer was created by hand in the stack (2026-10-30T00:50:39Z, role
+# "None") while #289 was in review, so #289's apply failed with "service
+# account already exists". Adopting it keeps the hand-minted `brasenia pub`
+# token alive; deleting the account would revoke that token. The apply then
+# sets the role to Viewer in place.
+import {
+  to = grafana_service_account.brasenia_viewer
+  id = "21"
+}
