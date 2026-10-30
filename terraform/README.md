@@ -114,6 +114,41 @@ job summary ("⚠ Live drift: …"); on merge the apply log gets one
 only — it never blocks a plan or apply, and a failed refresh just warns.
 See #153 and CLAUDE.md § Live dashboard edits.
 
+## Service accounts
+
+[`service_accounts.tf`](service_accounts.tf) defines the stack service accounts that
+other systems authenticate as. **Terraform creates the account and its role. It never
+mints the account's tokens.** A `grafana_service_account_token` resource would store the
+key in remote state, and the token has to be copied to its host by hand anyway. Tokens
+are minted by hand in the stack UI, under the account defined here (lentago/.github
+ADR-0011 rule 4, "Terraform holds slots, not values"). The provider does not track
+tokens it did not create, so later applies leave a hand-minted token alone.
+
+| Account | Role | Used by | Token lives at |
+|---|---|---|---|
+| `brasenia-viewer` | Viewer | brasenia's Grafana producer on pub, which renders dashboards into wall panes through `GET /render/d/<uid>` ([brasenia ADR-0017](https://github.com/lentago/brasenia/blob/main/docs/adr/0017-grafana-panes-rendered-on-pub.md)) | `/etc/brasenia/grafana-token` on pub, root-only, loaded by `brasenia-grafana.service` with `LoadCredential` |
+
+**Minting the `brasenia-viewer` token** (one time, after CI has applied the account):
+
+1. In `https://lentago.grafana.net`, go to **Administration → Users and access → Service
+   accounts**, open `brasenia-viewer`, choose **Add service account token**, name it
+   `brasenia pub`, and copy the value (shown once; it starts `glsa_`).
+2. Put it on pub with the no-echo command in brasenia's
+   [`producers/grafana/README.md` § The token](https://github.com/lentago/brasenia/blob/main/producers/grafana/README.md#the-token).
+   It writes the file under `umask 077` and restarts the unit. Keep the token out of
+   shell history, chat, issues and this repo.
+3. Check that it works: the next render writes `dashboard.png` into each slot's pane
+   directory, and `journalctl -u brasenia-grafana` on pub shows no token or render
+   error.
+
+To rotate it, mint a new token, place it the same way, then delete the old one from the
+account. To revoke it, delete the token in the stack; the panes leave the wall at their
+TTL. Removing or renaming `grafana_service_account.brasenia_viewer` without a `moved`
+block destroys the account and revokes every token under it.
+
+The `terraform-iac` account (CI's `GRAFANA_AUTH`) is not managed here. The credential
+Terraform authenticates with stays outside the config it drives.
+
 ## Adopting a new resource that already exists in Cloud
 
 1. Add an `import` block in `imports.tf`:
