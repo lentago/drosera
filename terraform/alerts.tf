@@ -1584,7 +1584,9 @@ resource "grafana_rule_group" "change_pipeline" {
 # ingest absence group pages for that instead.
 #
 # The [10m] window spans two ticks, so one missed tick does not resolve a
-# firing alert, and a job that gets picked up drops out within 10 min. A job
+# firing alert. The cost: max_over_time keeps the job's last over-budget
+# sample in range, so an alert stays firing for up to 10 min after a runner
+# takes the job, then resolves. A job picked up after 15 min has still fired. A job
 # held by a `concurrency:` group may report `queued` too; more than 15 min
 # behind another apply is a stall worth an email either way.
 # ---------------------------------------------------------------------------

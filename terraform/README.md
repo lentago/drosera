@@ -137,6 +137,10 @@ python3 scripts/tests/logql/run.py terraform/logql/self-hosted-queued.logql \
 
 Use a fresh Loki for each run: lines left from an earlier push can change the result.
 
+It tests the query only, including any threshold written into the `.logql` file. The rule's
+Terraform attributes (`no_data_state`, `for`, the Grafana-side threshold expressions) are
+not exercised; review those in the plan.
+
 ## Service accounts
 
 [`service_accounts.tf`](service_accounts.tf) defines the stack service accounts that

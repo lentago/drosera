@@ -54,7 +54,7 @@ proves it.
 | **Serialized apply via concurrency group** | The `apply` job's `concurrency: { group: terraform-apply, cancel-in-progress: false }` in [`terraform.yml`](.github/workflows/terraform.yml) — two quick merges queue instead of racing on the same Terraform state. |
 | **Reusable CI shared across the fleet** | [`docs-check.yml`](.github/workflows/docs-check.yml), [`shellcheck.yml`](.github/workflows/shellcheck.yml) and [`claude.yml`](.github/workflows/claude.yml) are thin wrappers over `uses: lentago/shared-workflows/...@v1.2.3` — one definition maintained centrally, consumed by every repo at an immutable semver tag (shared-workflows ADR-0005). |
 | **Branch protection as a ruleset, not ad-hoc settings** | `main` requires the named checks `gate`, `shellcheck / shellcheck`, and `docs-check / docs-check` and allows squash merges only — enforced at the platform level, so merge is gated on CI, not convention. |
-| **Alerting-as-code with written design intent** | [`terraform/alerts.tf`](terraform/alerts.tf) provisions 66 rules across 9 groups; [`docs/adr/0001-...md`](docs/adr/0001-grafana-native-alerting-for-site-probes.md) records *why* these live in Grafana (not AWS) and why each group's `no_data_state` differs. |
+| **Alerting-as-code with written design intent** | [`terraform/alerts.tf`](terraform/alerts.tf) provisions 66 rules across 9 groups (one from the `uvularia-pipeline` module); [`docs/adr/0001-...md`](docs/adr/0001-grafana-native-alerting-for-site-probes.md) records *why* these live in Grafana (not AWS) and why each group's `no_data_state` differs. |
 | **Cross-repo contract discipline** | The [Loki output contract](#loki-output-contract) and [Solidago (AWS) contract](#solidago-aws-contract) sections name exactly which repo owns which label, field, and IAM role — explicit written boundaries instead of drift. |
 
 ## 🛠️ Make a change yourself
@@ -189,8 +189,8 @@ look for `device_inventory` gaps (below) and for the metrics pipeline.
 ## Alerting
 
 Terraform provisions the stack's alerting end to end —
-[`terraform/alerts.tf`](terraform/alerts.tf): **66 rules** across nine rule
-groups in the `Lentago` folder, plus the stack's first contact point. See
+[`terraform/alerts.tf`](terraform/alerts.tf) and the `uvularia-pipeline` module: **66 rules** across nine
+rule groups (eight in `alerts.tf`) in the `Lentago` folder, plus the stack's first contact point. See
 [docs/adr/0001-grafana-native-alerting-for-site-probes.md](docs/adr/0001-grafana-native-alerting-for-site-probes.md)
 for why this lives in Grafana instead of AWS, and
 [docs/adr/0008-site-availability-slos-and-burn-rate-alerts.md](docs/adr/0008-site-availability-slos-and-burn-rate-alerts.md)
