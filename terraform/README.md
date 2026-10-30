@@ -114,6 +114,13 @@ job summary ("⚠ Live drift: …"); on merge the apply log gets one
 only — it never blocks a plan or apply, and a failed refresh just warns.
 See #153 and CLAUDE.md § Live dashboard edits.
 
+The comparison treats an empty list and null as equal. After an apply the provider
+stores an unset `notification_settings` list (`group_by`, `mute_timings`) as null, and a
+refresh reads it back as `[]`, so without this every rule group looked drifted after any
+update to it (#290). Every other difference is still reported. `scripts/tests/tf-drift-test.sh`
+checks both halves against fixture plans, in the `tf-drift-test` workflow; run it locally
+after changing the script.
+
 ## Service accounts
 
 [`service_accounts.tf`](service_accounts.tf) defines the stack service accounts that

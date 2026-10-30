@@ -1,0 +1,3 @@
+grafana_rule_group.onprem_availability (uid n/a)
+grafana_rule_group.site_probes (uid n/a)
+grafana_dashboard.onprem["infra_health"] (uid firewalla-infra-health)

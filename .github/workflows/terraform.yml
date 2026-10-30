@@ -15,6 +15,7 @@ on:
       - "terraform/**"
       - "dashboards/**"
       - ".github/workflows/terraform.yml"
+      - "scripts/tf-drift.sh" # the plan and apply jobs run it
 
 permissions:
   contents: read
@@ -50,7 +51,7 @@ jobs:
           fi
           changed=$(git diff --name-only "$BASE_SHA" HEAD)
           echo "changed files:"; echo "$changed"
-          if echo "$changed" | grep -qE '^terraform/|^dashboards/|^\.github/workflows/terraform\.yml$'; then
+          if echo "$changed" | grep -qE '^terraform/|^dashboards/|^\.github/workflows/terraform\.yml$|^scripts/tf-drift\.sh$'; then
             echo "tf=true" >> "$GITHUB_OUTPUT"
           else
             echo "tf=false" >> "$GITHUB_OUTPUT"

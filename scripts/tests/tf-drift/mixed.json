@@ -1,0 +1,264 @@
+{
+  "format_version": "1.2",
+  "resource_drift": [
+    {
+      "address": "grafana_rule_group.onprem_availability",
+      "type": "grafana_rule_group",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "id": "1:afh7m8li40zk0d:On-prem availability",
+          "name": "On-prem availability",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "pve down",
+              "for": "5m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": null,
+                  "mute_timings": null,
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            },
+            {
+              "name": "pve storage low",
+              "for": "15m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": null,
+                  "mute_timings": null,
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after": {
+          "id": "1:afh7m8li40zk0d:On-prem availability",
+          "name": "On-prem availability",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "pve down",
+              "for": "5m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": [],
+                  "mute_timings": [],
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            },
+            {
+              "name": "pve storage low",
+              "for": "1h",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": [],
+                  "mute_timings": [],
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "grafana_rule_group.site_probes",
+      "type": "grafana_rule_group",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "id": "1:afh7m8li40zk0d:Site probe alerts",
+          "name": "Site probe alerts",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "site down",
+              "for": "2m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": null,
+                  "mute_timings": null,
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after": {
+          "id": "1:afh7m8li40zk0d:Site probe alerts",
+          "name": "Site probe alerts",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "site down",
+              "for": "2m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": [],
+                  "mute_timings": [
+                    "maintenance"
+                  ],
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "grafana_rule_group.bullpen_liveness",
+      "type": "grafana_rule_group",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "id": "1:afh7m8li40zk0d:Bullpen liveness",
+          "name": "Bullpen liveness",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "worker silent",
+              "for": "10m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": null,
+                  "mute_timings": null,
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after": {
+          "id": "1:afh7m8li40zk0d:Bullpen liveness",
+          "name": "Bullpen liveness",
+          "folder_uid": "afh7m8li40zk0d",
+          "interval_seconds": 60,
+          "rule": [
+            {
+              "name": "worker silent",
+              "for": "10m",
+              "condition": "C",
+              "labels": {
+                "service": "onprem"
+              },
+              "notification_settings": [
+                {
+                  "contact_point": "Site probe email",
+                  "group_by": [],
+                  "mute_timings": [],
+                  "repeat_interval": "4h",
+                  "group_wait": "",
+                  "group_interval": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "grafana_dashboard.onprem[\"infra_health\"]",
+      "type": "grafana_dashboard",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "uid": "firewalla-infra-health",
+          "folder": "afh7m8li40zk0d",
+          "config_json": "{\"title\": \"On-prem \\u2014 Infrastructure Health\", \"panels\": []}"
+        },
+        "after": {
+          "uid": "firewalla-infra-health",
+          "folder": "afh7m8li40zk0d",
+          "config_json": "{\"title\": \"On-prem \\u2014 Infrastructure Health\", \"panels\": [{\"id\": 99}]}"
+        }
+      }
+    },
+    {
+      "address": "grafana_data_source.solidago_axiom",
+      "type": "grafana_data_source",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "uid": "solidago-axiom",
+          "name": "Solidago Axiom",
+          "json_data_encoded": "{}"
+        },
+        "after": {
+          "uid": "solidago-axiom",
+          "name": "Solidago Axiom",
+          "json_data_encoded": "{\"x\":1}"
+        }
+      }
+    }
+  ]
+}
