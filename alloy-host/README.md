@@ -65,6 +65,10 @@ name from the directory.
 Cloud-push tokens live in untracked, gitignored files (`.env`,
 `alloy/ha_token`) and are preserved across the conversion.
 
+The commands below use the post-move names. Until #169's LXC 105 move, the directory is
+`/opt/homelab-observability` and the volume `homelab-observability_alloy-data`, so
+substitute those if you run this before the move.
+
 ```bash
 cd /opt
 # 1. Preserve the gitignored secrets from the existing hand-copied dir.

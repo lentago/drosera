@@ -176,7 +176,8 @@ written by `deploy.sh`), never in git.
 
 ### Read: a `logs:read` access-policy token (new)
 
-LXC 105's `/opt/drosera/.env` holds only the collectors'
+LXC 105's `/opt/drosera/.env` (`/opt/homelab-observability/.env` until #169 moves
+the checkout) holds only the collectors'
 `logs:write` token. A read with it gets `401 invalid scope requested`, so the
 producer needs its own token:
 

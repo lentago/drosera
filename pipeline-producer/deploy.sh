@@ -18,6 +18,8 @@ set -euo pipefail
 #   DROSERA_LOKI_USER         Loki user (numeric instance ID); defaults to GRAFANA_CLOUD_LOGS_USER
 #   GRAFANA_CLOUD_LOGS_URL    Loki push endpoint  } the collectors' logs:write token; read from
 #   GRAFANA_CLOUD_LOGS_USER   Loki username       } /opt/drosera/.env when unset
+#                                                  (/opt/homelab-observability/.env until #169's move;
+#                                                  pass the three values in the environment before then)
 #   GRAFANA_CLOUD_LOGS_TOKEN  logs:write token    }
 # Re-running with none of these set keeps the existing /etc/default/drosera-pipeline.
 #
