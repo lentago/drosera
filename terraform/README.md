@@ -132,7 +132,10 @@ tokens it did not create, so later applies leave a hand-minted token alone.
 
 1. In `https://lentago.grafana.net`, go to **Administration → Users and access → Service
    accounts**, open `brasenia-viewer`, choose **Add service account token**, name it
-   `brasenia pub`, and copy the value (shown once; it starts `glsa_`).
+   `brasenia pub`, and copy the value (shown once; it starts `glsa_`). Grafana's default
+   is **no expiry**. The fleet has no expiry policy yet (lentago/.github#243 tracks a
+   credential register with expiry dates). If you set one, record the date there: an
+   expired token gives no warning, and the panes simply leave the wall at their TTL.
 2. Put it on pub with the no-echo command in brasenia's
    [`producers/grafana/README.md` § The token](https://github.com/lentago/brasenia/blob/main/producers/grafana/README.md#the-token).
    It writes the file under `umask 077` and restarts the unit. Keep the token out of
