@@ -59,15 +59,11 @@ unable to fix itself.
 
 ## Bootstrap (one-time, on the LXC)
 
-The Alloy compose dir at `/opt/drosera` (`/opt/homelab-observability` until #169) must be a
+The Alloy compose dir at `/opt/drosera` (`/opt/homelab-observability` until 2026-10-30, #169) must be a
 real git clone. The compose project, and so the WAL volume `drosera_alloy-data`, take their
 name from the directory.
 Cloud-push tokens live in untracked, gitignored files (`.env`,
 `alloy/ha_token`) and are preserved across the conversion.
-
-The commands below use the post-move names. Until #169's LXC 105 move, the directory is
-`/opt/homelab-observability` and the volume `homelab-observability_alloy-data`, so
-substitute those if you run this before the move.
 
 ```bash
 cd /opt

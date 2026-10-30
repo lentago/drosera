@@ -14,11 +14,12 @@ sentence is plenty; don't make a meal of it.
 
 **Drosera** is the Lentago Labs observability suite — renamed from
 `homelab-observability` on 2026-07-04; AWS telemetry ingestion is the next
-scope expansion. **Names that still carry the old
-`homelab-observability` prefix, until #169's host steps:** the `/opt/homelab-observability` checkouts
-on LXC 105 and the bullpen runners, and the derived `homelab-observability_alloy-data`
-docker volume (the Alloy WAL). The OIDC CI role (`drosera-github-actions-terraform`) and the
-Terraform state key (`drosera/terraform.tfstate`) moved in #169.
+scope expansion. **Rename status (#169):** the OIDC CI role (`drosera-github-actions-terraform`), the Terraform
+state key (`drosera/terraform.tfstate`) and LXC 105's checkout (`/opt/drosera`, WAL volume
+`drosera_alloy-data`) carry the new name. Still on the old name: bullpen workers 110–112's
+`/opt/homelab-observability` checkouts, until each is rebuilt in lentago/claytonia#65; and the
+pre-rename role, state key and WAL volume, kept as rollback copies until lentago/solidago#221
+(on or after 2026-11-06) and the LXC 105 cleanup.
 
 On-prem observability behind a Firewalla: **Grafana Cloud** (dashboards + Mimir + Loki) plus **Grafana Alloy** on a Proxmox LXC for ingestion. Firewalla's Fluent Bit shipper (owned by [lentago/betula](https://github.com/lentago/betula)) ships Zeek (DNS, conn, SSL) and ACL alarm logs **directly** to Grafana Cloud Loki — no LAN relay, no Alloy in the path. The `device_inventory` feed (LAN name↔IP resolution; see README § "Device inventory feed") also pushes directly, from betula's Firewalla collector. The central Alloy's Loki receiver on `:3100` serves the claytonia workers' `cr-loki.sh` events (`job="claude_runner"` — the Bullpen liveness alerts read these) and the workstation `claude-cost-export` timer (`job="claude_local"`); both feed the Claytonia — Runner Fleet dashboard. Metrics: native Alloy blackbox probes (ICMP / HTTP), `node_exporter` on Proxmox hosts, and Home Assistant’s `/api/prometheus` — all remote-written to Grafana Cloud Mimir.
 
@@ -96,7 +97,7 @@ Playlist URLs on self-hosted Grafana are obsolete; use Cloud playlists or a sing
 
 The Alloy on the grafana-stack LXC is **gitops-managed** — do NOT hand-edit the config on the box. Merge to `main`; `alloy-gitops.timer` (every 5 min) pulls, validates with `alloy fmt`, and reloads on drift (`SIGHUP` for `alloy/` changes via the `./alloy` **directory** mount; `docker compose up -d` for compose changes). Force a deploy: `systemctl start alloy-gitops.service` on the LXC. Bootstrap + ops: [`alloy-host/README.md`](alloy-host/README.md). (History: the box used to run a hand-copied, non-git config dir + single-file mounts, so reloads silently read stale inodes — fixed by the dir mount + this loop.)
 
-**Exception — the worker transcript shipper is NOT gitops-managed.** [`alloy/runner-transcript.alloy`](alloy/runner-transcript.alloy) runs as `alloy-transcript.service` on each bullpen *worker* (claude-runner, -2, -3, -4, -5 on pve4), not the LXC, and ships the live fleet reasoning stream (`job="claude_transcript"`) to Cloud Loki. It is deployed by **re-running** [`scripts/deploy-runner-transcript-alloy.sh`](scripts/deploy-runner-transcript-alloy.sh) on each worker — editing the file on `main` does **not** auto-deploy. Egress is deliberately scrubbed (text + tool names only; no `thinking`, no tool inputs, no `user`/tool-result lines) — see #71.
+**Exception — the worker transcript shipper is NOT gitops-managed.** [`alloy/runner-transcript.alloy`](alloy/runner-transcript.alloy) runs as `alloy-transcript.service` on each bullpen *worker* (claude-runner, -2, -3, -4, -5 on pve4), not the LXC, and ships the live fleet reasoning stream (`job="claude_transcript"`) to Cloud Loki. It is deployed by [`scripts/deploy-runner-transcript-alloy.sh`](scripts/deploy-runner-transcript-alloy.sh). On a worker running claytonia's `transcript-shipper-sync` timer, a merge to `main` redeploys it: the sync pulls drosera into the worker's checkout and re-runs that script on each new SHA. **Hold (#169):** from lentago/claytonia#161's merge until workers 110, 111 and 112 are rebuilt with `OBS_DIR=/opt/drosera` (lentago/claytonia#65), their sync is condition-skipped and no config change reaches them, so do not change `alloy/runner-transcript.alloy` until all three are verified on claytonia#65. Egress is deliberately scrubbed (text + tool names only; no `thinking`, no tool inputs, no `user`/tool-result lines) — see #71.
 
 ## Testing changes
 
