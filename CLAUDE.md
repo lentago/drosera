@@ -14,11 +14,11 @@ sentence is plenty; don't make a meal of it.
 
 **Drosera** is the Lentago Labs observability suite — renamed from
 `homelab-observability` on 2026-07-04; AWS telemetry ingestion is the next
-scope expansion. **Names that deliberately keep the old
-`homelab-observability` prefix:** the OIDC CI role, the Terraform state key
-(renaming it would orphan state), the `/opt/homelab-observability` checkouts
+scope expansion. **Names that still carry the old
+`homelab-observability` prefix, until #169's host steps:** the `/opt/homelab-observability` checkouts
 on LXC 105 and the bullpen runners, and the derived `homelab-observability_alloy-data`
-docker volume (the Alloy WAL).
+docker volume (the Alloy WAL). The OIDC CI role (`drosera-github-actions-terraform`) and the
+Terraform state key (`drosera/terraform.tfstate`) moved in #169.
 
 On-prem observability behind a Firewalla: **Grafana Cloud** (dashboards + Mimir + Loki) plus **Grafana Alloy** on a Proxmox LXC for ingestion. Firewalla's Fluent Bit shipper (owned by [lentago/betula](https://github.com/lentago/betula)) ships Zeek (DNS, conn, SSL) and ACL alarm logs **directly** to Grafana Cloud Loki — no LAN relay, no Alloy in the path. The `device_inventory` feed (LAN name↔IP resolution; see README § "Device inventory feed") also pushes directly, from betula's Firewalla collector. The central Alloy's Loki receiver on `:3100` serves the claytonia workers' `cr-loki.sh` events (`job="claude_runner"` — the Bullpen liveness alerts read these) and the workstation `claude-cost-export` timer (`job="claude_local"`); both feed the Claytonia — Runner Fleet dashboard. Metrics: native Alloy blackbox probes (ICMP / HTTP), `node_exporter` on Proxmox hosts, and Home Assistant’s `/api/prometheus` — all remote-written to Grafana Cloud Mimir.
 

@@ -25,7 +25,7 @@ permissions:
 
 env:
   # OIDC role (least-privilege: this repo's S3 state key + the lock table only).
-  AWS_ROLE: arn:aws:iam::365184644049:role/homelab-observability-github-actions-terraform
+  AWS_ROLE: arn:aws:iam::365184644049:role/drosera-github-actions-terraform
   AWS_REGION: us-east-1
 
 jobs:
@@ -125,6 +125,18 @@ jobs:
 
       - name: init
         run: terraform init -input=false
+
+      # The backend key must hold the copied state (#169). From an empty key the
+      # apply would try to create every dashboard, folder and rule group again,
+      # so refuse to plan or apply with no resources in state.
+      - name: state is not empty
+        run: |
+          n=$(terraform state list | wc -l)
+          if [ "$n" -eq 0 ]; then
+            echo "::error::Terraform state is empty. If backend.tf now points at a new key, copy the state first (terraform init -migrate-state; see terraform/README.md § State)."
+            exit 1
+          fi
+          echo "state holds $n resources"
 
       - name: drift check (refresh-only)
         id: drift
@@ -238,6 +250,18 @@ jobs:
 
       - name: init
         run: terraform init -input=false
+
+      # The backend key must hold the copied state (#169). From an empty key the
+      # apply would try to create every dashboard, folder and rule group again,
+      # so refuse to plan or apply with no resources in state.
+      - name: state is not empty
+        run: |
+          n=$(terraform state list | wc -l)
+          if [ "$n" -eq 0 ]; then
+            echo "::error::Terraform state is empty. If backend.tf now points at a new key, copy the state first (terraform init -migrate-state; see terraform/README.md § State)."
+            exit 1
+          fi
+          echo "state holds $n resources"
 
       # Advisory: record what this apply is about to revert (live-only edits).
       - name: drift check (refresh-only)
