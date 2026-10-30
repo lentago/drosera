@@ -59,26 +59,28 @@ unable to fix itself.
 
 ## Bootstrap (one-time, on the LXC)
 
-The Alloy compose dir at `/opt/homelab-observability` must be a real git clone.
+The Alloy compose dir at `/opt/drosera` (`/opt/homelab-observability` until #169) must be a
+real git clone. The compose project, and so the WAL volume `drosera_alloy-data`, take their
+name from the directory.
 Cloud-push tokens live in untracked, gitignored files (`.env`,
 `alloy/ha_token`) and are preserved across the conversion.
 
 ```bash
 cd /opt
 # 1. Preserve the gitignored secrets from the existing hand-copied dir.
-cp homelab-observability/.env /root/alloy-env.bak
-cp homelab-observability/alloy/ha_token /root/alloy-ha_token.bak
+cp drosera/.env /root/alloy-env.bak
+cp drosera/alloy/ha_token /root/alloy-ha_token.bak
 
 # 2. Stop Alloy and swap the hand-copied dir for a fresh clone (the named
-#    volume homelab-observability_alloy-data — the WAL — is NOT removed).
-cd /opt/homelab-observability && docker compose down
-cd /opt && mv homelab-observability homelab-observability.precutover
-git clone https://github.com/lentago/drosera.git homelab-observability
+#    volume drosera_alloy-data — the WAL — is NOT removed).
+cd /opt/drosera && docker compose down
+cd /opt && mv drosera drosera.precutover
+git clone https://github.com/lentago/drosera.git drosera
 
 # 3. Restore the secrets, then bring Alloy back up on the new dir mount.
-cp /root/alloy-env.bak       homelab-observability/.env
-cp /root/alloy-ha_token.bak  homelab-observability/alloy/ha_token
-cd homelab-observability && docker compose up -d
+cp /root/alloy-env.bak       drosera/.env
+cp /root/alloy-ha_token.bak  drosera/alloy/ha_token
+cd drosera && docker compose up -d
 
 # 4. Install + enable the gitops timer (bootstrap-only).
 install -m 0644 alloy-host/alloy-gitops.service /etc/systemd/system/
@@ -90,7 +92,7 @@ systemctl enable --now alloy-gitops.timer
 systemctl start alloy-gitops.service
 tail -n 5 /var/log/alloy-gitops.log
 
-# Once verified, remove the old copy: rm -rf /opt/homelab-observability.precutover
+# Once verified, remove the old copy: rm -rf /opt/drosera.precutover
 ```
 
 ## Quick commands

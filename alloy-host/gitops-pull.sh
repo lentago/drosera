@@ -3,7 +3,7 @@
 # `alloy` docker container when it drifts.
 #
 # Runs on the grafana-stack LXC (105), where the Alloy docker compose service
-# lives at /opt/homelab-observability. Mirrors the spirit of
+# lives at /opt/drosera (/opt/homelab-observability until #169). Mirrors the spirit of
 # homeassistant-config/kiosk-host/gitops-pull.sh: timestamped leveled log with
 # in-script rotation, flock against concurrent runs, branch guard, validation
 # before reload, and a no-op fast path so Alloy isn't reloaded on every poll.
@@ -16,7 +16,10 @@
 
 set -euo pipefail
 
-readonly REPO_DIR="/opt/homelab-observability"
+# The checkout this script lives in, so it runs from either path while #169
+# moves the checkout; the installed unit names the path.
+REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+readonly REPO_DIR
 readonly LOCK_FILE="/run/alloy-gitops.lock"
 readonly LOG_FILE="/var/log/alloy-gitops.log"
 readonly LOG_MAX_BYTES=1048576

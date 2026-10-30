@@ -176,7 +176,7 @@ written by `deploy.sh`), never in git.
 
 ### Read: a `logs:read` access-policy token (new)
 
-LXC 105's `/opt/homelab-observability/.env` holds only the collectors'
+LXC 105's `/opt/drosera/.env` holds only the collectors'
 `logs:write` token. A read with it gets `401 invalid scope requested`, so the
 producer needs its own token:
 
@@ -193,7 +193,7 @@ producer needs its own token:
 `GRAFANA_CLOUD_LOGS_URL`, `GRAFANA_CLOUD_LOGS_USER` and
 `GRAFANA_CLOUD_LOGS_TOKEN` are the names the central Alloy already uses. When
 they aren't in the environment, `deploy.sh` reads them from
-`/opt/homelab-observability/.env`.
+`/opt/drosera/.env`.
 
 ## Deploy
 
