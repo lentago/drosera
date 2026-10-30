@@ -54,7 +54,7 @@ proves it.
 | **Serialized apply via concurrency group** | The `apply` job's `concurrency: { group: terraform-apply, cancel-in-progress: false }` in [`terraform.yml`](.github/workflows/terraform.yml) — two quick merges queue instead of racing on the same Terraform state. |
 | **Reusable CI shared across the fleet** | [`docs-check.yml`](.github/workflows/docs-check.yml), [`shellcheck.yml`](.github/workflows/shellcheck.yml) and [`claude.yml`](.github/workflows/claude.yml) are thin wrappers over `uses: lentago/shared-workflows/...@v1.2.3` — one definition maintained centrally, consumed by every repo at an immutable semver tag (shared-workflows ADR-0005). |
 | **Branch protection as a ruleset, not ad-hoc settings** | `main` requires the named checks `gate`, `shellcheck / shellcheck`, and `docs-check / docs-check` and allows squash merges only — enforced at the platform level, so merge is gated on CI, not convention. |
-| **Alerting-as-code with written design intent** | [`terraform/alerts.tf`](terraform/alerts.tf) provisions 20 rules across 3 groups; [`docs/adr/0001-...md`](docs/adr/0001-grafana-native-alerting-for-site-probes.md) records *why* these live in Grafana (not AWS) and why each group's `no_data_state` differs. |
+| **Alerting-as-code with written design intent** | [`terraform/alerts.tf`](terraform/alerts.tf) provisions 66 rules across 9 groups; [`docs/adr/0001-...md`](docs/adr/0001-grafana-native-alerting-for-site-probes.md) records *why* these live in Grafana (not AWS) and why each group's `no_data_state` differs. |
 | **Cross-repo contract discipline** | The [Loki output contract](#loki-output-contract) and [Solidago (AWS) contract](#solidago-aws-contract) sections name exactly which repo owns which label, field, and IAM role — explicit written boundaries instead of drift. |
 
 ## 🛠️ Make a change yourself
@@ -189,7 +189,7 @@ look for `device_inventory` gaps (below) and for the metrics pipeline.
 ## Alerting
 
 Terraform provisions the stack's alerting end to end —
-[`terraform/alerts.tf`](terraform/alerts.tf): **42 rules** across seven rule
+[`terraform/alerts.tf`](terraform/alerts.tf): **66 rules** across nine rule
 groups in the `Lentago` folder, plus the stack's first contact point. See
 [docs/adr/0001-grafana-native-alerting-for-site-probes.md](docs/adr/0001-grafana-native-alerting-for-site-probes.md)
 for why this lives in Grafana instead of AWS, and
@@ -204,9 +204,11 @@ for the SLO targets and burn-rate design.
   `no_data_state = "NoData"` deliberately: the probes run from one on-prem vantage
   point, so an on-prem/WAN outage looks identical to a real site outage, and
   alerting on NoData would misfire on every on-prem hiccup instead of a real one.
-- **`Loki ingest absence`** (8 rules — one each for `zeek_dns`, `zeek_conn`,
+- **`Loki ingest absence`** (9 rules — one each for `zeek_dns`, `zeek_conn`,
   `zeek_ssl`, `zeek_http`, `zeek_files`, `zeek_weird`, `firewalla_acl`,
-  `device_inventory`): fires when a stream goes quiet longer than its expected
+  `device_inventory`, and `github_branch_head`, the liveness signal of betula's
+  GitHub collector, which the Change pipeline and CI runners groups read with
+  `no_data_state = "OK"`; #292): fires when a stream goes quiet longer than its expected
   cadence (30m–2h depending on measured volume; see the per-stream comments in
   `terraform/alerts.tf`). `no_data_state = "Alerting"` here — the opposite of
   the probe rules — because an empty Loki result *is* the failure this group
@@ -259,6 +261,14 @@ for the SLO targets and burn-rate design.
   repo only counts when a terraform push run exists for the head, because
   every apply workflow is path-filtered and a docs merge applies nothing.
   `no_data_state = "OK"`. The repo lists are locals in `terraform/alerts.tf`.
+- **`CI runners`** (1 rule, issue #292): **self-hosted job queued** when a
+  self-hosted Actions job has waited more than 15 min for a runner, which
+  means the runner is offline or wedged. It reads betula's
+  `github_actions_queued` sample (one line per queued job per 5-min tick).
+  One alert instance per job, labelled with `repo`, `workflow`, `job_name` and
+  `html_url`. `no_data_state = "OK"`: the query returns a series only for a
+  job over budget. The query lives in `terraform/logql/` and is tested against
+  a real Loki by the `logql-test` workflow.
 - **Contact point:** one email contact point (`Site probe email`), reused by
   every group. The recipient is `TF_VAR_alert_email`, a sensitive
   Terraform variable with no default, supplied via CI/`.envrc` and never

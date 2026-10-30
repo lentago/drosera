@@ -3,7 +3,7 @@
   "cases": [
     "fresh: kalmia apply queued 2 min -> silent",
     "stuck: claytonia apply queued 20 min, three ticks -> fires at 1200 s",
-    "picked up: kalmia apply was queued 30 min, last seen 11 min ago (outside the 10m window), its completed run line in github_actions_run -> silent",
+    "picked up: kalmia apply was queued 30 min and last sampled 11 min ago -> silent (a job that starts stops being sampled, and its last line falls outside the 10m window); a completed github_actions_run line for the same run is not selected either",
     "hosted: GitHub-hosted job queued 25 min -> silent (the rule is about self-hosted runners)",
     "boundary: self-hosted job at exactly 900 s -> silent (strictly more than 15 min)",
     "non-queued status in the stream (pending) -> silent"
