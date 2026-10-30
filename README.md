@@ -13,9 +13,9 @@
 watches the on-prem estate (the machines in our own building) and renders AWS telemetry from the Lentago cloud
 estate (Solidago) on demand via a live CloudWatch datasource; deeper AWS
 ingestion is the next scope expansion. Renamed from `homelab-observability` on
-2026-07-04. The OIDC CI role and the Terraform state key took the new name in
-#169; the live `/opt/homelab-observability` checkouts on hosts still carry the
-old one until #169's host steps are done.
+2026-07-04. The runtime half of the rename is #169: the OIDC CI role, the
+Terraform state key and LXC 105's checkout carry the new name, and the bullpen
+workers follow as they are rebuilt (lentago/claytonia#65).
 
 **Authorship:** The Terraform, Alloy config, dashboards, scripts, and documentation in this repo are co-written with [Claude](https://claude.ai) (Anthropic). I direct the work and review the output; Claude writes the code. I'm an infrastructure operator, not a software engineer — please don't read this repo as a portfolio of coding ability.
 
@@ -318,8 +318,7 @@ ADR-0010 stages for each repo once, and does two things with the result:
   a day of data).
 
 **It needs its own Loki read token.** The collectors' token in
-`/opt/drosera/.env` (`/opt/homelab-observability/.env` until #169 moves the
-checkout) is `logs:write` only, and a read with it
+`/opt/drosera/.env` is `logs:write` only, and a read with it
 gets `401`. Mint a `logs:read` access-policy token on the `lentago` stack and
 pass it to [`deploy.sh`](pipeline-producer/deploy.sh) as `DROSERA_LOKI_TOKEN`.
 The script refuses to start the service without it. Setup, state rules and
