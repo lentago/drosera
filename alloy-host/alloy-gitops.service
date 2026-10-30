@@ -6,7 +6,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/homelab-observability/alloy-host/gitops-pull.sh
+ExecStart=/opt/drosera/alloy-host/gitops-pull.sh
 # The script exits 0 on no-op, so a non-zero exit is a real error worth
 # surfacing in `systemctl status` and journalctl.
 StandardOutput=journal

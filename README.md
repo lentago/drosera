@@ -318,7 +318,8 @@ ADR-0010 stages for each repo once, and does two things with the result:
   a day of data).
 
 **It needs its own Loki read token.** The collectors' token in
-`/opt/homelab-observability/.env` is `logs:write` only, and a read with it
+`/opt/drosera/.env` (`/opt/homelab-observability/.env` until #169 moves the
+checkout) is `logs:write` only, and a read with it
 gets `401`. Mint a `logs:read` access-policy token on the `lentago` stack and
 pass it to [`deploy.sh`](pipeline-producer/deploy.sh) as `DROSERA_LOKI_TOKEN`.
 The script refuses to start the service without it. Setup, state rules and

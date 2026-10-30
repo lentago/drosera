@@ -119,7 +119,7 @@ if command -v lvs &>/dev/null; then
   ${SUDO:+sudo }tee /usr/local/bin/lvm-thin-textfile > /dev/null <<'COLLECTOR_EOF'
 #!/usr/bin/env bash
 # Writes LVM thin pool usage for node_exporter's textfile collector.
-# Deployed by homelab-observability scripts/deploy-node-exporter.sh.
+# Deployed by drosera scripts/deploy-node-exporter.sh.
 set -euo pipefail
 out=/var/lib/node_exporter/textfile/lvm_thin.prom
 tmp="${out}.$$"
