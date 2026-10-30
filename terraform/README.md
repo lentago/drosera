@@ -121,6 +121,22 @@ update to it (#290). Every other difference is still reported. `scripts/tests/tf
 checks both halves against fixture plans, in the `tf-drift-test` workflow; run it locally
 after changing the script.
 
+## Alert-rule LogQL tests
+
+A rule whose LogQL is worth testing keeps it in [`logql/`](logql/), and the rule reads it
+with `file()`. [`scripts/tests/logql/run.py`](../scripts/tests/logql/run.py) pushes a case's
+fixture lines into a real Loki, runs that same file as an instant query, and compares the
+result with the case's `expected.json`. The `logql-test` workflow runs every case on each
+PR. To run one locally:
+
+```bash
+docker run -d --rm --name loki-test -p 127.0.0.1:3100:3100 grafana/loki:3.4.2
+python3 scripts/tests/logql/run.py terraform/logql/self-hosted-queued.logql \
+  scripts/tests/logql/self-hosted-queued
+```
+
+Use a fresh Loki for each run: lines left from an earlier push can change the result.
+
 ## Service accounts
 
 [`service_accounts.tf`](service_accounts.tf) defines the stack service accounts that

@@ -1,0 +1,11 @@
+[
+  {
+    "metric": {
+      "repo": "lentago/claytonia",
+      "workflow": "terraform",
+      "job_name": "apply",
+      "html_url": "https://github.com/lentago/claytonia/actions/runs/1002/job/2002"
+    },
+    "value": 1200
+  }
+]

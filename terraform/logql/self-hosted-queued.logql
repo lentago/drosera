@@ -1,0 +1,1 @@
+max by (repo, workflow, job_name, html_url) (max_over_time({log_source="github_actions_queued"} | json status="status", self_hosted="self_hosted", age_s="age_s", workflow="workflow", job_name="job_name", html_url="html_url" | status="queued" | self_hosted="true" | unwrap age_s | __error__="" [10m])) > 900

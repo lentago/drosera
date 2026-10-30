@@ -305,6 +305,20 @@ locals {
       from_seconds = 10800
       summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
     },
+    {
+      # The liveness signal for betula's GitHub collector (LXC 105): one line
+      # per repo every 5 min, even when nothing changed. The Change pipeline
+      # and CI runners groups both read that collector with no_data = OK, so
+      # without this rule a dead collector silences them instead of paging
+      # (#292). 1h, because a GitHub rate-limit backoff can legitimately skip
+      # ticks until the hourly reset.
+      key          = "github-branch-head"
+      stream       = "github_branch_head"
+      name         = "Ingest absence — github_branch_head"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No github_branch_head lines in the last 1h. betula's GitHub collector on LXC 105 pushes one per repo every 5 min; a 1h gap means it has stopped (check betula-github.timer and its journal), and the Change pipeline and CI runners alerts are blind until it is back."
+    },
   ]
 }
 
@@ -1538,6 +1552,139 @@ resource "grafana_rule_group" "change_pipeline" {
         summary     = "{{ $labels.repo }}: main head {{ slice $labels.sha 0 7 }} is not live {{ humanizeDuration $values.B.Value }} after its merge (budget ${rule.value.budget_seconds / 60}m)."
         description = "The newest main commit of {{ $labels.repo }} ({{ $labels.sha }}) has no live event: ${rule.value.surface}. Merged {{ humanizeDuration $values.B.Value }} ago. Change — Pipeline: https://${var.grafana_stack_slug}.grafana.net/d/change-pipeline?var-repo={{ urlquery $labels.repo }}"
       }
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# CI runners (#292): a self-hosted Actions job queued for more than 15 min.
+#
+# A runner that is offline or wedged (LXC 115's kalmia/claytonia agents, or
+# a pe-publish guard that killed its runner, kalmia#206) shows only as a job
+# "Waiting for a runner to pick up this job" until GitHub fails it at 24h.
+# betula's GitHub collector samples queued jobs every 5 min into
+# `github_actions_queued` (one line per queued job per tick; contract agreed
+# with betula on #292: repo, workflow, run_id, run_attempt, job_id, job_name,
+# status, runner_labels, self_hosted, queued_at, observed_at, age_s,
+# html_url). It reads jobs, not runs, because a run reports `in_progress` as
+# soon as its hosted jobs start, while its self-hosted apply still waits.
+#
+# The query, threshold included, lives in logql/self-hosted-queued.logql so
+# scripts/tests/logql/run.py runs this exact expression against a real Loki
+# (the logql-test workflow). The selector names no repo or cluster: a new
+# runner is one more entry in betula's collector config, with no change here.
+#
+# no_data_state = "OK": the query returns a series only for a job over budget,
+# so empty is the healthy case, as in the Change pipeline group. A dead
+# collector would also look empty; the github_branch_head entry in the Loki
+# ingest absence group pages for that instead.
+#
+# The [10m] window spans two ticks, so one missed tick does not resolve a
+# firing alert, and a job that gets picked up drops out within 10 min. A job
+# held by a `concurrency:` group may report `queued` too; more than 15 min
+# behind another apply is a stall worth an email either way.
+# ---------------------------------------------------------------------------
+resource "grafana_rule_group" "ci_runners" {
+  name             = "CI runners"
+  folder_uid       = grafana_folder.lentago.uid
+  interval_seconds = 60
+
+  rule {
+    name = "Self-hosted job queued"
+    # The 15-min threshold is already the persistence guard.
+    for            = "0s"
+    condition      = "C"
+    no_data_state  = "OK"
+    exec_err_state = "KeepLast"
+
+    # A: age in seconds of each self-hosted job queued for more than 900 s.
+    data {
+      ref_id         = "A"
+      datasource_uid = "grafanacloud-logs"
+      query_type     = "instant"
+      # query_type must mirror the model's queryType (#221).
+
+      relative_time_range {
+        from = 600
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId         = "A"
+        expr          = trimspace(file("${path.module}/logql/self-hosted-queued.logql"))
+        queryType     = "instant"
+        editorMode    = "code"
+        intervalMs    = 1000
+        maxDataPoints = 43200
+        datasource = {
+          type = "loki"
+          uid  = "grafanacloud-logs"
+        }
+      })
+    }
+
+    # B: one number per job, keeping its labels.
+    data {
+      ref_id         = "B"
+      datasource_uid = "__expr__"
+
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId      = "B"
+        type       = "reduce"
+        expression = "A"
+        reducer    = "last"
+        datasource = {
+          type = "__expr__"
+          uid  = "__expr__"
+        }
+      })
+    }
+
+    # C: A already drops jobs under budget, so any returned series fires.
+    data {
+      ref_id         = "C"
+      datasource_uid = "__expr__"
+
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId      = "C"
+        type       = "threshold"
+        expression = "B"
+        datasource = {
+          type = "__expr__"
+          uid  = "__expr__"
+        }
+        conditions = [{
+          evaluator = {
+            type   = "gt"
+            params = [0]
+          }
+        }]
+      })
+    }
+
+    notification_settings {
+      contact_point   = grafana_contact_point.site_alerts_email.name
+      repeat_interval = "6h"
+    }
+
+    labels = {
+      service  = "ci-runners"
+      severity = "warning"
+    }
+
+    annotations = {
+      summary     = "{{ $labels.repo }}: self-hosted job \"{{ $labels.job_name }}\" ({{ $labels.workflow }}) has been queued for {{ humanizeDuration $values.B.Value }}."
+      description = "No self-hosted runner has picked up this job for more than 15 minutes, so the runner serving {{ $labels.repo }} is probably offline or wedged. Check the repo's Settings → Actions → Runners, then the runner's guest. GitHub fails the job at 24h. Job: {{ $labels.html_url }}"
     }
   }
 }

@@ -1,0 +1,263 @@
+{
+  "comment": "Contract v0 lines (drosera#292 / betula collector). Ticks are 300 s apart; offset_s places each line before the test's now. Timestamp strings are written as if now were 2026-10-30T12:00:00Z; the rule reads only age_s.",
+  "cases": [
+    "fresh: kalmia apply queued 2 min -> silent",
+    "stuck: claytonia apply queued 20 min, three ticks -> fires at 1200 s",
+    "picked up: kalmia apply was queued 30 min, last seen 11 min ago (outside the 10m window), its completed run line in github_actions_run -> silent",
+    "hosted: GitHub-hosted job queued 25 min -> silent (the rule is about self-hosted runners)",
+    "boundary: self-hosted job at exactly 900 s -> silent (strictly more than 15 min)",
+    "non-queued status in the stream (pending) -> silent"
+  ],
+  "streams": [
+    {
+      "labels": {
+        "log_source": "github_actions_queued",
+        "cluster": "lentago",
+        "repo": "lentago/kalmia"
+      },
+      "lines": [
+        {
+          "offset_s": 5,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1001,
+            "run_attempt": 1,
+            "job_id": 2001,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:57:55Z",
+            "observed_at": "2026-10-30T11:59:55Z",
+            "age_s": 120,
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1001/job/2001"
+          }
+        },
+        {
+          "offset_s": 1265,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1003,
+            "run_attempt": 1,
+            "job_id": 2003,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:18:55Z",
+            "observed_at": "2026-10-30T11:38:55Z",
+            "age_s": 1200,
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1003/job/2003"
+          }
+        },
+        {
+          "offset_s": 965,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1003,
+            "run_attempt": 1,
+            "job_id": 2003,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:18:55Z",
+            "observed_at": "2026-10-30T11:43:55Z",
+            "age_s": 1500,
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1003/job/2003"
+          }
+        },
+        {
+          "offset_s": 665,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1003,
+            "run_attempt": 1,
+            "job_id": 2003,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:18:55Z",
+            "observed_at": "2026-10-30T11:48:55Z",
+            "age_s": 1800,
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1003/job/2003"
+          }
+        },
+        {
+          "offset_s": 5,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1004,
+            "run_attempt": 1,
+            "job_id": 2004,
+            "job_name": "validate",
+            "status": "queued",
+            "runner_labels": [
+              "ubuntu-latest"
+            ],
+            "self_hosted": false,
+            "queued_at": "2026-10-30T11:34:55Z",
+            "observed_at": "2026-10-30T11:59:55Z",
+            "age_s": 1500,
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1004/job/2004"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "log_source": "github_actions_queued",
+        "cluster": "lentago",
+        "repo": "lentago/claytonia"
+      },
+      "lines": [
+        {
+          "offset_s": 605,
+          "line": {
+            "repo": "lentago/claytonia",
+            "workflow": "terraform",
+            "run_id": 1002,
+            "run_attempt": 1,
+            "job_id": 2002,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:39:55Z",
+            "observed_at": "2026-10-30T11:49:55Z",
+            "age_s": 600,
+            "html_url": "https://github.com/lentago/claytonia/actions/runs/1002/job/2002"
+          }
+        },
+        {
+          "offset_s": 305,
+          "line": {
+            "repo": "lentago/claytonia",
+            "workflow": "terraform",
+            "run_id": 1002,
+            "run_attempt": 1,
+            "job_id": 2002,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:39:55Z",
+            "observed_at": "2026-10-30T11:54:55Z",
+            "age_s": 900,
+            "html_url": "https://github.com/lentago/claytonia/actions/runs/1002/job/2002"
+          }
+        },
+        {
+          "offset_s": 5,
+          "line": {
+            "repo": "lentago/claytonia",
+            "workflow": "terraform",
+            "run_id": 1002,
+            "run_attempt": 1,
+            "job_id": 2002,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:39:55Z",
+            "observed_at": "2026-10-30T11:59:55Z",
+            "age_s": 1200,
+            "html_url": "https://github.com/lentago/claytonia/actions/runs/1002/job/2002"
+          }
+        },
+        {
+          "offset_s": 5,
+          "line": {
+            "repo": "lentago/claytonia",
+            "workflow": "terraform",
+            "run_id": 1005,
+            "run_attempt": 1,
+            "job_id": 2005,
+            "job_name": "apply",
+            "status": "queued",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:44:55Z",
+            "observed_at": "2026-10-30T11:59:55Z",
+            "age_s": 900,
+            "html_url": "https://github.com/lentago/claytonia/actions/runs/1005/job/2005"
+          }
+        },
+        {
+          "offset_s": 5,
+          "line": {
+            "repo": "lentago/claytonia",
+            "workflow": "terraform",
+            "run_id": 1006,
+            "run_attempt": 1,
+            "job_id": 2006,
+            "job_name": "apply",
+            "status": "pending",
+            "runner_labels": [
+              "self-hosted",
+              "linux"
+            ],
+            "self_hosted": true,
+            "queued_at": "2026-10-30T11:26:35Z",
+            "observed_at": "2026-10-30T11:59:55Z",
+            "age_s": 2000,
+            "html_url": "https://github.com/lentago/claytonia/actions/runs/1006/job/2006"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "log_source": "github_actions_run",
+        "cluster": "lentago",
+        "source": "github_actions",
+        "pipeline": "ci",
+        "stage": "run",
+        "repo": "lentago/kalmia"
+      },
+      "lines": [
+        {
+          "offset_s": 300,
+          "line": {
+            "repo": "lentago/kalmia",
+            "workflow": "terraform",
+            "run_id": 1003,
+            "run_attempt": 1,
+            "conclusion": "success",
+            "html_url": "https://github.com/lentago/kalmia/actions/runs/1003"
+          }
+        }
+      ]
+    }
+  ]
+}
