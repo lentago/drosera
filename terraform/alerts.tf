@@ -242,52 +242,12 @@ locals {
   # goes silent for a full 24h.
   loki_ingest_streams = [
     {
-      key          = "zeek-dns"
-      stream       = "zeek_dns"
-      name         = "Ingest absence — zeek_dns"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_dns log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit DNS shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-conn"
-      stream       = "zeek_conn"
-      name         = "Ingest absence — zeek_conn"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_conn log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit conn shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-ssl"
-      stream       = "zeek_ssl"
-      name         = "Ingest absence — zeek_ssl"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_ssl log lines ingested in the last 30m. TLS handshakes are a constant, high-volume stream (~150k lines/day) — a zero means the Firewalla Fluent Bit ssl shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-http"
-      stream       = "zeek_http"
-      name         = "Ingest absence — zeek_http"
-      window       = "1h"
-      from_seconds = 3600
-      summary      = "No zeek_http log lines ingested in the last 1h. Plain-HTTP records run ~89k lines/day on this network; the 1h window absorbs browsing lulls. A sustained gap means the http shipper has stopped."
-    },
-    {
-      key          = "zeek-files"
-      stream       = "zeek_files"
-      name         = "Ingest absence — zeek_files"
-      window       = "1h"
-      from_seconds = 3600
-      summary      = "No zeek_files log lines ingested in the last 1h. File-analysis records run ~46k lines/day; the 1h window absorbs quiet periods. A sustained gap means the files shipper has stopped."
-    },
-    {
-      key          = "zeek-weird"
-      stream       = "zeek_weird"
-      name         = "Ingest absence — zeek_weird"
-      window       = "2h"
-      from_seconds = 7200
-      summary      = "No zeek_weird log lines ingested in the last 2h. Protocol anomalies are steady low-volume background (~10k lines/day); a 2h zero is implausible on a live network and means the weird shipper has stopped."
+      key          = "device-inventory"
+      stream       = "device_inventory"
+      name         = "Ingest absence — device_inventory"
+      window       = "3h"
+      from_seconds = 10800
+      summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
     },
     {
       key          = "firewalla-acl"
@@ -298,12 +258,66 @@ locals {
       summary      = "No firewalla_acl log lines ingested in the last 1h. This is a high-volume stream (~350 lines/min; 42,067 lines/2h measured 2026-10-04, 40,250/2h on 2026-07-25), but only 2h-bucket totals are confirmed, not minute-level gaps, so it gets a conservative 1h window — a zero means the ACL alarm shipper has stopped delivering to Cloud Loki."
     },
     {
-      key          = "device-inventory"
-      stream       = "device_inventory"
-      name         = "Ingest absence — device_inventory"
-      window       = "3h"
-      from_seconds = 10800
-      summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
+      key          = "zeek-conn"
+      stream       = "zeek_conn"
+      name         = "Ingest absence — zeek_conn"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_conn log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit conn shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-dns"
+      stream       = "zeek_dns"
+      name         = "Ingest absence — zeek_dns"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_dns log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit DNS shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-files"
+      stream       = "zeek_files"
+      name         = "Ingest absence — zeek_files"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No zeek_files log lines ingested in the last 1h. File-analysis records run ~46k lines/day; the 1h window absorbs quiet periods. A sustained gap means the files shipper has stopped."
+    },
+    {
+      key          = "zeek-http"
+      stream       = "zeek_http"
+      name         = "Ingest absence — zeek_http"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No zeek_http log lines ingested in the last 1h. Plain-HTTP records run ~89k lines/day on this network; the 1h window absorbs browsing lulls. A sustained gap means the http shipper has stopped."
+    },
+    {
+      key          = "zeek-ssl"
+      stream       = "zeek_ssl"
+      name         = "Ingest absence — zeek_ssl"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_ssl log lines ingested in the last 30m. TLS handshakes are a constant, high-volume stream (~150k lines/day) — a zero means the Firewalla Fluent Bit ssl shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-weird"
+      stream       = "zeek_weird"
+      name         = "Ingest absence — zeek_weird"
+      window       = "2h"
+      from_seconds = 7200
+      summary      = "No zeek_weird log lines ingested in the last 2h. Protocol anomalies are steady low-volume background (~10k lines/day); a 2h zero is implausible on a live network and means the weird shipper has stopped."
+    },
+    {
+      # The liveness signal for betula's GitHub collector (LXC 105): one line
+      # per repo every 5 min, even when nothing changed. The Change pipeline
+      # and CI runners groups both read that collector with no_data = OK, so
+      # without this rule a dead collector silences them instead of paging
+      # (#292). 1h, because a GitHub rate-limit backoff can legitimately skip
+      # ticks until the hourly reset.
+      key          = "github-branch-head"
+      stream       = "github_branch_head"
+      name         = "Ingest absence — github_branch_head"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No github_branch_head lines in the last 1h. betula's GitHub collector on LXC 105 pushes one per repo every 5 min; a 1h gap means it has stopped (check betula-github.timer and its journal), and the Change pipeline and CI runners alerts are blind until it is back."
     },
   ]
 }
@@ -318,7 +332,11 @@ resource "grafana_rule_group" "loki_ingest_absence" {
   interval_seconds = 60
 
   dynamic "rule" {
-    for_each = { for r in local.loki_ingest_streams : r.key => r }
+    # The list, in order, not a map keyed by r.key: rules in a group are
+    # positional, and a map iterates in key order, so a new key that sorts
+    # mid-list rewrote every later rule under its neighbour's uid (#292).
+    # Append new streams at the end of loki_ingest_streams.
+    for_each = local.loki_ingest_streams
 
     content {
       name = rule.value.name
@@ -1538,6 +1556,141 @@ resource "grafana_rule_group" "change_pipeline" {
         summary     = "{{ $labels.repo }}: main head {{ slice $labels.sha 0 7 }} is not live {{ humanizeDuration $values.B.Value }} after its merge (budget ${rule.value.budget_seconds / 60}m)."
         description = "The newest main commit of {{ $labels.repo }} ({{ $labels.sha }}) has no live event: ${rule.value.surface}. Merged {{ humanizeDuration $values.B.Value }} ago. Change — Pipeline: https://${var.grafana_stack_slug}.grafana.net/d/change-pipeline?var-repo={{ urlquery $labels.repo }}"
       }
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# CI runners (#292): a self-hosted Actions job queued for more than 15 min.
+#
+# A runner that is offline or wedged (LXC 115's kalmia/claytonia agents, or
+# a pe-publish guard that killed its runner, kalmia#206) shows only as a job
+# "Waiting for a runner to pick up this job" until GitHub fails it at 24h.
+# betula's GitHub collector samples queued jobs every 5 min into
+# `github_actions_queued` (one line per queued job per tick; contract agreed
+# with betula on #292: repo, workflow, run_id, run_attempt, job_id, job_name,
+# status, runner_labels, self_hosted, queued_at, observed_at, age_s,
+# html_url). It reads jobs, not runs, because a run reports `in_progress` as
+# soon as its hosted jobs start, while its self-hosted apply still waits.
+#
+# The query, threshold included, lives in logql/self-hosted-queued.logql so
+# scripts/tests/logql/run.py runs this exact expression against a real Loki
+# (the logql-test workflow). The selector names no repo or cluster: a new
+# runner is one more entry in betula's collector config, with no change here.
+#
+# no_data_state = "OK": the query returns a series only for a job over budget,
+# so empty is the healthy case, as in the Change pipeline group. A dead
+# collector would also look empty; the github_branch_head entry in the Loki
+# ingest absence group pages for that instead.
+#
+# The [10m] window spans two ticks, so one missed tick does not resolve a
+# firing alert. The cost: max_over_time keeps the job's last over-budget
+# sample in range, so an alert stays firing for up to 10 min after a runner
+# takes the job, then resolves. A job picked up after 15 min has still fired. A job
+# held by a `concurrency:` group may report `queued` too; more than 15 min
+# behind another apply is a stall worth an email either way.
+# ---------------------------------------------------------------------------
+resource "grafana_rule_group" "ci_runners" {
+  name             = "CI runners"
+  folder_uid       = grafana_folder.lentago.uid
+  interval_seconds = 60
+
+  rule {
+    name = "Self-hosted job queued"
+    # The 15-min threshold is already the persistence guard.
+    for            = "0s"
+    condition      = "C"
+    no_data_state  = "OK"
+    exec_err_state = "KeepLast"
+
+    # A: age in seconds of each self-hosted job queued for more than 900 s.
+    data {
+      ref_id         = "A"
+      datasource_uid = "grafanacloud-logs"
+      query_type     = "instant"
+      # query_type must mirror the model's queryType (#221).
+
+      relative_time_range {
+        from = 600
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId         = "A"
+        expr          = trimspace(file("${path.module}/logql/self-hosted-queued.logql"))
+        queryType     = "instant"
+        editorMode    = "code"
+        intervalMs    = 1000
+        maxDataPoints = 43200
+        datasource = {
+          type = "loki"
+          uid  = "grafanacloud-logs"
+        }
+      })
+    }
+
+    # B: one number per job, keeping its labels.
+    data {
+      ref_id         = "B"
+      datasource_uid = "__expr__"
+
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId      = "B"
+        type       = "reduce"
+        expression = "A"
+        reducer    = "last"
+        datasource = {
+          type = "__expr__"
+          uid  = "__expr__"
+        }
+      })
+    }
+
+    # C: A already drops jobs under budget, so any returned series fires.
+    data {
+      ref_id         = "C"
+      datasource_uid = "__expr__"
+
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+
+      model = jsonencode({
+        refId      = "C"
+        type       = "threshold"
+        expression = "B"
+        datasource = {
+          type = "__expr__"
+          uid  = "__expr__"
+        }
+        conditions = [{
+          evaluator = {
+            type   = "gt"
+            params = [0]
+          }
+        }]
+      })
+    }
+
+    notification_settings {
+      contact_point   = grafana_contact_point.site_alerts_email.name
+      repeat_interval = "6h"
+    }
+
+    labels = {
+      service  = "ci-runners"
+      severity = "warning"
+    }
+
+    annotations = {
+      summary     = "{{ $labels.repo }}: self-hosted job \"{{ $labels.job_name }}\" ({{ $labels.workflow }}) has been queued for {{ humanizeDuration $values.B.Value }}."
+      description = "No self-hosted runner has picked up this job for more than 15 minutes, so the runner serving {{ $labels.repo }} is probably offline or wedged. Check the repo's Settings → Actions → Runners, then the runner's guest. GitHub fails the job at 24h. Job: {{ $labels.html_url }}"
     }
   }
 }

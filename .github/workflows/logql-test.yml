@@ -1,0 +1,46 @@
+# ============================================================================
+# logql-test — alert-rule LogQL against fixture lines in a real Loki
+# ============================================================================
+# scripts/tests/logql/run.py pushes each case's fixture lines into a throwaway
+# Loki, runs the rule's expression (the same .logql file Terraform reads with
+# file()) as an instant query, and compares the vector with expected.json.
+# No Grafana Cloud, no token.
+#
+# Not path-filtered, matching loki-event-test: a path-filtered check that ever
+# becomes required deadlocks non-matching PRs. The job takes under a minute.
+#
+# Origin: #292.
+# ============================================================================
+
+name: logql-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      loki:
+        image: grafana/loki:3.4.2
+        ports:
+          - 3100:3100
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Wait for Loki
+        run: |
+          for _ in $(seq 60); do
+            curl -sf http://127.0.0.1:3100/ready >/dev/null && exit 0
+            sleep 2
+          done
+          echo "Loki did not become ready" >&2
+          exit 1
+
+      - name: CI runners — self-hosted job queued
+        run: python3 scripts/tests/logql/run.py terraform/logql/self-hosted-queued.logql scripts/tests/logql/self-hosted-queued
