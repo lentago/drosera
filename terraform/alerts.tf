@@ -242,52 +242,12 @@ locals {
   # goes silent for a full 24h.
   loki_ingest_streams = [
     {
-      key          = "zeek-dns"
-      stream       = "zeek_dns"
-      name         = "Ingest absence — zeek_dns"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_dns log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit DNS shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-conn"
-      stream       = "zeek_conn"
-      name         = "Ingest absence — zeek_conn"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_conn log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit conn shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-ssl"
-      stream       = "zeek_ssl"
-      name         = "Ingest absence — zeek_ssl"
-      window       = "30m"
-      from_seconds = 1800
-      summary      = "No zeek_ssl log lines ingested in the last 30m. TLS handshakes are a constant, high-volume stream (~150k lines/day) — a zero means the Firewalla Fluent Bit ssl shipper has stopped delivering to Cloud Loki."
-    },
-    {
-      key          = "zeek-http"
-      stream       = "zeek_http"
-      name         = "Ingest absence — zeek_http"
-      window       = "1h"
-      from_seconds = 3600
-      summary      = "No zeek_http log lines ingested in the last 1h. Plain-HTTP records run ~89k lines/day on this network; the 1h window absorbs browsing lulls. A sustained gap means the http shipper has stopped."
-    },
-    {
-      key          = "zeek-files"
-      stream       = "zeek_files"
-      name         = "Ingest absence — zeek_files"
-      window       = "1h"
-      from_seconds = 3600
-      summary      = "No zeek_files log lines ingested in the last 1h. File-analysis records run ~46k lines/day; the 1h window absorbs quiet periods. A sustained gap means the files shipper has stopped."
-    },
-    {
-      key          = "zeek-weird"
-      stream       = "zeek_weird"
-      name         = "Ingest absence — zeek_weird"
-      window       = "2h"
-      from_seconds = 7200
-      summary      = "No zeek_weird log lines ingested in the last 2h. Protocol anomalies are steady low-volume background (~10k lines/day); a 2h zero is implausible on a live network and means the weird shipper has stopped."
+      key          = "device-inventory"
+      stream       = "device_inventory"
+      name         = "Ingest absence — device_inventory"
+      window       = "3h"
+      from_seconds = 10800
+      summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
     },
     {
       key          = "firewalla-acl"
@@ -298,12 +258,52 @@ locals {
       summary      = "No firewalla_acl log lines ingested in the last 1h. This is a high-volume stream (~350 lines/min; 42,067 lines/2h measured 2026-10-04, 40,250/2h on 2026-07-25), but only 2h-bucket totals are confirmed, not minute-level gaps, so it gets a conservative 1h window — a zero means the ACL alarm shipper has stopped delivering to Cloud Loki."
     },
     {
-      key          = "device-inventory"
-      stream       = "device_inventory"
-      name         = "Ingest absence — device_inventory"
-      window       = "3h"
-      from_seconds = 10800
-      summary      = "No device_inventory entries in the last 3h. This feed is betula's hourly Firewalla collector, pushing direct to Cloud Loki; a 3h gap means the publisher has missed ~2 runs and LAN name↔IP resolution is going stale."
+      key          = "zeek-conn"
+      stream       = "zeek_conn"
+      name         = "Ingest absence — zeek_conn"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_conn log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit conn shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-dns"
+      stream       = "zeek_dns"
+      name         = "Ingest absence — zeek_dns"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_dns log lines ingested in the last 30m. This is a constant, high-volume stream — a zero means the Firewalla Fluent Bit DNS shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-files"
+      stream       = "zeek_files"
+      name         = "Ingest absence — zeek_files"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No zeek_files log lines ingested in the last 1h. File-analysis records run ~46k lines/day; the 1h window absorbs quiet periods. A sustained gap means the files shipper has stopped."
+    },
+    {
+      key          = "zeek-http"
+      stream       = "zeek_http"
+      name         = "Ingest absence — zeek_http"
+      window       = "1h"
+      from_seconds = 3600
+      summary      = "No zeek_http log lines ingested in the last 1h. Plain-HTTP records run ~89k lines/day on this network; the 1h window absorbs browsing lulls. A sustained gap means the http shipper has stopped."
+    },
+    {
+      key          = "zeek-ssl"
+      stream       = "zeek_ssl"
+      name         = "Ingest absence — zeek_ssl"
+      window       = "30m"
+      from_seconds = 1800
+      summary      = "No zeek_ssl log lines ingested in the last 30m. TLS handshakes are a constant, high-volume stream (~150k lines/day) — a zero means the Firewalla Fluent Bit ssl shipper has stopped delivering to Cloud Loki."
+    },
+    {
+      key          = "zeek-weird"
+      stream       = "zeek_weird"
+      name         = "Ingest absence — zeek_weird"
+      window       = "2h"
+      from_seconds = 7200
+      summary      = "No zeek_weird log lines ingested in the last 2h. Protocol anomalies are steady low-volume background (~10k lines/day); a 2h zero is implausible on a live network and means the weird shipper has stopped."
     },
     {
       # The liveness signal for betula's GitHub collector (LXC 105): one line
@@ -332,7 +332,11 @@ resource "grafana_rule_group" "loki_ingest_absence" {
   interval_seconds = 60
 
   dynamic "rule" {
-    for_each = { for r in local.loki_ingest_streams : r.key => r }
+    # The list, in order, not a map keyed by r.key: rules in a group are
+    # positional, and a map iterates in key order, so a new key that sorts
+    # mid-list rewrote every later rule under its neighbour's uid (#292).
+    # Append new streams at the end of loki_ingest_streams.
+    for_each = local.loki_ingest_streams
 
     content {
       name = rule.value.name
