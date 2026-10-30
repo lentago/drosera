@@ -4,7 +4,31 @@
 # Run from terraform/ after `terraform init`. Prints one line per drifted
 # resource on stdout ("<address> (uid <uid>)"); nothing if there is no drift.
 # Advisory only: a failed refresh-only plan warns on stderr and prints nothing.
+#
+# `tf-drift.sh --from-json <plan.json>` runs only the comparison, on the JSON of
+# a saved plan (`terraform show -json`). The fixture test uses it:
+# scripts/tests/tf-drift-test.sh.
 set -euo pipefail
+
+# An empty list and null count as equal. After an apply the provider stores an
+# unset list (notification_settings.group_by / mute_timings) as null, and a
+# refresh reads it back as [], so every rule group with notification_settings
+# showed as drifted after any update to it (#290). Only that pair is
+# normalised: any other difference, including a list gaining or losing an
+# entry, is still reported.
+report() {
+  jq -r '
+    def norm: walk(if . == [] then null else . end);
+    .resource_drift[]?
+    | select(.type == "grafana_dashboard" or .type == "grafana_rule_group")
+    | select((.change.before | norm) != (.change.after | norm))
+    | "\(.address) (uid \(.change.before.uid // .change.after.uid // "n/a"))"'
+}
+
+if [ "${1:-}" = "--from-json" ]; then
+  report <"$2"
+  exit 0
+fi
 
 if ! terraform plan -refresh-only -no-color -input=false -lock=false \
   -out=drift.tfplan >drift-plan.log 2>&1; then
@@ -12,7 +36,4 @@ if ! terraform plan -refresh-only -no-color -input=false -lock=false \
   exit 0
 fi
 
-terraform show -json drift.tfplan | jq -r '
-  .resource_drift[]?
-  | select(.type == "grafana_dashboard" or .type == "grafana_rule_group")
-  | "\(.address) (uid \(.change.before.uid // .change.after.uid // "n/a"))"'
+terraform show -json drift.tfplan | report

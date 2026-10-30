@@ -1,0 +1,31 @@
+# ============================================================================
+# tf-drift-test — the live-drift comparison in scripts/tf-drift.sh
+# ============================================================================
+# Feeds fixture refresh-only plans through `tf-drift.sh --from-json`: provider
+# normalisation (null vs [] in notification_settings) must stay silent, and
+# real live edits must still be reported. No Terraform, no Grafana, no token.
+#
+# Not path-filtered, matching loki-event-test: a path-filtered check that ever
+# becomes required deadlocks non-matching PRs. The job takes seconds.
+#
+# Origin: #290.
+# ============================================================================
+
+name: tf-drift-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fixture test
+        run: scripts/tests/tf-drift-test.sh
