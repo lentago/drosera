@@ -95,7 +95,7 @@ contact-point wiring — the same apply-on-merge path as dashboards.
 [#175 — Alert on ingest absence for the critical Loki streams](https://github.com/lentago/drosera/pull/175),
 [#172 — feat: Grafana-native alerting for site probes](https://github.com/lentago/drosera/pull/172).
 
-Vectors 1 and 3 need no special access beyond opening a PR; humans own the policy and direct every change. Every directed pull request gets an AI review. Opted-in scheduled routines merge on their deterministic gate alone ([ADR-0014](https://github.com/lentago/.github/blob/main/docs/adr/0014-merge-promise-humans-own-the-policy.md)). Editing
+Vectors 1 and 3 need no special access beyond opening a PR; humans own the policy and direct every change. Every directed pull request (one a person asked for) gets an AI review before it is armed to merge. The one exception is an opted-in scheduled routine, which merges when a fixed rule check on its author, title and changed paths passes; no routine is opted in here today ([ADR-0014](https://github.com/lentago/.github/blob/main/docs/adr/0014-merge-promise-humans-own-the-policy.md)). Editing
 the live Grafana stack directly (vector 2's failure mode) requires a Grafana Cloud account on the
 `lentago` stack.
 
