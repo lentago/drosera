@@ -55,9 +55,11 @@ locals {
   # first creates or regenerates that token; this one was regenerated in
   # betula#119 step 3 (2026-11-04). A rotation in betula changes the value, and
   # drosera must apply within its 48-hour grace period to pick it up (betula's
-  # README, "Rotation timing"). The precondition below fails the plan if the
-  # entry is ever null or empty, rather than shipping an empty credential.
-  axiom_query_token = data.terraform_remote_state.betula.outputs.axiom_tokens["cjp-solidago-alb-query"]
+  # README, "Rotation timing"). Only a merge that runs the apply does that, and
+  # nothing schedules one yet (#319). lookup() turns a missing key into null, so
+  # the precondition below fails the plan with its message whether the entry is
+  # missing, null or empty, rather than shipping an empty credential.
+  axiom_query_token = lookup(data.terraform_remote_state.betula.outputs.axiom_tokens, "cjp-solidago-alb-query", null)
 }
 
 resource "grafana_data_source" "solidago_axiom" {
@@ -80,7 +82,7 @@ resource "grafana_data_source" "solidago_axiom" {
   lifecycle {
     precondition {
       condition     = try(length(trimspace(local.axiom_query_token)) > 0, false)
-      error_message = "betula's axiom_tokens output has no value for cjp-solidago-alb-query (null or empty). The entry is null until betula creates or regenerates that token; see betula's terraform/README.md, \"Reading a token from another repo\"."
+      error_message = "betula's axiom_tokens output has no value for cjp-solidago-alb-query (missing, null or empty). The entry is null until betula creates or regenerates that token; see betula's terraform/README.md, \"Reading a token from another repo\"."
     }
   }
 }

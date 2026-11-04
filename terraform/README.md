@@ -92,10 +92,13 @@ Their Axiom datasource in [`datasources.tf`](datasources.tf) needs no secret her
 `cjp-solidago-alb-query` (query on `cjp-solidago-alb` only), is read from betula's state, the
 `axiom_tokens` output (#313; lentago/betula#119). betula owns the token, so a rotation happens
 there. When betula regenerates it, the old value stays valid for 48 hours, and drosera must
-apply within that window to pick up the new one: any merge to `main` that runs the apply does
-it. A precondition on `grafana_data_source.solidago_axiom` fails the plan if the entry is null
-or empty. Until #313 the token came from a `TF_VAR_AXIOM_API_TOKEN` repo secret, which is
-deleted.
+apply within that window to pick up the new one. **Only a push to `main` matching the
+workflow's path filter runs the apply; nothing schedules one, and the workflow has no manual
+trigger.** So a betula rotation needs a drosera merge that runs the apply inside the window,
+or the live datasource keeps the lapsed token with nothing alerting. Removing that coupling is
+#319. A precondition on `grafana_data_source.solidago_axiom` fails the plan if the entry is
+missing, null or empty. Until #313 the token came from a `TF_VAR_AXIOM_API_TOKEN` repo secret,
+which #313 retires.
 
 **The Cloud token is not the same thing as `GRAFANA_AUTH`, and one cannot substitute for the
 other.** `GRAFANA_AUTH` is a *stack* service-account token: it manages dashboards, folders,
