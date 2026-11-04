@@ -100,7 +100,6 @@ jobs:
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
-      TF_VAR_axiom_api_token: ${{ secrets.TF_VAR_AXIOM_API_TOKEN }}
       TF_VAR_grafana_cloud_access_policy_token: ${{ secrets.TF_VAR_GRAFANA_CLOUD_ACCESS_POLICY_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -235,7 +234,6 @@ jobs:
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_AUTH: ${{ secrets.GRAFANA_AUTH }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
-      TF_VAR_axiom_api_token: ${{ secrets.TF_VAR_AXIOM_API_TOKEN }}
       TF_VAR_grafana_cloud_access_policy_token: ${{ secrets.TF_VAR_GRAFANA_CLOUD_ACCESS_POLICY_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
