@@ -1150,7 +1150,7 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         }
       },
       "targets": [
@@ -1164,6 +1164,20 @@
           "queryType": "instant",
           "expr": "topk(10, sum by (subject) (count_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json kind=\"kind\", subject=\"subject\" | kind=~\"escalated|declined|unsourced\" [7d])))",
           "legendFormat": "{{subject}}"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value #A",
+                "desc": true
+              }
+            ]
+          }
         }
       ]
     }
