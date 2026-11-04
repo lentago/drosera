@@ -430,7 +430,6 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "displayName": "${__field.labels.runtime}",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -439,6 +438,7 @@
       },
       "options": {
         "reduceOptions": {
+          "values": true,
           "calcs": [
             "lastNotNull"
           ]
@@ -462,7 +462,7 @@
       "id": 2,
       "type": "stat",
       "title": "Runner spend (range)",
-      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown (cost_usd null). An unpriced job is left out of the spend, never counted as $0: until the dashboard prices tokens (#304), that is every job from a runtime that reports tokens only, plus any Claude failure that never produced a result.",
+      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown (cost_usd null). An unpriced job is left out of the spend, never counted as $0: until the dashboard prices tokens (#304), that is every job from a runtime that reports tokens only, plus any Claude failure that never produced a result. A range with no priced job reads \"no priced jobs\" at $0.00.",
       "gridPos": {
         "x": 6,
         "y": 15,
@@ -483,18 +483,6 @@
           }
         },
         "overrides": [
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "${__field.labels.runtime} spend"
-              }
-            ]
-          },
           {
             "matcher": {
               "id": "byFrameRefID",
@@ -541,6 +529,7 @@
       },
       "options": {
         "reduceOptions": {
+          "values": true,
           "calcs": [
             "lastNotNull"
           ]
@@ -555,7 +544,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum by (runtime) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | cost_usd!=\"\" | unwrap cost_usd [$__range])) or on() vector(0)",
+          "expr": "sum by (runtime) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | cost_usd!=\"\" | unwrap cost_usd [$__range])) or on() label_replace(vector(0), \"runtime\", \"no priced jobs\", \"\", \"\")",
           "legendFormat": "{{runtime}}"
         },
         {
@@ -588,7 +577,6 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
-          "displayName": "${__field.labels.runtime}",
           "decimals": 1,
           "min": 0,
           "max": 1,
@@ -627,6 +615,7 @@
       },
       "options": {
         "reduceOptions": {
+          "values": true,
           "calcs": [
             "lastNotNull"
           ]
