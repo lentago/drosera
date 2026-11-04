@@ -50,7 +50,9 @@ variable "axiom_api_token" {
 # betula manages the Axiom tokens (lentago/betula#119, option A) and exposes their
 # values as one sensitive output, axiom_tokens: a map from token name to value
 # (betula's terraform/README.md, "Reading a token from another repo"). The CI role
-# may read that one state key, read-only (lentago/solidago#268). No try(): if the
+# may read that state key, read-only (lentago/solidago#268). The read covers the
+# whole state object, every token included, not just this entry: an accepted risk
+# recorded in betula's README (terraform/README.md here, CI). No try(): if the
 # state can't be read, the plan fails instead of quietly using the fallback.
 data "terraform_remote_state" "betula" {
   backend = "s3"

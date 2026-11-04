@@ -62,9 +62,15 @@ touching `terraform/**` or `dashboards/**`:
 
 CI authenticates to Grafana via the `GRAFANA_URL` / `GRAFANA_AUTH` repo secrets, and to AWS
 (for S3 state) via GitHub **OIDC**, assuming
-`arn:aws:iam::365184644049:role/drosera-github-actions-terraform` (least
-privilege: this state key + the lock table, plus read-only `s3:GetObject` on betula's state
-key for the Axiom query token, lentago/solidago#268). The `apply` job uses a `terraform-apply`
+`arn:aws:iam::365184644049:role/drosera-github-actions-terraform`. The role can read and write
+this state key and use the lock table. It can also read betula's state key
+(`betula/terraform.tfstate`, lentago/solidago#268) for the Axiom query token in
+[`datasources.tf`](datasources.tf). That read covers betula's **whole state object**, not just
+the one output: all three Axiom token values (two ingest tokens and the query token) and every
+other attribute betula keeps in state. betula records that as an accepted risk of serving
+every consumer from one state key (lentago/betula#119 option A; betula's `terraform/README.md`,
+*Reading a token from another repo*). Every job that assumes this role can make that read,
+including the `plan` job on a pull request from a branch of this repo. The `apply` job uses a `terraform-apply`
 concurrency group so two quick merges serialize instead of racing.
 
 The site-probe alerting in [`alerts.tf`](alerts.tf) adds one more required input:
