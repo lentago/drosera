@@ -20,7 +20,8 @@ One-argument form (dashboard panels): <case-dir>/checks.json is a list of
   - "expr" is a .logql path, or "<dashboard.json>#<panel id>/<refId>" to read
     a panel target's expression out of the dashboard JSON.
   - Grafana variables ($name or ${name}) are replaced from fixture.json "vars",
-    for example {"project": ".*", "__range": "1h"}. Others are left as they are.
+    for example {"project": ".*", "__range": "1h"}; a check's own "vars" override
+    them for that check. Others are left as they are.
   - The default kind is a vector, compared as in the two-argument form. "lines"
     runs a log query over the last `range_s` seconds (fixture.json, default
     3600) and compares the sorted rendered lines with "expected".
@@ -155,7 +156,7 @@ def main():
     push(fixture["streams"], now_ns)
     failed = 0
     for c in checks:
-        expr = resolve(c["expr"], variables)
+        expr = resolve(c["expr"], {**variables, **c.get("vars", {})})
         label = f"{name}: {c['name']}" if c["name"] else name
         if c.get("kind") == "lines":
             expected = sorted(c["expected"])

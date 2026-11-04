@@ -154,8 +154,9 @@ The same runner tests panel queries, read straight out of the dashboard JSON tha
 uploads. With one argument it takes a case directory whose `checks.json` lists the checks.
 Each check names a panel target as `dashboards/<file>.json#<panel id>/<refId>` and gives the
 expected vector, or `"kind": "lines"` with the rendered log lines. Grafana variables
-(`$project`, `$__range` and so on) are filled from the fixture's `vars`. The fixture is
-pushed once for all of a case's checks:
+(`$project`, `$__range` and so on) are filled from the fixture's `vars`, and a check can
+override them with its own: the empty-range checks point `$project` at a project with no
+events. The fixture is pushed once for all of a case's checks:
 
 ```bash
 python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime

@@ -541,7 +541,7 @@
       "id": 3,
       "type": "stat",
       "title": "Runner success rate",
-      "description": "Share of job_complete events with status success, by runtime. It is the average of a 0/1 flag rather than successes divided by jobs, so a runtime whose every job failed shows 0% instead of vanishing from the split.",
+      "description": "Share of job_complete events with status success, by runtime. It is the average of a 0/1 flag rather than successes divided by jobs, so a runtime whose every job failed shows 0% instead of vanishing from the split. A range with no job_complete event reads \"no jobs\", never 100%.",
       "gridPos": {
         "x": 12,
         "y": 15,
@@ -558,6 +558,20 @@
           "decimals": 1,
           "min": 0,
           "max": 1,
+          "noValue": "no jobs",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "no jobs",
+                  "color": "text",
+                  "index": 0
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -593,7 +607,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}`, ok=`{{ if eq .status \"success\" }}1{{ else }}0{{ end }}` | unwrap ok [$__range]) by (runtime) or on() vector(1)",
+          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}`, ok=`{{ if eq .status \"success\" }}1{{ else }}0{{ end }}` | unwrap ok [$__range]) by (runtime)",
           "legendFormat": "{{runtime}}"
         }
       ]

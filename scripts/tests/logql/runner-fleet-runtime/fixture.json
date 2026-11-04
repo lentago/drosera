@@ -9,7 +9,8 @@
     "r6 legacy job_running beat (lands under claude), r7 gemini job_running beat",
     "one local session_complete at 2.00, for Total spend",
     "spend = 1.25 + 0.75 + 0.5 = 2.50 runner (4.50 with local); unpriced = 2; success rate claude 3/4, gemini 1/1",
-    "duration avg claude (90 + 30 + 60) / 3 = 60 with r2's null left out, not 45"
+    "duration avg claude (90 + 30 + 60) / 3 = 60 with r2's null left out, not 45",
+    "empty range (a project with no events): success rate returns no series, so the panel reads \"no jobs\" rather than 100%; counts read 0"
   ],
   "vars": {
     "project": ".*",

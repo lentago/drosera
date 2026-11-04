@@ -224,5 +224,39 @@
       "success claude p1 sonnet - $0.75 5turns 30s r4",
       "success claude p1 haiku schedule:pe-drain-am $0.5 3turns 60s r5"
     ]
+  },
+  {
+    "name": "empty range: success rate is no data, not 100%",
+    "expr": "dashboards/claytonia-runner-fleet.json#3/A",
+    "vars": {
+      "project": "no-such-project"
+    },
+    "expected": []
+  },
+  {
+    "name": "empty range: runner jobs read 0",
+    "expr": "dashboards/claytonia-runner-fleet.json#1/A",
+    "vars": {
+      "project": "no-such-project"
+    },
+    "expected": [
+      {
+        "metric": {},
+        "value": 0
+      }
+    ]
+  },
+  {
+    "name": "empty range: no jobs unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#2/B",
+    "vars": {
+      "project": "no-such-project"
+    },
+    "expected": [
+      {
+        "metric": {},
+        "value": 0
+      }
+    ]
   }
 ]
