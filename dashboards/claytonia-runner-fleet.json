@@ -453,7 +453,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum by (runtime) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` [$__range])) or on() vector(0)",
+          "expr": "sum by (runtime) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` [$__range])) or on() label_replace(vector(0), \"runtime\", \"no jobs\", \"\", \"\")",
           "legendFormat": "{{runtime}}"
         }
       ]

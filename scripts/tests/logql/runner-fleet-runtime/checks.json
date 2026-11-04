@@ -246,14 +246,16 @@
     "expected": []
   },
   {
-    "name": "empty range: runner jobs read 0",
+    "name": "empty range: runner jobs read 0, a named row",
     "expr": "dashboards/claytonia-runner-fleet.json#1/A",
     "vars": {
       "project": "no-such-project"
     },
     "expected": [
       {
-        "metric": {},
+        "metric": {
+          "runtime": "no jobs"
+        },
         "value": 0
       }
     ]
