@@ -14,8 +14,8 @@ watches the on-prem estate (the machines in our own building) and renders AWS te
 estate (Solidago) on demand via a live CloudWatch datasource; deeper AWS
 ingestion is the next scope expansion. Renamed from `homelab-observability` on
 2026-07-04. The runtime half of the rename is #169: the OIDC CI role, the
-Terraform state key and LXC 105's checkout carry the new name, and the bullpen
-workers follow as they are rebuilt (lentago/claytonia#65).
+Terraform state key, LXC 105's checkout and all five bullpen workers' checkouts
+carry the new name (the workers since their rebuilds in lentago/claytonia#65).
 
 **Authorship:** The Terraform, Alloy config, dashboards, scripts, and documentation in this repo are co-written with [Claude](https://claude.ai) (Anthropic). I direct the work and review the output; Claude writes the code. I'm an infrastructure operator, not a software engineer — please don't read this repo as a portfolio of coding ability.
 
