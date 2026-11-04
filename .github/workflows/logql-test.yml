@@ -1,10 +1,10 @@
 # ============================================================================
-# logql-test — alert-rule LogQL against fixture lines in a real Loki
+# logql-test — alert-rule and dashboard LogQL against fixture lines in a real Loki
 # ============================================================================
 # scripts/tests/logql/run.py pushes each case's fixture lines into a throwaway
-# Loki, runs the rule's expression (the same .logql file Terraform reads with
-# file()) as an instant query, and compares the vector with expected.json.
-# No Grafana Cloud, no token.
+# Loki, runs the deployed expression (the same .logql file Terraform reads with
+# file(), or a panel target read out of the dashboard JSON) and compares the
+# result with the case's expected output. No Grafana Cloud, no token.
 #
 # Not path-filtered, matching loki-event-test: a path-filtered check that ever
 # becomes required deadlocks non-matching PRs. The job takes under a minute.
@@ -44,3 +44,9 @@ jobs:
 
       - name: CI runners — self-hosted job queued
         run: python3 scripts/tests/logql/run.py terraform/logql/self-hosted-queued.logql scripts/tests/logql/self-hosted-queued
+
+      # Panel queries read from the dashboard JSON (#303). Its streams
+      # (job="claude_runner", job="claude_local") are disjoint from the case
+      # above, so the two can share this Loki.
+      - name: Claytonia — Runner Fleet — runtime split and unknown cost
+        run: python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime

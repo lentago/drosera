@@ -148,6 +148,25 @@ It tests the query only, including any threshold written into the `.logql` file.
 Terraform attributes (`no_data_state`, `for`, the Grafana-side threshold expressions) are
 not exercised; review those in the plan.
 
+### Dashboard panel LogQL
+
+The same runner tests panel queries, read straight out of the dashboard JSON that Terraform
+uploads. With one argument it takes a case directory whose `checks.json` lists the checks.
+Each check names a panel target as `dashboards/<file>.json#<panel id>/<refId>` and gives the
+expected vector, or `"kind": "lines"` with the rendered log lines. Grafana variables
+(`$project`, `$__range` and so on) are filled from the fixture's `vars`. The fixture is
+pushed once for all of a case's checks:
+
+```bash
+python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime
+```
+
+`runner-fleet-runtime` covers the runtime split and the unknown-cost state on *Claytonia —
+Runner Fleet* (#303). Its fixture mixes Claude lines with numeric and null cost, a Gemini line
+with null cost, and lines from before the `runtime` label. A server-side pass does not prove a
+panel renders: Grafana's frontend parses LogQL more strictly than Loki does (see the escape note
+in `CLAUDE.md`), so check the panels in Grafana after the apply.
+
 ## Service accounts
 
 [`service_accounts.tf`](service_accounts.tf) defines the stack service accounts that

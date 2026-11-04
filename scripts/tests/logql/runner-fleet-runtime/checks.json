@@ -1,0 +1,228 @@
+[
+  {
+    "name": "Runner jobs by runtime",
+    "expr": "dashboards/claytonia-runner-fleet.json#1/A",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 4
+      },
+      {
+        "metric": {
+          "runtime": "gemini"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Runner spend by runtime: numeric costs only, no gemini $0",
+    "expr": "dashboards/claytonia-runner-fleet.json#2/A",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 2.5
+      }
+    ]
+  },
+  {
+    "name": "Runner spend: jobs unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#2/B",
+    "expected": [
+      {
+        "metric": {},
+        "value": 2
+      }
+    ]
+  },
+  {
+    "name": "Total spend: runner + local, null left out",
+    "expr": "dashboards/claytonia-runner-fleet.json#20/A",
+    "expected": [
+      {
+        "metric": {},
+        "value": 4.5
+      }
+    ]
+  },
+  {
+    "name": "Total spend: runner jobs unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#20/B",
+    "expected": [
+      {
+        "metric": {},
+        "value": 2
+      }
+    ]
+  },
+  {
+    "name": "Runner success rate by runtime",
+    "expr": "dashboards/claytonia-runner-fleet.json#3/A",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 0.75
+      },
+      {
+        "metric": {
+          "runtime": "gemini"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Jobs by submitter: jobs",
+    "expr": "dashboards/claytonia-runner-fleet.json#22/A",
+    "expected": [
+      {
+        "metric": {
+          "submitter": "s1"
+        },
+        "value": 2
+      },
+      {
+        "metric": {
+          "submitter": "s2"
+        },
+        "value": 1
+      },
+      {
+        "metric": {
+          "submitter": "schedule:pe-drain-am"
+        },
+        "value": 1
+      },
+      {
+        "metric": {
+          "submitter": "-"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Jobs by submitter: cost, priced jobs only",
+    "expr": "dashboards/claytonia-runner-fleet.json#22/B",
+    "expected": [
+      {
+        "metric": {
+          "submitter": "s1"
+        },
+        "value": 1.25
+      },
+      {
+        "metric": {
+          "submitter": "schedule:pe-drain-am"
+        },
+        "value": 0.5
+      },
+      {
+        "metric": {
+          "submitter": "-"
+        },
+        "value": 0.75
+      }
+    ]
+  },
+  {
+    "name": "Jobs by submitter: unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#22/C",
+    "expected": [
+      {
+        "metric": {
+          "submitter": "s1"
+        },
+        "value": 1
+      },
+      {
+        "metric": {
+          "submitter": "s2"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Runners underway: runtime column, legacy beat under claude",
+    "expr": "dashboards/claytonia-runner-fleet.json#21/A",
+    "expected": [
+      {
+        "metric": {
+          "runid": "r6",
+          "worker": "claude-runner-5",
+          "project": "p1",
+          "runtime": "claude",
+          "model": "opus",
+          "submitter": "-"
+        },
+        "value": 1
+      },
+      {
+        "metric": {
+          "runid": "r7",
+          "worker": "claude-runner-2",
+          "project": "p1",
+          "runtime": "gemini",
+          "model": "gemini-3.8-flash",
+          "submitter": "s2"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Job duration avg by runtime, null duration left out",
+    "expr": "dashboards/claytonia-runner-fleet.json#7/A",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 60
+      },
+      {
+        "metric": {
+          "runtime": "gemini"
+        },
+        "value": 45
+      }
+    ]
+  },
+  {
+    "name": "Job duration max by runtime",
+    "expr": "dashboards/claytonia-runner-fleet.json#7/B",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 90
+      },
+      {
+        "metric": {
+          "runtime": "gemini"
+        },
+        "value": 45
+      }
+    ]
+  },
+  {
+    "name": "Recent runner jobs: runtime field, unknown for a null cost",
+    "expr": "dashboards/claytonia-runner-fleet.json#8/A",
+    "kind": "lines",
+    "expected": [
+      "success claude p1 opus s1 $1.25 10turns 90s r1",
+      "failed claude p1 opus s1 unknown turns s r2",
+      "success gemini p1 gemini-3.8-flash s2 unknown 7turns 45s r3",
+      "success claude p1 sonnet - $0.75 5turns 30s r4",
+      "success claude p1 haiku schedule:pe-drain-am $0.5 3turns 60s r5"
+    ]
+  }
+]
