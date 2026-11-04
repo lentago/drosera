@@ -83,13 +83,13 @@
           "uid": "loki"
         },
         "enable": true,
-        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | status=\"success\"",
+        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | status=\"success\" | label_format runtime=`{{ or .runtime \"claude\" }}`",
         "hide": false,
         "iconColor": "green",
         "name": "Task ended (success)",
         "step": "60s",
-        "tagKeys": "project,runid",
-        "textFormat": "done {{.project}} #{{.runid}}",
+        "tagKeys": "project,runid,runtime",
+        "textFormat": "done {{.runtime}} {{.project}} #{{.runid}}",
         "titleFormat": "Task complete",
         "type": "default"
       },
@@ -99,13 +99,13 @@
           "uid": "loki"
         },
         "enable": true,
-        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | status=\"failed\"",
+        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | status=\"failed\" | label_format runtime=`{{ or .runtime \"claude\" }}`",
         "hide": false,
         "iconColor": "red",
         "name": "Task ended (failed)",
         "step": "60s",
-        "tagKeys": "project,runid",
-        "textFormat": "failed {{.project}} #{{.runid}}",
+        "tagKeys": "project,runid,runtime",
+        "textFormat": "failed {{.runtime}} {{.project}} #{{.runid}}",
         "titleFormat": "Task failed",
         "type": "default"
       },
@@ -115,13 +115,13 @@
           "uid": "loki"
         },
         "enable": true,
-        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_started\"",
+        "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_started\" | label_format runtime=`{{ or .runtime \"claude\" }}`",
         "hide": false,
         "iconColor": "blue",
         "name": "Task started",
         "step": "60s",
-        "tagKeys": "project,runid",
-        "textFormat": "start {{.project}} #{{.runid}}",
+        "tagKeys": "project,runid,runtime",
+        "textFormat": "start {{.runtime}} {{.project}} #{{.runid}}",
         "titleFormat": "Task started",
         "type": "default"
       }
@@ -292,7 +292,7 @@
       "id": 20,
       "type": "stat",
       "title": "Total spend (range)",
-      "description": "Runner + local combined spend over the dashboard range (job_complete cost_usd from the fleet plus session_complete cost_usd from local sessions).",
+      "description": "Runner + local combined spend over the dashboard range (job_complete cost_usd from the fleet plus session_complete cost_usd from local sessions). A runner job whose cost is unknown (cost_usd null: a runtime that reports tokens only, or a failure that never produced a result) is left out of the sum and counted beside it as unpriced, never added as $0.",
       "gridPos": {
         "x": 0,
         "y": 10,
@@ -311,7 +311,47 @@
             "mode": "fixed",
             "fixedColor": "green"
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "reduceOptions": {
@@ -329,7 +369,18 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(sum_over_time({job=~\"claude_runner|claude_local\"} | json | event=~\"job_complete|session_complete\" | unwrap cost_usd [$__range])) or vector(0)"
+          "expr": "sum(sum_over_time({job=~\"claude_runner|claude_local\"} | json | event=~\"job_complete|session_complete\" | cost_usd!=\"\" | unwrap cost_usd [$__range])) or vector(0)",
+          "legendFormat": "spend"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "expr": "sum(count_over_time({job=\"claude_runner\"} | json | event=\"job_complete\" | cost_usd=\"\" [$__range])) or vector(0)",
+          "legendFormat": "runner jobs unpriced"
         }
       ]
     },
@@ -349,6 +400,7 @@
       "id": 1,
       "type": "stat",
       "title": "Runner jobs (range)",
+      "description": "job_complete events over the dashboard range, by runtime. An event with no runtime label predates the label (claytonia#173) and is a Claude job.",
       "gridPos": {
         "x": 0,
         "y": 15,
@@ -384,7 +436,8 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" [$__range])) or vector(0)"
+          "expr": "sum by (runtime) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` [$__range])) or on() vector(0)",
+          "legendFormat": "{{runtime}}"
         }
       ]
     },
@@ -392,6 +445,7 @@
       "id": 2,
       "type": "stat",
       "title": "Runner spend (range)",
+      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown (cost_usd null). An unpriced job is left out of the spend, never counted as $0: until the dashboard prices tokens (#304), that is every job from a runtime that reports tokens only, plus any Claude failure that never produced a result.",
       "gridPos": {
         "x": 6,
         "y": 15,
@@ -410,7 +464,47 @@
             "mode": "fixed",
             "fixedColor": "green"
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "reduceOptions": {
@@ -428,7 +522,18 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | unwrap cost_usd [$__range])) or vector(0)"
+          "expr": "sum by (runtime) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | cost_usd!=\"\" | unwrap cost_usd [$__range])) or on() vector(0)",
+          "legendFormat": "{{runtime}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "expr": "sum(count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | cost_usd=\"\" [$__range])) or vector(0)",
+          "legendFormat": "jobs unpriced"
         }
       ]
     },
@@ -436,6 +541,7 @@
       "id": 3,
       "type": "stat",
       "title": "Runner success rate",
+      "description": "Share of job_complete events with status success, by runtime. It is the average of a 0/1 flag rather than successes divided by jobs, so a runtime whose every job failed shows 0% instead of vanishing from the split. A range with no job_complete event reads \"no jobs\", never 100%.",
       "gridPos": {
         "x": 12,
         "y": 15,
@@ -452,6 +558,20 @@
           "decimals": 1,
           "min": 0,
           "max": 1,
+          "noValue": "no jobs",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "no jobs",
+                  "color": "text",
+                  "index": 0
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -487,7 +607,8 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"claude_runner\", status=\"success\", project=~\"$project\"} | json | event=\"job_complete\" [$__range])) / sum(count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" [$__range])) or vector(1)"
+          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}`, ok=`{{ if eq .status \"success\" }}1{{ else }}0{{ end }}` | unwrap ok [$__range]) by (runtime)",
+          "legendFormat": "{{runtime}}"
         }
       ]
     },
@@ -711,7 +832,7 @@
       "id": 21,
       "type": "table",
       "title": "Runners underway (by submitter)",
-      "description": "Jobs with a job_running beat in the last minute. submitter is a line field; \"-\" is a hand-dropped job.",
+      "description": "Jobs with a job_running beat in the last minute. submitter is a line field; \"-\" is a hand-dropped job. A beat with no runtime label predates the label (claytonia#173) and shows as claude.",
       "gridPos": {
         "x": 0,
         "y": 23,
@@ -731,7 +852,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (runid, worker, project, model, submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" | runid=~\"$runid\" [1m])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (runid, worker, project, runtime, model, submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_running\" | runid=~\"$runid\" | label_format runtime=`{{ or .runtime \"claude\" }}` [1m])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         }
       ],
       "transformations": [
@@ -746,8 +867,9 @@
               "submitter": 0,
               "runid": 1,
               "project": 2,
-              "model": 3,
-              "worker": 4
+              "runtime": 3,
+              "model": 4,
+              "worker": 5
             }
           }
         }
@@ -757,7 +879,7 @@
       "id": 22,
       "type": "table",
       "title": "Jobs by submitter (range)",
-      "description": "job_complete events over the dashboard range, by submitter (line field). \"-\" is a hand-dropped job.",
+      "description": "job_complete events over the dashboard range, by submitter (line field). \"-\" is a hand-dropped job. Cost (USD) sums the priced jobs only; Unpriced counts the jobs whose cost is unknown (cost_usd null), and a submitter with no priced job shows its cost as unknown, not $0.",
       "gridPos": {
         "x": 12,
         "y": 23,
@@ -787,7 +909,17 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | cost_usd!=\"\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant",
+          "format": "table",
+          "expr": "label_replace(sum by (submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | cost_usd=\"\" [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         }
       ],
       "transformations": [
@@ -803,12 +935,14 @@
             },
             "renameByName": {
               "Value #A": "Jobs",
-              "Value #B": "Cost (USD)"
+              "Value #B": "Cost (USD)",
+              "Value #C": "Unpriced"
             },
             "indexByName": {
               "submitter": 0,
               "Value #A": 1,
-              "Value #B": 2
+              "Value #B": 2,
+              "Value #C": 3
             }
           }
         }
@@ -825,6 +959,22 @@
               {
                 "id": "unit",
                 "value": "currencyUSD"
+              },
+              {
+                "id": "noValue",
+                "value": "unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unpriced"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "0"
               }
             ]
           }
@@ -870,7 +1020,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | line_format \"{{.status}} {{.project}} {{.model}} {{ or .submitter \\\"-\\\" }} ${{.cost_usd}} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
+          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | label_format runtime=`{{ or .runtime \"claude\" }}` | line_format \"{{.status}} {{.runtime}} {{.project}} {{.model}} {{ or .submitter \\\"-\\\" }} {{ if .cost_usd }}${{.cost_usd}}{{ else }}unknown{{ end }} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
         }
       ]
     },
@@ -921,6 +1071,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Job duration (avg / max)",
+      "description": "job_complete duration_sec by runtime. A job with no duration (null in the event) is left out rather than averaged in as 0 s.",
       "gridPos": {
         "x": 0,
         "y": 42,
@@ -949,8 +1100,8 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | unwrap duration_sec [$__auto]) or vector(0)",
-          "legendFormat": "avg"
+          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime) or on() vector(0)",
+          "legendFormat": "{{runtime}} avg"
         },
         {
           "refId": "B",
@@ -959,8 +1110,8 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "max_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | unwrap duration_sec [$__auto]) or vector(0)",
-          "legendFormat": "max"
+          "expr": "max_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime) or on() vector(0)",
+          "legendFormat": "{{runtime}} max"
         }
       ]
     },

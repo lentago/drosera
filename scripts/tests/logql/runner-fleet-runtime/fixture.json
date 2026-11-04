@@ -1,0 +1,263 @@
+{
+  "comment": "job_* lines in cr-emit's shape (lentago/claytonia bin/cr-emit), before and after lentago/claytonia#173: the runtime stream label and line field, and cost_usd null when a runtime reports no cost. Grafana variables are replaced from vars; every line sits inside the 1h range.",
+  "cases": [
+    "r1 claude, numeric cost 1.25, success",
+    "r2 claude, cost null and duration null: a failure that never produced JSON",
+    "r3 gemini, cost null with token fields: priced by nobody until #304",
+    "r4 legacy line, no runtime label or field, numeric cost 0.75, hand-dropped (submitter \"\"): lands under claude",
+    "r5 claude, numeric cost 0.5, success",
+    "r6 legacy job_running beat (lands under claude), r7 gemini job_running beat",
+    "one local session_complete at 2.00, for Total spend",
+    "spend = 1.25 + 0.75 + 0.5 = 2.50 runner (4.50 with local); unpriced = 2; success rate claude 3/4, gemini 1/1",
+    "duration avg claude (90 + 30 + 60) / 3 = 60 with r2's null left out, not 45",
+    "empty range (a project with no events): success rate returns no series, so the panel reads \"no jobs\" rather than 100%; counts read 0"
+  ],
+  "vars": {
+    "project": ".*",
+    "runid": ".*",
+    "__range": "1h",
+    "__auto": "1h"
+  },
+  "range_s": 3600,
+  "streams": [
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "opus",
+        "worker": "claude-runner",
+        "runtime": "claude"
+      },
+      "lines": [
+        {
+          "offset_s": 3000,
+          "line": {
+            "event": "job_complete",
+            "runid": "r1",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "opus",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 90,
+            "cost_usd": 1.25,
+            "num_turns": 10,
+            "limit": null,
+            "pr_url": "https://github.com/lentago/p1/pull/1",
+            "worker": "claude-runner",
+            "finished": "2026-11-04T12:00:00Z",
+            "submitter": "s1",
+            "runtime": "claude"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "failed",
+        "model": "opus",
+        "worker": "claude-runner",
+        "runtime": "claude"
+      },
+      "lines": [
+        {
+          "offset_s": 2400,
+          "line": {
+            "event": "job_complete",
+            "runid": "r2",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "opus",
+            "status": "failed",
+            "exit": 1,
+            "duration_sec": null,
+            "cost_usd": null,
+            "num_turns": null,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner",
+            "finished": "2026-11-04T12:00:00Z",
+            "submitter": "s1",
+            "runtime": "claude"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "gemini-3.8-flash",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 1800,
+          "line": {
+            "event": "job_complete",
+            "runid": "r3",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.8-flash",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 45,
+            "cost_usd": null,
+            "num_turns": 7,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-04T12:00:00Z",
+            "submitter": "s2",
+            "runtime": "gemini",
+            "tokens_in": 1200,
+            "tokens_out": 300,
+            "tokens_cached": 800,
+            "tokens_thinking": 150
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "sonnet",
+        "worker": "claude-runner-3"
+      },
+      "lines": [
+        {
+          "offset_s": 1200,
+          "line": {
+            "event": "job_complete",
+            "runid": "r4",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "sonnet",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 30,
+            "cost_usd": 0.75,
+            "num_turns": 5,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-3",
+            "finished": "2026-11-04T12:00:00Z",
+            "submitter": ""
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "haiku",
+        "worker": "claude-runner-4",
+        "runtime": "claude"
+      },
+      "lines": [
+        {
+          "offset_s": 600,
+          "line": {
+            "event": "job_complete",
+            "runid": "r5",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "haiku",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": 0.5,
+            "num_turns": 3,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-4",
+            "finished": "2026-11-04T12:00:00Z",
+            "submitter": "schedule:pe-drain-am",
+            "runtime": "claude"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "model": "opus",
+        "worker": "claude-runner-5"
+      },
+      "lines": [
+        {
+          "offset_s": 10,
+          "line": {
+            "event": "job_running",
+            "runid": "r6",
+            "project": "p1",
+            "model": "opus",
+            "worker": "claude-runner-5",
+            "submitter": ""
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "model": "gemini-3.8-flash",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 10,
+          "line": {
+            "event": "job_running",
+            "runid": "r7",
+            "project": "p1",
+            "model": "gemini-3.8-flash",
+            "worker": "claude-runner-2",
+            "submitter": "s2",
+            "runtime": "gemini"
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_local",
+        "service": "claude_local",
+        "worker": "workstation"
+      },
+      "lines": [
+        {
+          "offset_s": 900,
+          "line": {
+            "event": "session_complete",
+            "worker": "workstation",
+            "project": "drosera",
+            "model": "claude-opus-5-5",
+            "cost_usd": 2.0,
+            "num_turns": 12,
+            "duration_sec": 300
+          }
+        }
+      ]
+    }
+  ]
+}
