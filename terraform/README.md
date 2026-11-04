@@ -81,13 +81,21 @@ jobs as an env var, exactly like the Grafana secrets. Two operational prerequisi
 alert-rule write scope — a token scoped for dashboards only will fail the apply when it
 reaches the `grafana_rule_group` / `grafana_contact_point` resources.
 
-The site traffic panels in [`datasources.tf`](datasources.tf) and
-[`plugins.tf`](plugins.tf) add two more, following the same repo-secret pattern:
+The site traffic panels in [`plugins.tf`](plugins.tf) add one more, following the same
+repo-secret pattern:
 
 | Secret | Feeds | What it must be |
 |---|---|---|
-| `TF_VAR_AXIOM_API_TOKEN` | `TF_VAR_axiom_api_token` | An Axiom API token with **query** scope on the `cjp-solidago-alb` dataset. Transitional: `grafana_data_source.solidago_axiom` takes the token from betula's state (`axiom_tokens["cjp-solidago-alb-query"]`) and falls back to this secret while that entry is null, until betula first regenerates the token (#313). |
 | `TF_VAR_GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` | `TF_VAR_grafana_cloud_access_policy_token` | A Grafana **Cloud access policy** token with `stack-plugins:read`, `stack-plugins:write`, `stack-plugins:delete`. Backs `grafana_cloud_plugin_installation.axiom`. |
+
+Their Axiom datasource in [`datasources.tf`](datasources.tf) needs no secret here. Its token,
+`cjp-solidago-alb-query` (query on `cjp-solidago-alb` only), is read from betula's state, the
+`axiom_tokens` output (#313; lentago/betula#119). betula owns the token, so a rotation happens
+there. When betula regenerates it, the old value stays valid for 48 hours, and drosera must
+apply within that window to pick up the new one: any merge to `main` that runs the apply does
+it. A precondition on `grafana_data_source.solidago_axiom` fails the plan if the entry is null
+or empty. Until #313 the token came from a `TF_VAR_AXIOM_API_TOKEN` repo secret, which is
+deleted.
 
 **The Cloud token is not the same thing as `GRAFANA_AUTH`, and one cannot substitute for the
 other.** `GRAFANA_AUTH` is a *stack* service-account token: it manages dashboards, folders,
@@ -103,8 +111,8 @@ Every secret-backed variable here declares `validation { length(trimspace(...)) 
 that is load-bearing rather than decorative.
 
 **"No default" does not catch an unset secret in CI.** GitHub Actions renders a reference to a
-missing repo secret as an **empty string**, not an error — so `TF_VAR_axiom_api_token=""`
-reaches Terraform as a perfectly valid value for a variable that has no default. The plan
+missing repo secret as an **empty string**, not an error — so `TF_VAR_axiom_api_token=""` (the
+Axiom datasource's variable until #313) reached Terraform as a perfectly valid value for a variable that has no default. The plan
 succeeds and the apply ships an empty credential. This was observed, not theorised: PR #173's
 plan passed cleanly at 01:10Z on 2026-07-25 with `Plan: 2 to add, 4 to change`, thirteen
 minutes before either new secret existed.

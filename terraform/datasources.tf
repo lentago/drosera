@@ -32,28 +32,15 @@ resource "grafana_data_source" "solidago_cloudwatch" {
 # 0.7.2), so the stack requirement is codified rather than a manual prerequisite.
 #
 # The API token is NEVER committed (drosera is a public repo). It comes from
-# lentago/betula's Terraform state, with the TF_VAR_axiom_api_token repo secret as
-# a transitional fallback (#313, below). The variable is sensitive with no default,
-# the exact pattern alerts.tf uses for TF_VAR_alert_email, and a missing value
-# fails the plan loudly rather than shipping an empty credential.
-variable "axiom_api_token" {
-  type        = string
-  sensitive   = true
-  description = "Axiom API token for the ALB-logs datasource, used until betula's state carries the cjp-solidago-alb-query value (#313). Set via TF_VAR_axiom_api_token; never committed (public repo)."
-
-  validation {
-    condition     = length(trimspace(var.axiom_api_token)) > 0
-    error_message = "The TF_VAR_axiom_api_token secret resolved to an empty string. GitHub Actions renders a MISSING repo secret as empty rather than failing, so 'no default' alone does not catch an unset secret — this check does."
-  }
-}
-
+# lentago/betula's Terraform state (#313, below); there is no repo secret for it.
+#
 # betula manages the Axiom tokens (lentago/betula#119, option A) and exposes their
 # values as one sensitive output, axiom_tokens: a map from token name to value
 # (betula's terraform/README.md, "Reading a token from another repo"). The CI role
 # may read that state key, read-only (lentago/solidago#268). The read covers the
 # whole state object, every token included, not just this entry: an accepted risk
-# recorded in betula's README (terraform/README.md here, CI). No try(): if the
-# state can't be read, the plan fails instead of quietly using the fallback.
+# recorded in betula's README (terraform/README.md here, CI). No try() around the
+# read: if the state can't be read, the plan fails.
 data "terraform_remote_state" "betula" {
   backend = "s3"
   config = {
@@ -64,16 +51,13 @@ data "terraform_remote_state" "betula" {
 }
 
 locals {
-  # Transitional (#313, first half). An entry is null until betula first
-  # regenerates that token: the tokens were imported, and Axiom returns a value
-  # only on create or regenerate. Until then the repo secret is used; from the
-  # token's first rotation (betula#119 step 3) betula's value wins. The second
-  # half of #313 removes the variable and the secret, and adds a precondition
-  # that fails the plan on a null or empty entry.
-  axiom_query_token = coalesce(
-    data.terraform_remote_state.betula.outputs.axiom_tokens["cjp-solidago-alb-query"],
-    var.axiom_api_token,
-  )
+  # betula's value for this datasource's token. An entry is null until betula
+  # first creates or regenerates that token; this one was regenerated in
+  # betula#119 step 3 (2026-11-04). A rotation in betula changes the value, and
+  # drosera must apply within its 48-hour grace period to pick it up (betula's
+  # README, "Rotation timing"). The precondition below fails the plan if the
+  # entry is ever null or empty, rather than shipping an empty credential.
+  axiom_query_token = data.terraform_remote_state.betula.outputs.axiom_tokens["cjp-solidago-alb-query"]
 }
 
 resource "grafana_data_source" "solidago_axiom" {
@@ -92,4 +76,11 @@ resource "grafana_data_source" "solidago_axiom" {
   # the installation, so Terraform has no implicit edge to infer — without this
   # the two can be ordered arbitrarily and a first apply fails intermittently.
   depends_on = [grafana_cloud_plugin_installation.axiom]
+
+  lifecycle {
+    precondition {
+      condition     = try(length(trimspace(local.axiom_query_token)) > 0, false)
+      error_message = "betula's axiom_tokens output has no value for cjp-solidago-alb-query (null or empty). The entry is null until betula creates or regenerates that token; see betula's terraform/README.md, \"Reading a token from another repo\"."
+    }
+  }
 }
