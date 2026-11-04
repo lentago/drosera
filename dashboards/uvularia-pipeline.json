@@ -718,7 +718,7 @@
       "id": 5,
       "type": "stat",
       "title": "Asked",
-      "description": "Questions in the last 24h by outcome kind (answered / incident / escalated / declined, plus maintenance or capped if any), median answer latency, the daily cap remaining after the most recent question, and when that question came in.",
+      "description": "Questions in the last 24h by outcome kind (answered / incident / escalated / declined, plus maintenance, capped, unconfigured or unsourced if any), median answer latency, the daily cap remaining after the most recent question, and when that question came in.",
       "gridPos": {
         "x": 18,
         "y": 0,
@@ -1114,7 +1114,7 @@
       "id": 8,
       "type": "bargauge",
       "title": "Demand loop — top unanswered subjects (7 days)",
-      "description": "Subjects of questions the Ask box escalated or declined in the last 7 days, most-asked first (subject on uvularia_asked; \"unmatched\" when the question matched no subject). Each bar is a record nobody has written yet.",
+      "description": "Subjects of questions the Ask box escalated, declined or could not source (an answer that cited no real record, sent the escalation reply instead) in the last 7 days, most-asked first (subject on uvularia_asked; \"unmatched\" when the question matched no subject). Each bar is a record nobody has written yet.",
       "gridPos": {
         "x": 0,
         "y": 16,
@@ -1162,7 +1162,7 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "topk(10, sum by (subject) (count_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json kind=\"kind\", subject=\"subject\" | kind=~\"escalated|declined\" [7d])))",
+          "expr": "topk(10, sum by (subject) (count_over_time({log_source=\"uvularia_asked\", cluster=\"$cluster\"} | json kind=\"kind\", subject=\"subject\" | kind=~\"escalated|declined|unsourced\" [7d])))",
           "legendFormat": "{{subject}}"
         }
       ]
