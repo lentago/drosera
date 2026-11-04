@@ -166,7 +166,8 @@ python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime
 Runner Fleet* (#303). Its fixture mixes Claude lines with numeric and null cost, a Gemini line
 with null cost, and lines from before the `runtime` label. A server-side pass does not prove a
 panel renders: Grafana's frontend parses LogQL more strictly than Loki does (see the escape note
-in `CLAUDE.md`), so check the panels in Grafana after the apply.
+in `CLAUDE.md`), and it names and lays out the values itself (see the stat and table note there),
+so check the panels in Grafana after the apply.
 
 ## Service accounts
 

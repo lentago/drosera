@@ -316,9 +316,25 @@
           {
             "matcher": {
               "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "spend"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
               "options": "B"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "runner jobs unpriced"
+              },
               {
                 "id": "unit",
                 "value": "short"
@@ -414,6 +430,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "displayName": "${__field.labels.runtime}",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -469,9 +486,25 @@
           {
             "matcher": {
               "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.labels.runtime} spend"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
               "options": "B"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "jobs unpriced"
+              },
               {
                 "id": "unit",
                 "value": "short"
@@ -555,6 +588,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
+          "displayName": "${__field.labels.runtime}",
           "decimals": 1,
           "min": 0,
           "max": 1,
@@ -919,7 +953,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | cost_usd=\"\" [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | label_format unpriced=`{{ if .cost_usd }}0{{ else }}1{{ end }}` | unwrap unpriced [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         }
       ],
       "transformations": [
@@ -963,18 +997,6 @@
               {
                 "id": "noValue",
                 "value": "unknown"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Unpriced"
-            },
-            "properties": [
-              {
-                "id": "noValue",
-                "value": "0"
               }
             ]
           }
@@ -1071,7 +1093,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Job duration (avg / max)",
-      "description": "job_complete duration_sec by runtime. A job with no duration (null in the event) is left out rather than averaged in as 0 s.",
+      "description": "job_complete duration_sec by runtime. A job with no duration (null in the event) is left out rather than averaged in as 0 s. A step with no job_complete is a gap, not 0 s.",
       "gridPos": {
         "x": 0,
         "y": 42,
@@ -1100,7 +1122,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime) or on() vector(0)",
+          "expr": "avg_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime)",
           "legendFormat": "{{runtime}} avg"
         },
         {
@@ -1110,7 +1132,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "max_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime) or on() vector(0)",
+          "expr": "max_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | duration_sec!=\"\" | unwrap duration_sec [$__auto]) by (runtime)",
           "legendFormat": "{{runtime}} max"
         }
       ]

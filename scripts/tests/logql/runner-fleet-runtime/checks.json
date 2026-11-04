@@ -132,7 +132,7 @@
     ]
   },
   {
-    "name": "Jobs by submitter: unpriced",
+    "name": "Jobs by submitter: unpriced, 0 for a submitter whose jobs are all priced",
     "expr": "dashboards/claytonia-runner-fleet.json#22/C",
     "expected": [
       {
@@ -146,6 +146,18 @@
           "submitter": "s2"
         },
         "value": 1
+      },
+      {
+        "metric": {
+          "submitter": "schedule:pe-drain-am"
+        },
+        "value": 0
+      },
+      {
+        "metric": {
+          "submitter": "-"
+        },
+        "value": 0
       }
     ]
   },
@@ -258,5 +270,13 @@
         "value": 0
       }
     ]
+  },
+  {
+    "name": "empty range: job duration is a gap, not 0 s",
+    "expr": "dashboards/claytonia-runner-fleet.json#7/A",
+    "vars": {
+      "project": "no-such-project"
+    },
+    "expected": []
   }
 ]
