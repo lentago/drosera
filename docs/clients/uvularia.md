@@ -169,12 +169,13 @@ The top row, left to right:
 | **Reviewed** | PRs with green checks waiting on a person, and the oldest's wait |
 | **Published** | the latest digest and how long ago it went out, with obligations green / amber / red / no data |
 | **Served** | the digest the Ask box last said it's serving and when, its rules tag, and refresh checks in 24h |
-| **Asked** | last 24h by outcome (answered, incident, escalated, declined), median latency, cap left, last question |
+| **Asked** | last 24h by outcome (answered, incident, escalated, declined, plus any fallback: capped, unconfigured, unsourced), median latency, cap left, last question |
 
 Below that: **announcement merge-to-live latency** (one dot per publish that
 took an announcement live), the **obligation timeline** (how the standing
 looked at each publish), and the **demand loop** — the subjects people asked
-about most this week that the box escalated or declined. Each of those bars is
+about most this week that the box escalated, declined or could not source (an
+answer that cited no real record, `kind: "unsourced"`). Each of those bars is
 a record nobody has written yet.
 
 ## The four alerts
