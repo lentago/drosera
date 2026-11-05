@@ -514,6 +514,18 @@ locals {
   # the raw probe value). Windows are capped at 24h — a 3-day avg_over_time is a
   # heavy Mimir range query for a marginal gain, and 3x/24h is the workbook's
   # own alternative ticket tier, so nothing is lost.
+  # SPOT-BACKED SITES (issue #320, ADR-0008 amendment 2026-11-05). lentago.dev
+  # and pondviewlane.com run one Fargate Spot task each, so a routine Spot
+  # interruption is a one-to-few-minute single-task gap. Their fast-burn page
+  # waits `for = 10m` instead of 2m: the 5m short window stays above threshold
+  # for the gap plus ~5m, so 10m rides through a gap of up to ~5m (the symptom
+  # alert's own `for 5m`) while a sustained outage still pages. The symptom
+  # alert and the slow-burn ticket are unchanged; other sites keep 2m.
+  slo_spot_sites = [
+    "lentago.dev",
+    "pondviewlane.com",
+  ]
+
   slo_burn_alerts = flatten([
     for domain in local.slo_sites : [
       {
@@ -524,7 +536,7 @@ locals {
         short_window    = "5m"
         long_seconds    = 3600
         burn_threshold  = 14.4
-        for             = "2m" # brief persistence guard; the 5m short window already suppresses single-scrape blips
+        for             = contains(local.slo_spot_sites, domain) ? "10m" : "2m" # 2m: brief persistence guard (the 5m short window suppresses single-scrape blips); 10m on Spot-backed sites rides through a short single-task gap (#320)
         severity        = "critical"
         repeat_interval = "1h"
         # Runbook line: exhausting the budget at this rate empties the whole

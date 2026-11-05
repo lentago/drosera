@@ -111,3 +111,31 @@ The dashboard panels compute the same expressions on the fly.
   ADR. Adding a fourth site to the SLO set is a one-line change to
   `local.slo_sites`; whether a new site _should_ carry an independent objective
   (cf. the essex/pondview shared-service exclusion) is a judgment to record here.
+
+## Amendment 2026-11-05: Spot-backed sites tolerate a short single-task gap (#320)
+
+**Context.** solidago is moving the lentago.dev and pondviewlane.com services
+to Fargate Spot, one task each (lentago/solidago#277, #282). A Spot
+interruption leaves a gap of roughly one to a few minutes while ECS starts a
+replacement and it passes the ALB health check. Against the original tiers the
+symptom alert (`probe_success < 1` for 5m) and the slow-burn ticket do not fire
+on a gap that size, but the fast-burn page does: 14.4x over 1h is crossed by
+about 52 s of downtime, and the 5m window stays above threshold for the gap plus
+about five minutes, so the 2m `for` is met. A routine interruption would page.
+
+**Decision (Chris, 2026-11-05, option B).** Tolerate a short single-task gap on
+the two Spot-backed sites only. Their fast-burn `for` is **10m** instead of 2m
+(`local.slo_spot_sites` in `terraform/alerts.tf`). Because the 5m short window
+holds for the gap plus about five minutes, a gap up to roughly five minutes
+(the symptom alert's own horizon) never completes the 10m, while a sustained
+outage still pages, about ten minutes in.
+
+**Unchanged.** The symptom alert, the slow-burn ticket, the burn thresholds and
+windows, and every tier on icecreamtofightwith.com (not on Spot) keep their
+values. Each interruption still spends error budget, which the dashboard and
+the slow-burn ticket continue to show.
+
+**Alternatives.** Accepting a page per interruption was rejected as alert
+noise. A minimum duration inside the short window was rejected as a more
+invasive change to the rule's query for the same effect.
+
