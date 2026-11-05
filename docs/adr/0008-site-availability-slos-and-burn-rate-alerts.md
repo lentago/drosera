@@ -53,7 +53,7 @@ the alert a fast reset once the incident clears):
 
 | Tier | Burn rate | Long ∧ short window | Budget burned | Action | `for` | Severity |
 |------|-----------|---------------------|---------------|--------|-------|----------|
-| Fast | **14.4×** | 1h ∧ 5m | 2% of the 30d budget in 1h | **Page** | 2m | critical |
+| Fast | **14.4×** | 1h ∧ 5m | 2% of the 30d budget in 1h | **Page** | 2m (10m on lentago.dev and pondviewlane.com, see the 2026-11-05 amendment) | critical |
 | Slow | **3×** | 24h ∧ 2h | 10% of the budget in 24h | **Ticket** | 15m | warning |
 
 Burn rate = `(1 - avg_over_time(probe_success[w])) / 0.001` — the failed-probe
