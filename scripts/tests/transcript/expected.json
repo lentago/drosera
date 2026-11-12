@@ -12,6 +12,8 @@
         "[TEXT] Gemini text before a tool",
         "[TOOL] read_file",
         "[TOOL] write_file",
+        "[TEXT] Gemini text beside a running tool",
+        "[TOOL] list_directory",
         "[TEXT] Gemini late narration, token: ***REDACTED***"
       ]
     },

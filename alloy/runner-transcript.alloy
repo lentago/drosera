@@ -198,11 +198,14 @@ loki.write "cloud" {
 
 // ----------------------------------------------------------------------------
 // Gemini CLI. Keep `type == "gemini"` lines; drop the header, `$set`, `user`
-// and `info` lines. A message is written twice under one id: first without
-// `toolCalls`, then again once its tools finish. Text ships only from a line
-// with no `toolCalls`, and tool names only for calls in a final state, so each
-// piece ships once. `thoughts` and each call's `args` and `result` are never
-// selected.
+// and `info` lines. A message is written more than once under one id: first
+// before its tools have run, then again once they finish. A line with a tool
+// call in a final state (success, error, cancelled) ships those tool names; any
+// other line ships its text. Each piece then ships once. A message written only
+// once, with text and finished tools together, ships its tool names alone. No
+// such write appears in the Phase 1 gate jobs (2026-11-04), where every text-
+// bearing message was a single tool-less write. `thoughts` and each call's
+// `args` and `result` are never selected.
 // ----------------------------------------------------------------------------
 local.file_match "gemini" {
 	path_targets = [{
@@ -244,15 +247,14 @@ loki.process "gemini" {
 
 	stage.json {
 		expressions = {
-			texts  = "content",
-			ntools = "length(toolCalls || `[]`)",
-			tools  = "join(', ', toolCalls[?status=='success' || status=='error' || status=='cancelled'].name || `[]`)",
+			texts = "content",
+			tools = "join(', ', toolCalls[?status=='success' || status=='error' || status=='cancelled'].name || `[]`)",
 		}
 	}
 
 	stage.template {
 		source   = "rendered"
-		template = "{{ if .tools }}[TOOL] {{ .tools }}{{ else if and .texts (eq .ntools \"0\") }}[TEXT] {{ .texts }}{{ end }}"
+		template = "{{ if .tools }}[TOOL] {{ .tools }}{{ else if .texts }}[TEXT] {{ .texts }}{{ end }}"
 	}
 
 	stage.drop {

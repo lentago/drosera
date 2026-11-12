@@ -100,6 +100,10 @@ def gemini_lines():
         # A call still executing ships nothing until its final write.
         msg("g3", now(-36), tools=[call("write_file", "executing")]),
         msg("g3", now(-36), tools=[call("write_file", "success")]),
+        # Text beside a call still executing ships from that write; the final
+        # write ships the tool name only.
+        msg("g5", now(-35), content="Gemini text beside a running tool", tools=[call("list_directory", "executing")]),
+        msg("g5", now(-35), content="Gemini text beside a running tool", tools=[call("list_directory", "success")]),
         {"id": "i1", "timestamp": now(-35), "type": "info", "content": "LEAK-GEMINI-INFO"},
     ]
 
