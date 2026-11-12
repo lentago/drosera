@@ -1,0 +1,48 @@
+# ============================================================================
+# transcript-test — the worker transcript shipper against a throwaway Loki
+# ============================================================================
+# scripts/tests/transcript/run.sh runs alloy/runner-transcript.alloy, the file
+# every claude-runner worker deploys, in the workers' Alloy version. It reads
+# a fixture of a worker's home tree, with Claude sessions, and Gemini and Codex
+# sessions linked into claytonia's live prefix. It checks the streams, labels
+# and lines that reach Loki, and that no planted LEAK- marker from a dropped
+# field (thinking, tool inputs and results, user input, session metadata, a
+# private project) gets through (#305). Lines appended after Alloy found the
+# links also prove that it tails through a symlink.
+#
+# Not path-filtered, matching logql-test: a path-filtered check that ever
+# becomes required deadlocks non-matching PRs. The job takes about a minute.
+# ============================================================================
+
+name: transcript-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      loki:
+        image: grafana/loki:3.4.2
+        ports:
+          - 3100:3100
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Wait for Loki
+        run: |
+          for _ in $(seq 60); do
+            curl -sf http://127.0.0.1:3100/ready >/dev/null && exit 0
+            sleep 2
+          done
+          echo "Loki did not become ready" >&2
+          exit 1
+
+      - name: Worker transcript shipper — Claude, Gemini and Codex
+        run: scripts/tests/transcript/run.sh

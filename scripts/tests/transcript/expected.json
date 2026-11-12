@@ -1,0 +1,28 @@
+{
+  "comment": "Streams and lines the shipper must send for fixture.py's tree, in time order per stream. Every stream also carries job=claude_transcript, worker=transcript-test and cluster=lentago-lab, and no other label. The late lines are appended after Alloy has found the links, so they arrive by tailing through a symlink.",
+  "streams": [
+    {
+      "labels": {"project": "p1", "session_id": "c0ffee00-0000-4000-8000-000000000001"},
+      "lines": ["[TEXT] Claude narration one  [TOOL] Bash"]
+    },
+    {
+      "labels": {"runtime": "gemini", "project": "p1", "runid": "20261112T000000Z-transcript-gemini", "session_id": "9e0e0e00-0000-4000-8000-000000000002"},
+      "lines": [
+        "[TOOL] run_shell_command",
+        "[TEXT] Gemini text before a tool",
+        "[TOOL] read_file",
+        "[TOOL] write_file",
+        "[TEXT] Gemini late narration, token: ***REDACTED***"
+      ]
+    },
+    {
+      "labels": {"runtime": "codex", "project": "adhoc", "runid": "20261112T000000Z-transcript-codex", "session_id": "0c0dec00-0000-4000-8000-000000000003"},
+      "lines": [
+        "[TEXT] Codex narration one",
+        "[TOOL] exec",
+        "[TOOL] apply_patch",
+        "[TEXT] Codex final answer, password=***REDACTED***"
+      ]
+    }
+  ]
+}

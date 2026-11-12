@@ -168,3 +168,257 @@ loki.write "cloud" {
 		cluster = "lentago-lab",
 	}
 }
+
+// ============================================================================
+// Peer runtimes — Gemini CLI and Codex CLI runner jobs (#305).
+// ============================================================================
+//
+// The Claude pipeline above is left exactly as it is. Gemini and Codex write
+// their own session files (~/.gemini/tmp/<slug>/chats/session-*.jsonl and
+// ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl), and neither path tells a
+// private checkout from a public one or carries the runid. So these pipelines
+// never glob those directories. claytonia's runner links each live session file
+// into a path that carries every label (lentago/claytonia, from #305):
+//
+//     /home/claude/.claytonia/live/<runtime>/<project>/<runid>/<session_id>.jsonl
+//
+// It does so only for checkouts under /home/claude/work/, so an
+// `offbox_transcript: false` project has no link and ships nothing. The link
+// is a symlink to the native file, owned by `claude`, and is removed after a
+// grace period. local.file_match and loki.source.file follow the symlink and
+// keep tailing as the target grows, and `filename` is the link's path, not
+// the target's (checked against Alloy v1.21.3, the workers' version; see #305).
+//
+// Each runtime gets its own pipeline: adding one adds a pipeline and touches no
+// other. The output contract is the Claude stream's: job="claude_transcript",
+// worker from the hostname, a `[TEXT] … [TOOL] …` line, plus `runtime` and
+// `runid` labels. The egress scrub is #71's posture re-derived per runtime:
+// narration text and tool NAMES only, never thinking or reasoning, tool
+// arguments or results, user or system input, or session metadata.
+
+// ----------------------------------------------------------------------------
+// Gemini CLI. Keep `type == "gemini"` lines; drop the header, `$set`, `user`
+// and `info` lines. A message is written twice under one id: first without
+// `toolCalls`, then again once its tools finish. Text ships only from a line
+// with no `toolCalls`, and tool names only for calls in a final state, so each
+// piece ships once. `thoughts` and each call's `args` and `result` are never
+// selected.
+// ----------------------------------------------------------------------------
+local.file_match "gemini" {
+	path_targets = [{
+		__path__ = "/home/claude/.claytonia/live/gemini/*/*/*.jsonl",
+	}]
+}
+
+loki.source.file "gemini" {
+	targets    = local.file_match.gemini.targets
+	forward_to = [loki.process.gemini.receiver]
+}
+
+loki.process "gemini" {
+	stage.json {
+		expressions = {
+			evtype = "type",
+			ts     = "timestamp",
+		}
+	}
+
+	stage.labels {
+		values = {evtype = "evtype"}
+	}
+
+	stage.match {
+		selector = `{evtype!="gemini"}`
+		action   = "drop"
+	}
+
+	stage.timestamp {
+		source = "ts"
+		format = "RFC3339Nano"
+	}
+
+	stage.drop {
+		older_than          = "1h"
+		drop_counter_reason = "transcript_too_old"
+	}
+
+	stage.json {
+		expressions = {
+			texts  = "content",
+			ntools = "length(toolCalls || `[]`)",
+			tools  = "join(', ', toolCalls[?status=='success' || status=='error' || status=='cancelled'].name || `[]`)",
+		}
+	}
+
+	stage.template {
+		source   = "rendered"
+		template = "{{ if .tools }}[TOOL] {{ .tools }}{{ else if and .texts (eq .ntools \"0\") }}[TEXT] {{ .texts }}{{ end }}"
+	}
+
+	stage.drop {
+		source              = "rendered"
+		expression          = "^\\s*$"
+		drop_counter_reason = "no_visible_content"
+	}
+
+	stage.output {
+		source = "rendered"
+	}
+
+	// Alloy's stage.replace swaps each capture group for `replace`, so only
+	// the value is captured. (The Claude block's `${1}${2}` form is not a
+	// backreference there: it mangles the keyword and keeps the value, #325.)
+	stage.replace {
+		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(\\S+)"
+		replace    = "***REDACTED***"
+	}
+
+	stage.regex {
+		source     = "filename"
+		expression = ".*/live/gemini/(?P<project>[^/]+)/(?P<runid>[^/]+)/(?P<session_id>[^/]+)\\.jsonl$"
+	}
+
+	stage.static_labels {
+		values = {
+			job     = "claude_transcript",
+			runtime = "gemini",
+			worker  = constants.hostname,
+		}
+	}
+
+	stage.labels {
+		values = {
+			project    = "project",
+			runid      = "runid",
+			session_id = "session_id",
+		}
+	}
+
+	stage.label_drop {
+		values = ["evtype", "filename"]
+	}
+
+	forward_to = [loki.write.cloud.receiver]
+}
+
+// ----------------------------------------------------------------------------
+// Codex CLI. Keep `response_item` lines only. Narration comes from assistant
+// `message` items (`output_text` parts), the one source: the `item_completed`
+// events repeat it, and their CommandExecution items carry commands and
+// output. Tool calls (`*_call`) ship their NAME only, never `input` or
+// `arguments`, and `*_call_output` results are dropped. `reasoning`,
+// `developer` and `user` messages, `session_meta` (which holds the full
+// base_instructions), `turn_context`, `token_count`, `token_usage_record` and
+// `world_state` are dropped.
+// ----------------------------------------------------------------------------
+local.file_match "codex" {
+	path_targets = [{
+		__path__ = "/home/claude/.claytonia/live/codex/*/*/*.jsonl",
+	}]
+}
+
+loki.source.file "codex" {
+	targets    = local.file_match.codex.targets
+	forward_to = [loki.process.codex.receiver]
+}
+
+loki.process "codex" {
+	stage.json {
+		expressions = {
+			evtype = "type",
+			ptype  = "payload.type",
+			role   = "payload.role",
+			ts     = "timestamp",
+		}
+	}
+
+	stage.labels {
+		values = {
+			evtype = "evtype",
+			ptype  = "ptype",
+			role   = "role",
+		}
+	}
+
+	stage.match {
+		selector = `{evtype!="response_item"}`
+		action   = "drop"
+	}
+
+	stage.match {
+		selector = `{ptype!~"message|function_call|custom_tool_call|local_shell_call|web_search_call"}`
+		action   = "drop"
+	}
+
+	stage.match {
+		selector = `{ptype="message", role!="assistant"}`
+		action   = "drop"
+	}
+
+	stage.timestamp {
+		source = "ts"
+		format = "RFC3339Nano"
+	}
+
+	stage.drop {
+		older_than          = "1h"
+		drop_counter_reason = "transcript_too_old"
+	}
+
+	stage.json {
+		expressions = {
+			texts = "join(' ', payload.content[?type=='output_text'].text || `[]`)",
+			tools = "ends_with(payload.type, '_call') && (payload.name || payload.type) || ''",
+		}
+	}
+
+	stage.template {
+		source   = "rendered"
+		template = "{{ if .texts }}[TEXT] {{ .texts }}{{ end }}{{ if .tools }}{{ if .texts }}  {{ end }}[TOOL] {{ .tools }}{{ end }}"
+	}
+
+	stage.drop {
+		source              = "rendered"
+		expression          = "^\\s*$"
+		drop_counter_reason = "no_visible_content"
+	}
+
+	stage.output {
+		source = "rendered"
+	}
+
+	// Alloy's stage.replace swaps each capture group for `replace`, so only
+	// the value is captured. (The Claude block's `${1}${2}` form is not a
+	// backreference there: it mangles the keyword and keeps the value, #325.)
+	stage.replace {
+		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(\\S+)"
+		replace    = "***REDACTED***"
+	}
+
+	stage.regex {
+		source     = "filename"
+		expression = ".*/live/codex/(?P<project>[^/]+)/(?P<runid>[^/]+)/(?P<session_id>[^/]+)\\.jsonl$"
+	}
+
+	stage.static_labels {
+		values = {
+			job     = "claude_transcript",
+			runtime = "codex",
+			worker  = constants.hostname,
+		}
+	}
+
+	stage.labels {
+		values = {
+			project    = "project",
+			runid      = "runid",
+			session_id = "session_id",
+		}
+	}
+
+	stage.label_drop {
+		values = ["evtype", "ptype", "role", "filename"]
+	}
+
+	forward_to = [loki.write.cloud.receiver]
+}
