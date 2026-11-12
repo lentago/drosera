@@ -6,6 +6,11 @@
 # file(), or a panel target read out of the dashboard JSON) and compares the
 # result with the case's expected output. No Grafana Cloud, no token.
 #
+# A dashboard whose JSON carries a placeholder that Terraform fills at apply
+# time (the runner-fleet cost stage, #304) is first rendered offline with the
+# same module (scripts/tests/logql/render.sh), and the checks read the
+# rendered copy.
+#
 # Not path-filtered, matching loki-event-test: a path-filtered check that ever
 # becomes required deadlocks non-matching PRs. The job takes under a minute.
 #
@@ -30,17 +35,36 @@ jobs:
         image: grafana/loki:3.4.2
         ports:
           - 3100:3100
+      # A second Loki for the pricing case: its job="claude_runner" lines
+      # would otherwise count again in the runtime case's checks.
+      loki-pricing:
+        image: grafana/loki:3.4.2
+        ports:
+          - 3101:3100
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.14.9"
+          terraform_wrapper: false
+
+      # run.py reads a dashboard from LOGQL_RENDERED_DIR when it is there.
+      - name: Render dashboards with placeholders
+        run: |
+          echo "LOGQL_RENDERED_DIR=$RUNNER_TEMP/rendered" >>"$GITHUB_ENV"
+          scripts/tests/logql/render.sh "$RUNNER_TEMP/rendered"
+
       - name: Wait for Loki
         run: |
-          for _ in $(seq 60); do
-            curl -sf http://127.0.0.1:3100/ready >/dev/null && exit 0
-            sleep 2
+          for port in 3100 3101; do
+            ready=
+            for _ in $(seq 60); do
+              curl -sf "http://127.0.0.1:$port/ready" >/dev/null && { ready=1; break; }
+              sleep 2
+            done
+            [ -n "$ready" ] || { echo "Loki on :$port did not become ready" >&2; exit 1; }
           done
-          echo "Loki did not become ready" >&2
-          exit 1
 
       - name: CI runners — self-hosted job queued
         run: python3 scripts/tests/logql/run.py terraform/logql/self-hosted-queued.logql scripts/tests/logql/self-hosted-queued
@@ -50,3 +74,9 @@ jobs:
       # above, so the two can share this Loki.
       - name: Claytonia — Runner Fleet — runtime split and unknown cost
         run: python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime
+
+      # Gemini and Codex jobs priced from pricing.json's runner rows (#304).
+      - name: Claytonia — Runner Fleet — runner job pricing
+        env:
+          LOKI_URL: http://127.0.0.1:3101
+        run: python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-pricing

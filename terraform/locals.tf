@@ -86,6 +86,8 @@ locals {
 # set — the runner-fleet dashboard is all-Loki (plus Infinity), so it carries
 # the legacy self-hosted "loki" placeholder uid. The dashboard uid keeps the
 # legacy claude-runner-fleet name so existing links survive the rename.
+# The runner-fleet JSON is read through module.runner_cost (runner-cost.tf),
+# which first puts the runner price stage in place of __RUNNER_JOB_COST__.
 locals {
   claytonia_dashboards = {
     runner_fleet = {
@@ -94,12 +96,16 @@ locals {
     }
   }
 
+  claytonia_dashboard_source = {
+    "claytonia-runner-fleet.json" = module.runner_cost.dashboard_json
+  }
+
   claytonia_dashboard_json = {
     for k, d in local.claytonia_dashboards :
     k => replace(
       replace(
         replace(
-          file("${local.dashboards_dir}/${d.file}"),
+          lookup(local.claytonia_dashboard_source, d.file, file("${local.dashboards_dir}/${d.file}")),
           "/\"uid\":\\s*\"loki\"/",
           "\"uid\": \"${local.datasource_uid_rewrites["loki"]}\""
         ),

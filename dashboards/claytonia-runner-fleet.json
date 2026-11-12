@@ -292,7 +292,7 @@
       "id": 20,
       "type": "stat",
       "title": "Total spend (range)",
-      "description": "Runner + local combined spend over the dashboard range (job_complete cost_usd from the fleet plus session_complete cost_usd from local sessions). A runner job whose cost is unknown (cost_usd null: a runtime that reports tokens only, or a failure that never produced a result) is left out of the sum and counted beside it as unpriced, never added as $0.",
+      "description": "Runner + local combined spend over the dashboard range: job_complete cost from the fleet plus session_complete cost_usd from local sessions. Claude jobs report their cost; Gemini and Codex jobs report tokens and are priced from claude-cost-export/pricing.json. A runner job whose cost is unknown (a model with no row in that table, or a failure that never produced a result) is left out of the sum and counted beside it as unpriced, never added as $0.",
       "gridPos": {
         "x": 0,
         "y": 10,
@@ -385,7 +385,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(sum_over_time({job=~\"claude_runner|claude_local\"} | json | event=~\"job_complete|session_complete\" | cost_usd!=\"\" | unwrap cost_usd [$__range])) or vector(0)",
+          "expr": "sum(sum_over_time({job=~\"claude_runner|claude_local\"} | json | event=~\"job_complete|session_complete\" | __RUNNER_JOB_COST__ | cost!=\"\" | unwrap cost [$__range])) or vector(0)",
           "legendFormat": "spend"
         },
         {
@@ -395,7 +395,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"claude_runner\"} | json | event=\"job_complete\" | cost_usd=\"\" [$__range])) or vector(0)",
+          "expr": "sum(count_over_time({job=\"claude_runner\"} | json | event=\"job_complete\" | __RUNNER_JOB_COST__ | cost=\"\" [$__range])) or vector(0)",
           "legendFormat": "runner jobs unpriced"
         }
       ]
@@ -462,7 +462,7 @@
       "id": 2,
       "type": "stat",
       "title": "Runner spend (range)",
-      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown (cost_usd null). An unpriced job is left out of the spend, never counted as $0: until the dashboard prices tokens (#304), that is every job from a runtime that reports tokens only, plus any Claude failure that never produced a result. A range with no priced job reads \"no priced jobs\" at $0.00.",
+      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown. Claude jobs report their cost. Gemini and Codex jobs report tokens per model, priced with the runner rows of claude-cost-export/pricing.json at the job's finish date (#304). A job is unpriced when a model it used has no row, or when it reports no tokens (a failure that never produced a result): it is left out of the spend, never counted as $0 and never priced as another model. A range with no priced job reads \"no priced jobs\" at $0.00.",
       "gridPos": {
         "x": 6,
         "y": 15,
@@ -544,7 +544,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum by (runtime) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | cost_usd!=\"\" | unwrap cost_usd [$__range])) or on() label_replace(vector(0), \"runtime\", \"no priced jobs\", \"\", \"\")",
+          "expr": "sum by (runtime) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | label_format runtime=`{{ or .runtime \"claude\" }}` | __RUNNER_JOB_COST__ | cost!=\"\" | unwrap cost [$__range])) or on() label_replace(vector(0), \"runtime\", \"no priced jobs\", \"\", \"\")",
           "legendFormat": "{{runtime}}"
         },
         {
@@ -554,7 +554,7 @@
             "uid": "loki"
           },
           "queryType": "instant",
-          "expr": "sum(count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | cost_usd=\"\" [$__range])) or vector(0)",
+          "expr": "sum(count_over_time({job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | __RUNNER_JOB_COST__ | cost=\"\" [$__range])) or vector(0)",
           "legendFormat": "jobs unpriced"
         }
       ]
@@ -902,7 +902,7 @@
       "id": 22,
       "type": "table",
       "title": "Jobs by submitter (range)",
-      "description": "job_complete events over the dashboard range, by submitter (line field). \"-\" is a hand-dropped job. Cost (USD) sums the priced jobs only; Unpriced counts the jobs whose cost is unknown (cost_usd null), and a submitter with no priced job shows its cost as unknown, not $0.",
+      "description": "job_complete events over the dashboard range, by submitter (line field). \"-\" is a hand-dropped job. Cost (USD) sums the priced jobs only, Gemini and Codex jobs priced from claude-cost-export/pricing.json; Unpriced counts the jobs whose cost is unknown, and a submitter with no priced job shows its cost as unknown, not $0.",
       "gridPos": {
         "x": 12,
         "y": 23,
@@ -932,7 +932,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | cost_usd!=\"\" | unwrap cost_usd [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | __RUNNER_JOB_COST__ | cost!=\"\" | unwrap cost [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         },
         {
           "refId": "C",
@@ -942,7 +942,7 @@
           },
           "queryType": "instant",
           "format": "table",
-          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | label_format unpriced=`{{ if .cost_usd }}0{{ else }}1{{ end }}` | unwrap unpriced [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
+          "expr": "label_replace(sum by (submitter) (sum_over_time({job=\"claude_runner\", project=~\"$project\"} | json | runid=~\"$runid\" | event=\"job_complete\" | __RUNNER_JOB_COST__ | label_format unpriced=`{{ if .cost }}0{{ else }}1{{ end }}` | unwrap unpriced [$__range])), \"submitter\", \"-\", \"submitter\", \"^$\")"
         }
       ],
       "transformations": [
@@ -1031,7 +1031,7 @@
             "uid": "loki"
           },
           "queryType": "range",
-          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | label_format runtime=`{{ or .runtime \"claude\" }}` | line_format \"{{.status}} {{.runtime}} {{.project}} {{.model}} {{ or .submitter \\\"-\\\" }} {{ if .cost_usd }}${{.cost_usd}}{{ else }}unknown{{ end }} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
+          "expr": "{job=\"claude_runner\", project=~\"$project\"} | json | event=\"job_complete\" | runid=~\"$runid\" | label_format runtime=`{{ or .runtime \"claude\" }}` | __RUNNER_JOB_COST__ | line_format \"{{.status}} {{.runtime}} {{.project}} {{.model}} {{ or .submitter \\\"-\\\" }} {{ if .cost }}${{.cost}}{{ else }}unknown{{ end }} {{.num_turns}}turns {{.duration_sec}}s {{.runid}}\""
         }
       ]
     },

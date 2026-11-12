@@ -177,12 +177,22 @@ override them with its own: the empty-range checks point `$project` at a project
 events. The fixture is pushed once for all of a case's checks:
 
 ```bash
-python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime
+scripts/tests/logql/render.sh /tmp/rendered
+LOGQL_RENDERED_DIR=/tmp/rendered python3 scripts/tests/logql/run.py scripts/tests/logql/runner-fleet-runtime
 ```
+
+The runner-fleet spend panels carry `__RUNNER_JOB_COST__`, which [`runner-cost.tf`](runner-cost.tf)
+fills at apply time from `claude-cost-export/pricing.json` (#304), so their raw JSON does not
+run. `render.sh` renders the dashboard offline with the same module, and `run.py` reads the
+rendered copy from `LOGQL_RENDERED_DIR`; it refuses an expression that still holds a placeholder.
+Run each case against a fresh Loki: lines pushed by an earlier case stay in the window.
 
 `runner-fleet-runtime` covers the runtime split and the unknown-cost state on *Claytonia —
 Runner Fleet* (#303). Its fixture mixes Claude lines with numeric and null cost, a Gemini line
-with null cost, and lines from before the `runtime` label. A server-side pass does not prove a
+with null cost, and lines from before the `runtime` label. `runner-fleet-pricing` prices Gemini
+and Codex jobs from their per-model tokens: one job per priced model at a hand-computed figure,
+a price change by finish date, multi-model jobs in the shape of the Phase 1 gate runs, and the
+jobs that must stay unknown. A server-side pass does not prove a
 panel renders: Grafana's frontend parses LogQL more strictly than Loki does (see the escape note
 in `CLAUDE.md`), and it names and lays out the values itself (see the stat and table note there),
 so check the panels in Grafana after the apply.

@@ -3,7 +3,7 @@
   "cases": [
     "r1 claude, numeric cost 1.25, success",
     "r2 claude, cost null and duration null: a failure that never produced JSON",
-    "r3 gemini, cost null with token fields: priced by nobody until #304",
+    "r3 gemini, cost null with token totals but no tokens_by_model: unknown, since nothing says which model to price (#304)",
     "r4 legacy line, no runtime label or field, numeric cost 0.75, hand-dropped (submitter \"\"): lands under claude",
     "r5 claude, numeric cost 0.5, success",
     "r6 legacy job_running beat (lands under claude), r7 gemini job_running beat",

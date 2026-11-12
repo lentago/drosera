@@ -1,0 +1,703 @@
+{
+  "comment": "job_complete lines in the shape lentago/claytonia#173 settles: cost_usd null for Gemini and Codex, `tokens` totals and `tokens_by_model`, each with five disjoint fields (in, cached, cache_write, out, thinking). Prices are claude-cost-export/pricing.json's runner rows, rendered into the panels by terraform/modules/runner-cost. Every line sits inside the 1h range.",
+  "cases": [
+    "per MTok; cost = in*input + cached*cached_input + cache_write*cache_write + (out+thinking)*output",
+    "g1 gemini-3.5-flash-lite: 100000*0.30 + 200000*0.03 + 30000*2.50 = 30000 + 6000 + 75000 = 111000 -> $0.111",
+    "g2 gemini-3-flash-preview: 200000*0.50 + 400000*0.05 + 20000*3.00 = 100000 + 20000 + 60000 = 180000 -> $0.18",
+    "g3 gemini-3.1-pro-preview: 50000*2.00 + 100000*0.20 + 10000*12.00 = 100000 + 20000 + 120000 = 240000 -> $0.24",
+    "g4 gemini-3.8-flash, finished 2026-12-31T23:59:59Z (introductory): 100000*0.75 + 1000000*0.075 + 10000*3.75 = 75000 + 75000 + 37500 = 187500 -> $0.1875",
+    "g5 gemini-3.8-flash, finished 2027-01-01T00:00:01Z (standard): 100000*1.50 + 1000000*0.15 + 10000*7.50 = 150000 + 150000 + 75000 = 375000 -> $0.375",
+    "g6 gate-209b's shape (three models, model=default): flash-lite 5689*0.30 + 952*2.50 = 4086.7; 3.8-flash 125620*0.75 + 941103*0.075 + 10538*3.75 = 94215 + 70582.725 + 39517.5 = 204315.225; 3-flash-preview 4079*0.50 + 422*3.00 = 3305.5; total 211707.425 -> $0.211707",
+    "g7 gate-211's shape (main model switched to pro; 3.8-flash at zero tokens): flash-lite 5690*0.30 + 625*2.50 = 3269.5; pro 43936*2.00 + 131671*0.20 + 2123*12.00 = 87872 + 26334.2 + 25476 = 139682.2; total 142951.7 -> $0.142952",
+    "c1 gpt-6.1-sol, gate-216's shape with cache writes split out: 15*2.00 + 78540*0.10 + 23138*2.50 + 821*10.00 = 30 + 7854 + 57845 + 8210 = 73939 -> $0.073939",
+    "k1 claude, cost_usd 1: native cost, its tokens ignored",
+    "unknown, never $0 and never priced as another model: u1 gemini-2.5-pro has no row; u2 codex model key \"unknown\"; u3 claude failure, cost null (the Claude rows never price tokens); u4 cache_write tokens on gemini-3.5-flash-lite, which has no write rate; u5 null token totals",
+    "spend: claude 1; gemini 0.111 + 0.18 + 0.24 + 0.1875 + 0.375 + 0.211707 + 0.142952 = 1.448159; codex 0.073939; unpriced 5; with the local session at 2: total 4.522098",
+    "by submitter: s1 cost 1.448159 + 0.073939 = 1.522098, 0 unpriced; s2 cost 1, 0 unpriced; s3 no cost, 5 unpriced"
+  ],
+  "vars": {
+    "project": ".*",
+    "runid": ".*",
+    "__range": "1h",
+    "__auto": "1h"
+  },
+  "range_s": 3600,
+  "streams": [
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "gemini-3.5-flash-lite",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 3300,
+          "line": {
+            "event": "job_complete",
+            "runid": "g1",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.5-flash-lite",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T09:00:00Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 100000,
+              "cached": 200000,
+              "cache_write": null,
+              "out": 10000,
+              "thinking": 20000
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 100000,
+                "cached": 200000,
+                "cache_write": null,
+                "out": 10000,
+                "thinking": 20000
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 2100,
+          "line": {
+            "event": "job_complete",
+            "runid": "u4",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.5-flash-lite",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T10:15:00Z",
+            "submitter": "s3",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 1000,
+              "cached": 2000,
+              "cache_write": 100,
+              "out": 10,
+              "thinking": 20
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 1000,
+                "cached": 2000,
+                "cache_write": 100,
+                "out": 10,
+                "thinking": 20
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "gemini-3-flash-preview",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 3180,
+          "line": {
+            "event": "job_complete",
+            "runid": "g2",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3-flash-preview",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T09:05:00Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 200000,
+              "cached": 400000,
+              "cache_write": null,
+              "out": 5000,
+              "thinking": 15000
+            },
+            "tokens_by_model": {
+              "gemini-3-flash-preview": {
+                "in": 200000,
+                "cached": 400000,
+                "cache_write": null,
+                "out": 5000,
+                "thinking": 15000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "gemini-3.1-pro-preview",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 3060,
+          "line": {
+            "event": "job_complete",
+            "runid": "g3",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.1-pro-preview",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T09:10:00Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 50000,
+              "cached": 100000,
+              "cache_write": null,
+              "out": 4000,
+              "thinking": 6000
+            },
+            "tokens_by_model": {
+              "gemini-3.1-pro-preview": {
+                "in": 50000,
+                "cached": 100000,
+                "cache_write": null,
+                "out": 4000,
+                "thinking": 6000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "gemini-3.8-flash",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 2940,
+          "line": {
+            "event": "job_complete",
+            "runid": "g4",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.8-flash",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-12-31T23:59:59Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 100000,
+              "cached": 1000000,
+              "cache_write": null,
+              "out": 4000,
+              "thinking": 6000
+            },
+            "tokens_by_model": {
+              "gemini-3.8-flash": {
+                "in": 100000,
+                "cached": 1000000,
+                "cache_write": null,
+                "out": 4000,
+                "thinking": 6000
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 2820,
+          "line": {
+            "event": "job_complete",
+            "runid": "g5",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.8-flash",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2027-01-01T00:00:01Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 100000,
+              "cached": 1000000,
+              "cache_write": null,
+              "out": 4000,
+              "thinking": 6000
+            },
+            "tokens_by_model": {
+              "gemini-3.8-flash": {
+                "in": 100000,
+                "cached": 1000000,
+                "cache_write": null,
+                "out": 4000,
+                "thinking": 6000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "default",
+        "worker": "claude-runner-2",
+        "runtime": "gemini"
+      },
+      "lines": [
+        {
+          "offset_s": 2700,
+          "line": {
+            "event": "job_complete",
+            "runid": "g6",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-04T21:13:00Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 135388,
+              "cached": 941103,
+              "cache_write": null,
+              "out": 2706,
+              "thinking": 9206
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 5689,
+                "cached": 0,
+                "cache_write": null,
+                "out": 39,
+                "thinking": 913
+              },
+              "gemini-3.8-flash": {
+                "in": 125620,
+                "cached": 941103,
+                "cache_write": null,
+                "out": 2569,
+                "thinking": 7969
+              },
+              "gemini-3-flash-preview": {
+                "in": 4079,
+                "cached": 0,
+                "cache_write": null,
+                "out": 98,
+                "thinking": 324
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 2580,
+          "line": {
+            "event": "job_complete",
+            "runid": "g7",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-04T21:22:50Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 49626,
+              "cached": 131671,
+              "cache_write": null,
+              "out": 813,
+              "thinking": 1935
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 5690,
+                "cached": 0,
+                "cache_write": null,
+                "out": 48,
+                "thinking": 577
+              },
+              "gemini-3.8-flash": {
+                "in": 0,
+                "cached": 0,
+                "cache_write": null,
+                "out": 0,
+                "thinking": 0
+              },
+              "gemini-3.1-pro-preview": {
+                "in": 43936,
+                "cached": 131671,
+                "cache_write": null,
+                "out": 765,
+                "thinking": 1358
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 2340,
+          "line": {
+            "event": "job_complete",
+            "runid": "u1",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T10:00:00Z",
+            "submitter": "s3",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 45000,
+              "cached": 100000,
+              "cache_write": null,
+              "out": 740,
+              "thinking": 1700
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 5000,
+                "cached": 0,
+                "cache_write": null,
+                "out": 40,
+                "thinking": 500
+              },
+              "gemini-2.5-pro": {
+                "in": 40000,
+                "cached": 100000,
+                "cache_write": null,
+                "out": 700,
+                "thinking": 1200
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 1740,
+          "line": {
+            "event": "job_complete",
+            "runid": "u5",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T11:10:00Z",
+            "submitter": "s3",
+            "runtime": "gemini",
+            "tokens": {
+              "in": null,
+              "cached": null,
+              "cache_write": null,
+              "out": null,
+              "thinking": null
+            },
+            "tokens_by_model": {}
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "default",
+        "worker": "claude-runner-2",
+        "runtime": "codex"
+      },
+      "lines": [
+        {
+          "offset_s": 2460,
+          "line": {
+            "event": "job_complete",
+            "runid": "c1",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-04T21:26:31Z",
+            "submitter": "s1",
+            "runtime": "codex",
+            "tokens": {
+              "in": 15,
+              "cached": 78540,
+              "cache_write": 23138,
+              "out": 821,
+              "thinking": 0
+            },
+            "tokens_by_model": {
+              "gpt-6.1-sol": {
+                "in": 15,
+                "cached": 78540,
+                "cache_write": 23138,
+                "out": 821,
+                "thinking": 0
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 2220,
+          "line": {
+            "event": "job_complete",
+            "runid": "u2",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T10:05:00Z",
+            "submitter": "s3",
+            "runtime": "codex",
+            "tokens": {
+              "in": 20000,
+              "cached": 80000,
+              "cache_write": 20000,
+              "out": 800,
+              "thinking": 10
+            },
+            "tokens_by_model": {
+              "unknown": {
+                "in": 20000,
+                "cached": 80000,
+                "cache_write": 20000,
+                "out": 800,
+                "thinking": 10
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "success",
+        "model": "opus",
+        "worker": "claude-runner",
+        "runtime": "claude"
+      },
+      "lines": [
+        {
+          "offset_s": 1980,
+          "line": {
+            "event": "job_complete",
+            "runid": "k1",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "opus",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": 1,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner",
+            "finished": "2026-11-10T11:00:00Z",
+            "submitter": "s2",
+            "runtime": "claude",
+            "tokens": {
+              "in": 3000,
+              "cached": 90000,
+              "cache_write": 12000,
+              "out": 4000,
+              "thinking": null
+            },
+            "tokens_by_model": {
+              "claude-opus-5-5": {
+                "in": 3000,
+                "cached": 90000,
+                "cache_write": 12000,
+                "out": 4000,
+                "thinking": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_runner",
+        "service": "claude_runner",
+        "project": "p1",
+        "status": "failed",
+        "model": "opus",
+        "worker": "claude-runner",
+        "runtime": "claude"
+      },
+      "lines": [
+        {
+          "offset_s": 1860,
+          "line": {
+            "event": "job_complete",
+            "runid": "u3",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "opus",
+            "status": "failed",
+            "exit": 1,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner",
+            "finished": "2026-11-10T11:05:00Z",
+            "submitter": "s3",
+            "runtime": "claude",
+            "tokens": {
+              "in": 3000,
+              "cached": 0,
+              "cache_write": 0,
+              "out": 50,
+              "thinking": null
+            },
+            "tokens_by_model": {
+              "claude-opus-5-5": {
+                "in": 3000,
+                "cached": 0,
+                "cache_write": 0,
+                "out": 50,
+                "thinking": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "labels": {
+        "job": "claude_local",
+        "service": "claude_runner",
+        "source": "local",
+        "project": "p1",
+        "model": "claude-opus-4-8",
+        "worker": "ws",
+        "status": "completed"
+      },
+      "lines": [
+        {
+          "offset_s": 1620,
+          "line": {
+            "event": "session_complete",
+            "session_id": "l1",
+            "source": "local",
+            "worker": "ws",
+            "project": "p1",
+            "model": "claude-opus-4-8",
+            "status": "completed",
+            "cost_usd": 2,
+            "num_turns": 3
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+# ============================================================================
+# cost-export-test — cost-export.mjs against a Claude transcript fixture
+# ============================================================================
+# claude-cost-export/test/run.sh sweeps a fixture of Claude Code transcripts
+# with the repo's pricing.json and compares the spooled session_complete events
+# with a golden file recorded before the table took Gemini and Codex rows
+# (#304). The fleet table is shared, so a change to it must leave local Claude
+# session costs identical. Node only; nothing is shipped.
+#
+# Not path-filtered, matching logql-test: a path-filtered check that ever
+# becomes required deadlocks non-matching PRs. The job takes seconds.
+# ============================================================================
+
+name: cost-export-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Claude sessions price as before
+        run: claude-cost-export/test/run.sh

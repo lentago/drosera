@@ -5,6 +5,7 @@
     run.py <case-dir>                several checks over one fixture (checks.json)
 
     LOKI_URL, default http://127.0.0.1:3100
+    LOGQL_RENDERED_DIR, optional (see the end of this docstring)
 
 <case-dir>/fixture.json holds streams of lines, each placed `offset_s` seconds
 before "now". They are pushed to Loki once, and each expression is evaluated at
@@ -30,6 +31,11 @@ Either way the expression is the one Terraform deploys (a file it reads with
 file(), or the dashboard JSON it uploads), so the test runs the deployed query,
 not a copy of it. Each case needs a fresh Loki: lines pushed by an earlier run
 stay in the window and count again. Stdlib only.
+
+A dashboard whose JSON carries a placeholder that Terraform fills at apply time
+(__RUNNER_JOB_COST__, #304) is read from LOGQL_RENDERED_DIR when that directory
+holds a file of the same name: render.sh writes it with the module Terraform
+applies. An expression that still holds a placeholder fails the run.
 """
 import json
 import os
@@ -41,6 +47,8 @@ import urllib.parse
 import urllib.request
 
 LOKI = os.environ.get("LOKI_URL", "http://127.0.0.1:3100")
+RENDERED = os.environ.get("LOGQL_RENDERED_DIR")
+PLACEHOLDER = re.compile(r"__[A-Z][A-Z0-9_]*__")
 
 
 def push(streams, now_ns):
@@ -71,12 +79,18 @@ def get(path, params):
         sys.exit(f"query: HTTP {e.code}: {e.read().decode().strip()}\n  {params['query']}")
 
 
+def value(v):
+    # Sums of priced costs carry float noise (1.4481590000000002); compare to
+    # 9 decimal places, finer than any cost or count a check expects.
+    return round(float(v), 9)
+
+
 def query(expr, now_ns):
     data = get("/loki/api/v1/query", {"query": expr, "time": str(now_ns)})
     if data["resultType"] != "vector":
         sys.exit(f"query: expected a vector, got {data['resultType']}")
     return sorted(
-        ({"metric": s["metric"], "value": float(s["value"][1])} for s in data["result"]),
+        ({"metric": s["metric"], "value": value(s["value"][1])} for s in data["result"]),
         key=lambda s: json.dumps(s["metric"], sort_keys=True),
     )
 
@@ -97,7 +111,10 @@ def panel_expr(dashboard, panel_id, ref_id):
             yield p
             yield from walk(p.get("panels", []))
 
-    for p in walk(json.load(open(dashboard))["panels"]):
+    source = dashboard
+    if RENDERED and os.path.exists(os.path.join(RENDERED, os.path.basename(dashboard))):
+        source = os.path.join(RENDERED, os.path.basename(dashboard))
+    for p in walk(json.load(open(source))["panels"]):
         if str(p.get("id")) == panel_id:
             for t in p.get("targets", []):
                 if t.get("refId") == ref_id:
@@ -118,12 +135,16 @@ def resolve(src, variables):
         name = m.group(1) or m.group(2)
         return variables.get(name, m.group(0))
 
+    left = PLACEHOLDER.search(expr)
+    if left:
+        sys.exit(f"{src}: {left.group(0)} is filled by Terraform at apply time; "
+                 "run render.sh <dir> and set LOGQL_RENDERED_DIR=<dir>")
     return re.sub(r"\$\{(\w+)\}|\$(\w+)", sub, expr)
 
 
 def vector(entries):
     return sorted(
-        ({"metric": e["metric"], "value": float(e["value"])} for e in entries),
+        ({"metric": e["metric"], "value": value(e["value"])} for e in entries),
         key=lambda s: json.dumps(s["metric"], sort_keys=True),
     )
 

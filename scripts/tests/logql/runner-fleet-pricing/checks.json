@@ -1,0 +1,119 @@
+[
+  {
+    "name": "Runner spend by runtime: Gemini and Codex priced from pricing.json, Claude native",
+    "expr": "dashboards/claytonia-runner-fleet.json#2/A",
+    "expected": [
+      {
+        "metric": {
+          "runtime": "claude"
+        },
+        "value": 1
+      },
+      {
+        "metric": {
+          "runtime": "codex"
+        },
+        "value": 0.073939
+      },
+      {
+        "metric": {
+          "runtime": "gemini"
+        },
+        "value": 1.448159
+      }
+    ]
+  },
+  {
+    "name": "Runner spend: unpriced is a model with no row, write tokens with no write rate, a null-cost Claude job, null totals",
+    "expr": "dashboards/claytonia-runner-fleet.json#2/B",
+    "expected": [
+      {
+        "metric": {},
+        "value": 5
+      }
+    ]
+  },
+  {
+    "name": "Total spend: priced runner jobs + local",
+    "expr": "dashboards/claytonia-runner-fleet.json#20/A",
+    "expected": [
+      {
+        "metric": {},
+        "value": 4.522098
+      }
+    ]
+  },
+  {
+    "name": "Total spend: runner jobs unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#20/B",
+    "expected": [
+      {
+        "metric": {},
+        "value": 5
+      }
+    ]
+  },
+  {
+    "name": "Jobs by submitter: cost includes priced Gemini and Codex jobs",
+    "expr": "dashboards/claytonia-runner-fleet.json#22/B",
+    "expected": [
+      {
+        "metric": {
+          "submitter": "s1"
+        },
+        "value": 1.522098
+      },
+      {
+        "metric": {
+          "submitter": "s2"
+        },
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "Jobs by submitter: unpriced",
+    "expr": "dashboards/claytonia-runner-fleet.json#22/C",
+    "expected": [
+      {
+        "metric": {
+          "submitter": "s1"
+        },
+        "value": 0
+      },
+      {
+        "metric": {
+          "submitter": "s2"
+        },
+        "value": 0
+      },
+      {
+        "metric": {
+          "submitter": "s3"
+        },
+        "value": 5
+      }
+    ]
+  },
+  {
+    "name": "Recent runner jobs: each new model's job at its hand-computed price, unknown never $0",
+    "expr": "dashboards/claytonia-runner-fleet.json#8/A",
+    "kind": "lines",
+    "expected": [
+      "success gemini p1 gemini-3.5-flash-lite s1 $0.111 9turns 60s g1",
+      "success gemini p1 gemini-3-flash-preview s1 $0.18 9turns 60s g2",
+      "success gemini p1 gemini-3.1-pro-preview s1 $0.24 9turns 60s g3",
+      "success gemini p1 gemini-3.8-flash s1 $0.1875 9turns 60s g4",
+      "success gemini p1 gemini-3.8-flash s1 $0.375 9turns 60s g5",
+      "success gemini p1 default s1 $0.211707 9turns 60s g6",
+      "success gemini p1 default s1 $0.142952 9turns 60s g7",
+      "success codex p1 default s1 $0.073939 9turns 60s c1",
+      "success gemini p1 default s3 unknown 9turns 60s u1",
+      "success codex p1 default s3 unknown 9turns 60s u2",
+      "success gemini p1 gemini-3.5-flash-lite s3 unknown 9turns 60s u4",
+      "success claude p1 opus s2 $1 9turns 60s k1",
+      "failed claude p1 opus s3 unknown 9turns 60s u3",
+      "success gemini p1 default s3 unknown 9turns 60s u5"
+    ]
+  }
+]
