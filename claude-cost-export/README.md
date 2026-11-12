@@ -52,7 +52,8 @@ serialized with `flock` so a timer tick can't race a manual run.
 | File | Role |
 |---|---|
 | `cost-export.mjs` | sweep transcripts → spool, and drain spool → Loki. Phases: `sweep`, `ship`, `seed`, `all` (default). |
-| `pricing.json` | per-MTok USD price table + cache multipliers. **Drifts — keep current** (source: platform.claude.com/docs/en/about-claude/pricing). |
+| `pricing.json` | the fleet's per-MTok USD price table. Claude rows + cache multipliers price local sessions here; rows with a `runtime` (Gemini, Codex) price claytonia runner jobs on the dashboard (#304) and this script ignores them. Sources and fetch dates in its `_comment`. **Drifts — keep current.** |
+| `test/run.sh` | golden test: sweeps `test/fixture/` and compares the events with `test/expected.ndjson`, so a table change can't move local Claude costs unnoticed (CI: `cost-export-test`). |
 | `cost-hook.sh` | `SessionEnd` hook: drops a `done/<session_id>` marker so finished sessions ship promptly. |
 | `session-heartbeat.sh` | `PostToolUse` + `UserPromptSubmit` hook: throttled (~30s) `session_running` beat on active tool use → the "Local sessions underway" pane. Fire-and-forget; off-LAN no-ops. |
 | `claude-cost-export.{service,timer}` | systemd `--user` units; the timer runs `sweep + ship` every 5 min (backstop + off-LAN drainer). |
@@ -135,4 +136,6 @@ same API-list-price basis the fleet reports — an estimate, not a billed amount
   `reject_old_samples_max_age`; events older than `COST_REJECT_OLD_H` are shipped
   with the *current* timestamp (true time preserved in the payload's `finished`).
 - **Pricing drift.** `pricing.json` is a static snapshot; update it when
-  Anthropic changes prices.
+  Anthropic changes prices. Its runner rows are priced at query time, so a
+  vendor price change gets a new dated entry in the row's `prices` list rather
+  than an edit, or past jobs reprice.

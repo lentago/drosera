@@ -79,8 +79,15 @@ function readJson(p, dflt) { try { return JSON.parse(fs.readFileSync(p, 'utf8'))
 // ---------------------------------------------------------------------------
 // Pricing
 // ---------------------------------------------------------------------------
-const PRICING = readJson(PRICING_PATH, null)
-if (!PRICING) { log('FATAL: cannot read pricing at', PRICING_PATH); process.exit(2) }
+const TABLE = readJson(PRICING_PATH, null)
+if (!TABLE) { log('FATAL: cannot read pricing at', PRICING_PATH); process.exit(2) }
+// pricing.json is the fleet's table: rows with a `runtime` (gemini, codex) price
+// claytonia runner jobs on the dashboard and are shaped differently. Local
+// sessions are Claude Code, so this script sees the Claude rows only.
+const PRICING = {
+  ...TABLE,
+  models: Object.fromEntries(Object.entries(TABLE.models).filter(([, r]) => !r.runtime || r.runtime === 'claude')),
+}
 const MULT = PRICING.multipliers
 
 // Normalize a transcript model string to a pricing table key.

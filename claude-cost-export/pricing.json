@@ -1,5 +1,12 @@
 {
-  "_comment": "Per-MTok USD pricing for Claude Code local-session cost estimation. Source: https://platform.claude.com/docs/en/about-claude/pricing (fetched 2026-06-16). Cache rates are DERIVED from base input via the standard, uniform multipliers below — do not hand-edit per-model cache numbers. To update when Anthropic changes prices: edit the `input`/`output` for the affected models (and `fast` for Opus). Unknown models fall back to `_default`.",
+  "_comment": [
+    "Per-MTok USD prices: the fleet's single price table.",
+    "Claude rows (no `runtime`) price local Claude Code sessions in cost-export.mjs. Source: https://platform.claude.com/docs/en/about-claude/pricing (fetched 2026-06-16). Cache rates are DERIVED from base input via the standard, uniform multipliers below — do not hand-edit per-model cache numbers. To update when Anthropic changes prices: edit the `input`/`output` for the affected models (and `fast` for Opus). An unknown Claude model falls back to `_default`.",
+    "Rows with a `runtime` (gemini, codex) price claytonia runner jobs, which report tokens and no cost (lentago/claytonia#173). Terraform renders them into the Claytonia — Runner Fleet panel queries at apply time (terraform/modules/runner-cost); cost-export.mjs ignores them. The multipliers and `_default` never apply to them: a runner job that used a model with no row here is unknown on the dashboard, never priced as another model.",
+    "Runner rows carry explicit rates in `prices`, one entry per price period; every entry after the first starts at its `from` (a UTC date, compared with the job's `finished`). `input` prices uncached input, `cached_input` cache reads, `cache_write` cache writes (only where the vendor charges them; write tokens on a row without it leave the job unknown) and `output` both output and thinking tokens. Prices are the base prompt-length tier: a request whose prompt passes the vendor's long-context threshold (Vertex AI 200K, OpenAI 272K) is under-reported.",
+    "Gemini source: https://cloud.google.com/vertex-ai/generative-ai/pricing (Vertex AI, Standard, Global endpoint; fetched 2026-11-12). gemini-3.8-flash is on introductory pricing through 2026-12-31, delivered as 50% credits back, and the page's standard rates apply from 2027-01-01. The page's Standard table omits gemini-3-flash-preview's output rate; $3.00 is from https://ai.google.dev/gemini-api/docs/pricing (fetched 2026-11-12) and matches the Vertex page's Priority (1.8x, $5.40) and Flex/Batch (0.5x, $1.50) rows.",
+    "Codex source: https://developers.openai.com/api/docs/pricing (Standard, short context; fetched 2026-11-12). `cache_write` is the default 30-minute write rate, 1.25x input (https://developers.openai.com/api/docs/guides/prompt-caching, fetched 2026-11-12)."
+  ],
   "multipliers": {
     "cache_write_5m": 1.25,
     "cache_write_1h": 2.0,
@@ -19,6 +26,23 @@
     "claude-haiku-4-5":  { "input": 1,    "output": 5 },
     "claude-haiku-3-5":  { "input": 0.8,  "output": 4 },
     "claude-fable-5":    { "input": 10,   "output": 50 },
-    "claude-mythos-5":   { "input": 10,   "output": 50 }
+    "claude-mythos-5":   { "input": 10,   "output": 50 },
+
+    "gemini-3.8-flash": { "runtime": "gemini", "prices": [
+      { "input": 0.75, "cached_input": 0.075, "output": 3.75 },
+      { "from": "2027-01-01", "input": 1.5, "cached_input": 0.15, "output": 7.5 }
+    ] },
+    "gemini-3.1-pro-preview": { "runtime": "gemini", "prices": [
+      { "input": 2, "cached_input": 0.2, "output": 12 }
+    ] },
+    "gemini-3.5-flash-lite": { "runtime": "gemini", "prices": [
+      { "input": 0.3, "cached_input": 0.03, "output": 2.5 }
+    ] },
+    "gemini-3-flash-preview": { "runtime": "gemini", "prices": [
+      { "input": 0.5, "cached_input": 0.05, "output": 3 }
+    ] },
+    "gpt-6.1-sol": { "runtime": "codex", "prices": [
+      { "input": 2, "cached_input": 0.1, "cache_write": 2.5, "output": 10 }
+    ] }
   }
 }
