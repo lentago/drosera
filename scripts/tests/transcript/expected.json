@@ -3,7 +3,11 @@
   "streams": [
     {
       "labels": {"project": "p1", "session_id": "c0ffee00-0000-4000-8000-000000000001"},
-      "lines": ["[TEXT] Claude narration one  [TOOL] Bash"]
+      "lines": [
+        "[TEXT] Claude narration one  [TOOL] Bash",
+        "[TEXT] Storing the token: ***REDACTED*** for later",
+        "[TEXT] Reviewing token ***REDACTED*** in the client"
+      ]
     },
     {
       "labels": {"runtime": "gemini", "project": "p1", "runid": "20261112T000000Z-transcript-gemini", "session_id": "9e0e0e00-0000-4000-8000-000000000002"},

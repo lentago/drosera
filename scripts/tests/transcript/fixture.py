@@ -65,6 +65,12 @@ def claude_lines():
         ]}},
         {"type": "user", "timestamp": now(-28), "message": {"role": "user", "content": [
             {"type": "tool_result", "content": "LEAK-CLAUDE-TOOL-RESULT"}]}},
+        # The secret scrub (#325): the value goes, the keyword stays.
+        {"type": "assistant", "timestamp": now(-27), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Storing the token: LEAK-CLAUDE-SECRET-VALUE for later"}]}},
+        # Prose that follows a keyword is redacted the same way, by design.
+        {"type": "assistant", "timestamp": now(-26), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Reviewing token handling in the client"}]}},
     ]
 
 
