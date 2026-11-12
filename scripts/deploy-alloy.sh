@@ -188,6 +188,21 @@ prometheus.relabel "node_trim" {
     regex         = "node_nfs_requests_total|node_scrape_collector_success|node_scrape_collector_duration_seconds|node_disk_discard.*|node_disk_device_mapper_info"
     action        = "drop"
   }
+  // Per-guest and per-container virtual interfaces. A Proxmox host grows a
+  // veth (LXC) or tap (VM) per guest NIC, plus fwbr/fwln/fwpr when the guest
+  // firewall is on; a Docker host grows a veth per container. Each one costs
+  // 16 netdev series, and up to ~20 more netclass series for those netclass
+  // doesn't ignore, so the host count climbs with every new guest. infra-health
+  // already filters all of them out by device and neptune-nas reads eth0 only.
+  // office-display filters veth, docker and br- but still draws tap and fw*
+  // lines, which are per-guest copies of traffic the host's vmbr carries.
+  // vmbr*, the physical NICs and lo stay.
+  rule {
+    source_labels = ["__name__", "device"]
+    separator     = ";"
+    regex         = "node_network_.+;(veth|tap|fwbr|fwln|fwpr|docker|br-).*"
+    action        = "drop"
+  }
 }
 
 prometheus.remote_write "cloud" {
