@@ -26,6 +26,7 @@ permissions:
 
 jobs:
   test:
+    name: transcript-test
     runs-on: ubuntu-latest
     services:
       loki:
