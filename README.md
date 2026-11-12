@@ -604,6 +604,13 @@ near-real-time (each assistant turn's narration + the tools it fired). The
 source is a **worker-local Alloy agent** on each runner that tails Claude
 Code's session transcript as it is written and ships it to Grafana Cloud Loki
 as `job="claude_transcript"` (labels: `project`, `worker`, `session_id`).
+Gemini CLI and Codex CLI jobs ship on the same stream with `runtime` and
+`runid` labels added. The agent tails them through the labelled links that
+claytonia writes under `/home/claude/.claytonia/live/<runtime>/<project>/<runid>/`,
+and only for checkouts under `/home/claude/work/`
+([#305](https://github.com/lentago/drosera/issues/305)).
+`scripts/tests/transcript/run.sh` runs the config against a throwaway Loki
+(CI: `transcript-test`).
 
 Deploy it per worker with
 [`scripts/deploy-runner-transcript-alloy.sh`](scripts/deploy-runner-transcript-alloy.sh)

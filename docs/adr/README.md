@@ -29,3 +29,4 @@ presented as historical deliberation.
 | [0009](0009-bullpen-liveness-and-retry-alerting.md) | Bullpen liveness + retry alerting | 2026-08-17 |
 | [0010](0010-change-pipeline-keyed-by-sha.md) | The change pipeline, keyed by commit SHA | 2026-10-07 |
 | [0011](0011-runner-job-cost-one-price-table.md) | Runner job cost from one price table, rendered into the dashboard at apply time | 2026-11-12 |
+| [0012](0012-peer-runtime-transcripts-through-labelled-links.md) | Peer-runtime transcripts ship only through labelled links | 2026-11-12 |
