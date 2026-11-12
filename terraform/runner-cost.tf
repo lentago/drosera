@@ -13,3 +13,12 @@ module "runner_cost" {
   pricing_json   = file("${path.module}/../claude-cost-export/pricing.json")
   dashboard_json = file("${local.dashboards_dir}/claytonia-runner-fleet.json")
 }
+
+locals {
+  # Dashboard files other than the runner fleet's that carry the placeholder.
+  # grafana_dashboard.claytonia fails the plan unless this is empty.
+  runner_cost_placeholder_elsewhere = [
+    for f in fileset(local.dashboards_dir, "*.json") : f
+    if f != "claytonia-runner-fleet.json" && strcontains(file("${local.dashboards_dir}/${f}"), "__RUNNER_JOB_COST__")
+  ]
+}

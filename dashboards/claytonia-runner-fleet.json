@@ -292,7 +292,7 @@
       "id": 20,
       "type": "stat",
       "title": "Total spend (range)",
-      "description": "Runner + local combined spend over the dashboard range: job_complete cost from the fleet plus session_complete cost_usd from local sessions. Claude jobs report their cost; Gemini and Codex jobs report tokens and are priced from claude-cost-export/pricing.json, whose _comment gives each rate's source and basis (vendor list price, except Gemini 3.8 Flash at its introductory rate through 2026-12-31). A runner job whose cost is unknown (a model with no row in that table, or a failure that never produced a result) is left out of the sum and counted beside it as unpriced, never added as $0.",
+      "description": "Runner + local combined spend over the dashboard range: job_complete cost from the fleet plus session_complete cost_usd from local sessions. Claude jobs report their cost; Gemini and Codex jobs report tokens and are priced from claude-cost-export/pricing.json, whose _comment gives each rate's source and basis (vendor list price, except Gemini 3.8 Flash at its introductory rate through 2026-12-31, which Google delivers as 50% credits back, so that figure is net of the credits). A runner job whose cost is unknown (a model with no row in that table, or a failure that never produced a result) is left out of the sum and counted beside it as unpriced, never added as $0.",
       "gridPos": {
         "x": 0,
         "y": 10,
@@ -462,7 +462,7 @@
       "id": 2,
       "type": "stat",
       "title": "Runner spend (range)",
-      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown. Claude jobs report their cost. Gemini and Codex jobs report tokens per model, priced with the runner rows of claude-cost-export/pricing.json at the job's finish date (#304); its _comment gives each rate's source and basis (vendor list price, except Gemini 3.8 Flash at its introductory rate through 2026-12-31). A job is unpriced when a model it used has no row, or when it reports no tokens or only zeros (a failure that never produced a result): it is left out of the spend, never counted as $0 and never priced as another model. A range with no priced job reads \"no priced jobs\" at $0.00.",
+      "description": "Runner spend by runtime, and the number of runner jobs whose cost is unknown. Claude jobs report their cost. Gemini and Codex jobs report tokens per model, priced with the runner rows of claude-cost-export/pricing.json at the job's finish date (#304); its _comment gives each rate's source and basis (vendor list price, except Gemini 3.8 Flash at its introductory rate through 2026-12-31, which Google delivers as 50% credits back, so that figure is net of the credits). A job is unpriced when a model it used has no row, or when it reports no tokens or only zeros (a failure that never produced a result): it is left out of the spend, never counted as $0 and never priced as another model. A range with no priced job reads \"no priced jobs\" at $0.00.",
       "gridPos": {
         "x": 6,
         "y": 15,

@@ -22,6 +22,21 @@ resource "grafana_dashboard" "claytonia" {
   folder      = grafana_folder.lentago.uid
   overwrite   = true
   config_json = local.claytonia_dashboard_json[each.key]
+
+  lifecycle {
+    # The runner price stage reaches only the runner-fleet JSON, through
+    # module.runner_cost (runner-cost.tf). Fail the plan, rather than upload a
+    # query Grafana cannot run, if a placeholder survives the render or turns
+    # up in any other dashboard file.
+    precondition {
+      condition     = !strcontains(local.claytonia_dashboard_json[each.key], "__RUNNER_JOB_COST__")
+      error_message = "${each.value.file} still carries __RUNNER_JOB_COST__ after rendering: read it through module.runner_cost (locals.tf claytonia_dashboard_source)."
+    }
+    precondition {
+      condition     = length(local.runner_cost_placeholder_elsewhere) == 0
+      error_message = "__RUNNER_JOB_COST__ appears in ${join(", ", local.runner_cost_placeholder_elsewhere)}, which module.runner_cost does not render."
+    }
+  }
 }
 
 resource "grafana_dashboard" "solidago" {
