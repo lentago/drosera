@@ -19,17 +19,17 @@
         "metric": {
           "runtime": "gemini"
         },
-        "value": 1.448159
+        "value": 1.455259
       }
     ]
   },
   {
-    "name": "Runner spend: unpriced is a model with no row, write tokens with no write rate, a null-cost Claude job, null totals",
+    "name": "Runner spend: unpriced is a model with no row, write tokens with no write rate, a null-cost Claude job, null or all-zero totals, a dated row with no finished",
     "expr": "dashboards/claytonia-runner-fleet.json#2/B",
     "expected": [
       {
         "metric": {},
-        "value": 5
+        "value": 7
       }
     ]
   },
@@ -39,7 +39,7 @@
     "expected": [
       {
         "metric": {},
-        "value": 4.522098
+        "value": 4.529198
       }
     ]
   },
@@ -49,7 +49,7 @@
     "expected": [
       {
         "metric": {},
-        "value": 5
+        "value": 7
       }
     ]
   },
@@ -61,7 +61,7 @@
         "metric": {
           "submitter": "s1"
         },
-        "value": 1.522098
+        "value": 1.529198
       },
       {
         "metric": {
@@ -91,7 +91,7 @@
         "metric": {
           "submitter": "s3"
         },
-        "value": 5
+        "value": 7
       }
     ]
   },
@@ -113,7 +113,11 @@
       "success gemini p1 gemini-3.5-flash-lite s3 unknown 9turns 60s u4",
       "success claude p1 opus s2 $1 9turns 60s k1",
       "failed claude p1 opus s3 unknown 9turns 60s u3",
-      "success gemini p1 default s3 unknown 9turns 60s u5"
+      "success gemini p1 default s3 unknown 9turns 60s u5",
+      "success gemini p1 default s3 unknown 9turns 60s u6",
+      "success gemini p1 gemini-3.8-flash s3 unknown 9turns 60s u7",
+      "success gemini p1 gemini-3.5-flash-lite s1 $0.0055 9turns 60s g8",
+      "success gemini p1 default s1 $0.0016 9turns 60s g9"
     ]
   }
 ]

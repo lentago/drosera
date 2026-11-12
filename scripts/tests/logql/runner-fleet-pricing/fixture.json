@@ -10,10 +10,12 @@
     "g6 gate-209b's shape (three models, model=default): flash-lite 5689*0.30 + 952*2.50 = 4086.7; 3.8-flash 125620*0.75 + 941103*0.075 + 10538*3.75 = 94215 + 70582.725 + 39517.5 = 204315.225; 3-flash-preview 4079*0.50 + 422*3.00 = 3305.5; total 211707.425 -> $0.211707",
     "g7 gate-211's shape (main model switched to pro; 3.8-flash at zero tokens): flash-lite 5690*0.30 + 625*2.50 = 3269.5; pro 43936*2.00 + 131671*0.20 + 2123*12.00 = 87872 + 26334.2 + 25476 = 139682.2; total 142951.7 -> $0.142952",
     "c1 gpt-6.1-sol, gate-216's shape with cache writes split out: 15*2.00 + 78540*0.10 + 23138*2.50 + 821*10.00 = 30 + 7854 + 57845 + 8210 = 73939 -> $0.073939",
+    "g8 gemini-3.5-flash-lite with no `finished`: a single-period row needs no date, 10000*0.30 + 1000*2.50 = 3000 + 2500 = 5500 -> $0.0055",
+    "g9 a model with no row (gemini-2.5-pro) called at zero tokens beside a priced router: the zero entry prices nothing either way, so the job is priced at the router's 2000*0.30 + 400*2.50 = 600 + 1000 = 1600 -> $0.0016 (lentago/claytonia#173 keeps zero-token entries)",
     "k1 claude, cost_usd 1: native cost, its tokens ignored",
-    "unknown, never $0 and never priced as another model: u1 gemini-2.5-pro has no row; u2 codex model key \"unknown\"; u3 claude failure, cost null (the Claude rows never price tokens); u4 cache_write tokens on gemini-3.5-flash-lite, which has no write rate; u5 null token totals",
-    "spend: claude 1; gemini 0.111 + 0.18 + 0.24 + 0.1875 + 0.375 + 0.211707 + 0.142952 = 1.448159; codex 0.073939; unpriced 5; with the local session at 2: total 4.522098",
-    "by submitter: s1 cost 1.448159 + 0.073939 = 1.522098, 0 unpriced; s2 cost 1, 0 unpriced; s3 no cost, 5 unpriced"
+    "unknown, never $0 and never priced as another model: u1 gemini-2.5-pro has no row; u2 codex model key \"unknown\"; u3 claude failure, cost null (the Claude rows never price tokens); u4 cache_write tokens on gemini-3.5-flash-lite, which has no write rate; u5 null token totals (tokens_by_model null); u6 all-zero tokens (no priced token at all); u7 gemini-3.8-flash, whose price depends on the date, with no `finished`",
+    "spend: claude 1; gemini 0.111 + 0.18 + 0.24 + 0.1875 + 0.375 + 0.211707 + 0.142952 + 0.0055 + 0.0016 = 1.455259; codex 0.073939; unpriced 7; with the local session at 2: total 4.529198",
+    "by submitter: s1 cost 1.455259 + 0.073939 = 1.529198, 0 unpriced; s2 cost 1, 0 unpriced; s3 no cost, 7 unpriced"
   ],
   "vars": {
     "project": ".*",
@@ -104,6 +106,42 @@
                 "cache_write": 100,
                 "out": 10,
                 "thinking": 20
+              }
+            }
+          }
+        },
+        {
+          "offset_s": 1260,
+          "line": {
+            "event": "job_complete",
+            "runid": "g8",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.5-flash-lite",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 10000,
+              "cached": 0,
+              "cache_write": null,
+              "out": 1000,
+              "thinking": 0
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 10000,
+                "cached": 0,
+                "cache_write": null,
+                "out": 1000,
+                "thinking": 0
               }
             }
           }
@@ -294,6 +332,42 @@
               }
             }
           }
+        },
+        {
+          "offset_s": 1380,
+          "line": {
+            "event": "job_complete",
+            "runid": "u7",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "gemini-3.8-flash",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "submitter": "s3",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 1000,
+              "cached": 2000,
+              "cache_write": null,
+              "out": 10,
+              "thinking": 20
+            },
+            "tokens_by_model": {
+              "gemini-3.8-flash": {
+                "in": 1000,
+                "cached": 2000,
+                "cache_write": null,
+                "out": 10,
+                "thinking": 20
+              }
+            }
+          }
         }
       ]
     },
@@ -480,7 +554,88 @@
               "out": null,
               "thinking": null
             },
-            "tokens_by_model": {}
+            "tokens_by_model": null
+          }
+        },
+        {
+          "offset_s": 1500,
+          "line": {
+            "event": "job_complete",
+            "runid": "u6",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "submitter": "s3",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 0,
+              "cached": 0,
+              "cache_write": null,
+              "out": 0,
+              "thinking": 0
+            },
+            "tokens_by_model": {
+              "gemini-3.8-flash": {
+                "in": 0,
+                "cached": 0,
+                "cache_write": null,
+                "out": 0,
+                "thinking": 0
+              }
+            },
+            "finished": "2026-11-10T11:15:00Z"
+          }
+        },
+        {
+          "offset_s": 1140,
+          "line": {
+            "event": "job_complete",
+            "runid": "g9",
+            "project": "p1",
+            "repo": "lentago/p1",
+            "model": "default",
+            "status": "success",
+            "exit": 0,
+            "duration_sec": 60,
+            "cost_usd": null,
+            "num_turns": 9,
+            "limit": null,
+            "pr_url": "",
+            "worker": "claude-runner-2",
+            "finished": "2026-11-10T11:30:00Z",
+            "submitter": "s1",
+            "runtime": "gemini",
+            "tokens": {
+              "in": 2000,
+              "cached": 0,
+              "cache_write": null,
+              "out": 100,
+              "thinking": 300
+            },
+            "tokens_by_model": {
+              "gemini-3.5-flash-lite": {
+                "in": 2000,
+                "cached": 0,
+                "cache_write": null,
+                "out": 100,
+                "thinking": 300
+              },
+              "gemini-2.5-pro": {
+                "in": 0,
+                "cached": 0,
+                "cache_write": null,
+                "out": 0,
+                "thinking": 0
+              }
+            }
           }
         }
       ]
