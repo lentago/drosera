@@ -1,0 +1,2 @@
+{"type":"user","uuid":"s-001","isSidechain":true,"timestamp":"2026-11-01T10:02:10.000Z","message":{"role":"user","content":"sweep the panels"}}
+{"type":"assistant","uuid":"s-002","isSidechain":true,"requestId":"req_haiku_sub","timestamp":"2026-11-01T10:02:30.000Z","message":{"id":"msg_s1","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":900,"cache_read_input_tokens":8000,"cache_creation_input_tokens":1500,"output_tokens":220}}}
