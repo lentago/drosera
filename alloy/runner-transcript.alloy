@@ -113,9 +113,17 @@ loki.process "transcript" {
 		source = "rendered"
 	}
 	// -- Belt-and-braces secret scrub over the surviving narration line.
+	//    Alloy's stage.replace swaps each capture GROUP for `replace` (it is not
+	//    a regex replace with backreferences), so only the value is captured:
+	//    `token: abc` ships as `token: ***REDACTED***`. An auth scheme word
+	//    after the keyword is skipped, so `Authorization: Bearer abc` ships as
+	//    `Authorization: Bearer ***REDACTED***` rather than redacting `Bearer`.
+	//    Prose matches the same way (`token handling` → `token ***REDACTED***`);
+	//    that is accepted. The earlier `${1}${2}***REDACTED***` form kept the
+	//    value (#325).
 	stage.replace {
-		expression = "(?i)(bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)([\"'\\s:=]+)\\S+"
-		replace    = "${1}${2}***REDACTED***"
+		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(?:(?:bearer|basic|token)\\s+)?(\\S+)"
+		replace    = "***REDACTED***"
 	}
 
 	// -- Labels: project (from the cwd-as-dashes dir), session_id (filename),
@@ -267,11 +275,9 @@ loki.process "gemini" {
 		source = "rendered"
 	}
 
-	// Alloy's stage.replace swaps each capture group for `replace`, so only
-	// the value is captured. (The Claude block's `${1}${2}` form is not a
-	// backreference there: it mangles the keyword and keeps the value, #325.)
+	// The same scrub as the Claude block: only the value is captured (#325).
 	stage.replace {
-		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(\\S+)"
+		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(?:(?:bearer|basic|token)\\s+)?(\\S+)"
 		replace    = "***REDACTED***"
 	}
 
@@ -389,11 +395,9 @@ loki.process "codex" {
 		source = "rendered"
 	}
 
-	// Alloy's stage.replace swaps each capture group for `replace`, so only
-	// the value is captured. (The Claude block's `${1}${2}` form is not a
-	// backreference there: it mangles the keyword and keeps the value, #325.)
+	// The same scrub as the Claude block: only the value is captured (#325).
 	stage.replace {
-		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(\\S+)"
+		expression = "(?i)(?:bearer|authorization|token|password|passwd|secret|api[_-]?key|private[_-]?key)[\"'\\s:=]+(?:(?:bearer|basic|token)\\s+)?(\\S+)"
 		replace    = "***REDACTED***"
 	}
 

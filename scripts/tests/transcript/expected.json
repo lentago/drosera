@@ -3,7 +3,14 @@
   "streams": [
     {
       "labels": {"project": "p1", "session_id": "c0ffee00-0000-4000-8000-000000000001"},
-      "lines": ["[TEXT] Claude narration one  [TOOL] Bash"]
+      "lines": [
+        "[TEXT] Claude narration one  [TOOL] Bash",
+        "[TEXT] Storing the token: ***REDACTED*** for later",
+        "[TEXT] Reviewing token ***REDACTED*** in the client",
+        "[TEXT] Calling it with Authorization: Bearer ***REDACTED*** now",
+        "[TEXT] Then export GITHUB_TOKEN=***REDACTED*** and retry",
+        "[TEXT] The config holds {\"api_key\": \"***REDACTED*** today"
+      ]
     },
     {
       "labels": {"runtime": "gemini", "project": "p1", "runid": "20261112T000000Z-transcript-gemini", "session_id": "9e0e0e00-0000-4000-8000-000000000002"},
@@ -14,6 +21,7 @@
         "[TOOL] write_file",
         "[TEXT] Gemini text beside a running tool",
         "[TOOL] list_directory",
+        "[TEXT] Sending Authorization: Bearer ***REDACTED*** upstream",
         "[TEXT] Gemini late narration, token: ***REDACTED***"
       ]
     },
@@ -23,6 +31,7 @@
         "[TEXT] Codex narration one",
         "[TOOL] exec",
         "[TOOL] apply_patch",
+        "[TEXT] Sending Authorization: Basic ***REDACTED*** upstream",
         "[TEXT] Codex final answer, password=***REDACTED***"
       ]
     }

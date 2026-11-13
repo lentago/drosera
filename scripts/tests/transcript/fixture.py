@@ -65,6 +65,20 @@ def claude_lines():
         ]}},
         {"type": "user", "timestamp": now(-28), "message": {"role": "user", "content": [
             {"type": "tool_result", "content": "LEAK-CLAUDE-TOOL-RESULT"}]}},
+        # The secret scrub (#325): the value goes, the keyword stays.
+        {"type": "assistant", "timestamp": now(-27), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Storing the token: LEAK-CLAUDE-SECRET-VALUE for later"}]}},
+        # Prose that follows a keyword is redacted the same way, by design.
+        {"type": "assistant", "timestamp": now(-26), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Reviewing token handling in the client"}]}},
+        # Credential shapes: a bearer header (the scheme word is skipped), an
+        # environment assignment and a JSON key.
+        {"type": "assistant", "timestamp": now(-25), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Calling it with Authorization: Bearer LEAK-CLAUDE-BEARER-VALUE now"}]}},
+        {"type": "assistant", "timestamp": now(-24), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Then export GITHUB_TOKEN=LEAK-CLAUDE-ENV-VALUE and retry"}]}},
+        {"type": "assistant", "timestamp": now(-23), "message": {"role": "assistant", "content": [
+            {"type": "text", "text": 'The config holds {"api_key": "LEAK-CLAUDE-JSON-VALUE"} today'}]}},
     ]
 
 
@@ -105,6 +119,7 @@ def gemini_lines():
         msg("g5", now(-35), content="Gemini text beside a running tool", tools=[call("list_directory", "executing")]),
         msg("g5", now(-35), content="Gemini text beside a running tool", tools=[call("list_directory", "success")]),
         {"id": "i1", "timestamp": now(-35), "type": "info", "content": "LEAK-GEMINI-INFO"},
+        msg("g6", now(-34), content="Sending Authorization: Bearer LEAK-GEMINI-BEARER-VALUE upstream"),
     ]
 
 
@@ -147,6 +162,8 @@ def codex_lines():
         item(now(-33), {"type": "function_call_output", "call_id": "f1", "output": "LEAK-CODEX-FUNCTION-OUTPUT"}),
         item(now(-32), {"type": "token_count", "info": "LEAK-CODEX-TOKEN-COUNT"}, "event_msg"),
         item(now(-32), {"usage": "LEAK-CODEX-TOKEN-USAGE"}, "token_usage_record"),
+        item(now(-31), {"type": "message", "role": "assistant", "phase": "commentary", "status": "completed",
+                        "content": [{"type": "output_text", "text": "Sending Authorization: Basic LEAK-CODEX-BASIC-VALUE upstream"}]}),
     ]
 
 
