@@ -185,7 +185,8 @@ prometheus.scrape "homeassistant" {
 // per-entity state-change counters, last-updated timestamps, availability
 // flags, info-labels, and *_created series. Frees ~5.8k active series on the
 // 15k free-tier cap. The real numeric sensor/state metrics (temperatures,
-// fan RPM, battery, climate, brightness, …) are kept. See README § "HA export
+// fan RPM, battery, climate, brightness, …) are kept, except the UGREEN NAS
+// sensors no panel reads (second rule set below). See README § "HA export
 // trim". If you later want HA entity-availability alerting, drop
 // "entity_available" from the regex below.
 prometheus.relabel "ha_trim" {
@@ -194,6 +195,30 @@ prometheus.relabel "ha_trim" {
     source_labels = ["__name__"]
     regex         = "homeassistant_(state_change_total|state_change_created|last_updated_time_seconds|entity_available|entity_info|area_info|.+_created)"
     action        = "drop"
+  }
+  // UGREEN NAS sensors (#330). HA's UGreen integration exports about 60
+  // sensor.ugreen_nas_* series, and Neptune's own node_exporter already covers
+  // the NAS. Only three of them feed a panel (dashboards/neptune-nas.json): the
+  // chassis fan and the two pool disk temperatures. Those three are kept and the
+  // rest are dropped. RE2 has no negative lookahead, so the kept entities are
+  // marked with a temporary label, the unmarked ones are dropped, and the
+  // marker is removed. To chart another NAS sensor, add it to the first regex.
+  rule {
+    source_labels = ["entity"]
+    regex         = "sensor\\.ugreen_nas_(device_fan|pool_1_disk_[12]_temperature)"
+    target_label  = "__tmp_ha_keep"
+    replacement   = "1"
+    action        = "replace"
+  }
+  rule {
+    source_labels = ["entity", "__tmp_ha_keep"]
+    separator     = ";"
+    regex         = "sensor\\.ugreen_nas_.*;"
+    action        = "drop"
+  }
+  rule {
+    regex  = "__tmp_ha_keep"
+    action = "labeldrop"
   }
 }
 

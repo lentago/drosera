@@ -72,8 +72,8 @@ key LAN IPs + endpoints and `remote_write`s them as
 
 **Home Assistant metrics (central).** The central Alloy scrapes HAOS's
 `/api/prometheus`, routes it through the `ha_trim` relabel (drops ~5.8k series of
-per-entity export noise — see README § "HA export trim"), and `remote_write`s
-the rest as `job="homeassistant"`.
+per-entity export noise, plus the UGreen NAS sensors no panel reads — see
+README § "HA export trim"), and `remote_write`s the rest as `job="homeassistant"`.
 
 **Host logs (push).** Each host's Alloy agent also ships its **systemd journal**
 to Grafana Cloud Loki via `loki.source.journal` → `loki.write` (`job="systemd-journal"`,
