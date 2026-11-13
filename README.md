@@ -699,6 +699,12 @@ by any dashboard, so the `prometheus.relabel "ha_trim"` component in
 remote_write, reclaiming ~5.8k series. The real numeric HA metrics
 (temperatures, fan RPM, battery, climate, brightness, sensor states) are kept.
 
+The same component also drops the HA UGreen integration's `sensor.ugreen_nas_*`
+series (about 60, #330): Neptune's own node_exporter already covers the NAS. The
+three that feed the Neptune NAS dashboard are kept: `sensor.ugreen_nas_device_fan`
+and `sensor.ugreen_nas_pool_1_disk_{1,2}_temperature`. To chart another NAS
+sensor, add it to the keep regex in `ha_trim`.
+
 Check current usage with the `grafanacloud-usage` datasource:
 `grafanacloud_instance_active_series`. If you add a host (each node_exporter is
 ~1.3k series), watch the headroom — trim more (e.g. node_exporter discard/flush

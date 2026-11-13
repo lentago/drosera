@@ -312,7 +312,7 @@
       "id": 9,
       "type": "stat",
       "title": "Fan",
-      "description": "Chassis fan speed (from Home Assistant UGreen NAS integration)",
+      "description": "Chassis fan speed (from Home Assistant UGreen NAS integration). Kept by ha_trim's UGREEN keep list in alloy/config.alloy (#332): an entity not in that list is dropped before it reaches Grafana Cloud.",
       "gridPos": { "x": 21, "y": 1, "w": 3, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
@@ -1037,7 +1037,7 @@
       "id": 29,
       "type": "timeseries",
       "title": "Temperatures",
-      "description": "CPU package temp (node_exporter coretemp) plus per-disk temps from the Home Assistant UGreen integration",
+      "description": "CPU package temp (node_exporter coretemp) plus per-disk temps from the Home Assistant UGreen integration. Kept by ha_trim's UGREEN keep list in alloy/config.alloy (#332): an entity not in that list is dropped before it reaches Grafana Cloud.",
       "gridPos": { "x": 0, "y": 58, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
@@ -1097,7 +1097,7 @@
       "id": 30,
       "type": "timeseries",
       "title": "Fan Speed",
-      "description": "Chassis fan RPM over time (Home Assistant UGreen integration)",
+      "description": "Chassis fan RPM over time (Home Assistant UGreen integration). Kept by ha_trim's UGREEN keep list in alloy/config.alloy (#332): an entity not in that list is dropped before it reaches Grafana Cloud.",
       "gridPos": { "x": 12, "y": 58, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
