@@ -29,6 +29,7 @@ permissions:
 
 jobs:
   test:
+    name: logql-test
     runs-on: ubuntu-latest
     services:
       loki:
