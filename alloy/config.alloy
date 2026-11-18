@@ -220,6 +220,16 @@ prometheus.relabel "ha_trim" {
     regex  = "__tmp_ha_keep"
     action = "labeldrop"
   }
+  // Text messages (lentago/epigaea packages/sms_inbox.yaml). The companion
+  // app's notification sensors and sensor.sms_inbox carry message text, which
+  // stays in the house. HA's prometheus filter already leaves them out of
+  // /api/prometheus; this drop is the second line, so a change on the HA side
+  // can't send them to Grafana Cloud (ADR-0006, privacy-shaped egress).
+  rule {
+    source_labels = ["entity"]
+    regex         = "sensor\\..*_(last_notification|last_removed_notification|active_notification_count)|sensor\\.sms_inbox"
+    action        = "drop"
+  }
 }
 
 prometheus.remote_write "cloud" {
