@@ -705,6 +705,15 @@ three that feed the Neptune NAS dashboard are kept: `sensor.ugreen_nas_device_fa
 and `sensor.ugreen_nas_pool_1_disk_{1,2}_temperature`. To chart another NAS
 sensor, add it to the keep regex in `ha_trim`.
 
+`ha_trim` also drops every series for the phone notification sensors
+(`sensor.*_last_notification`, `sensor.*_last_removed_notification`,
+`sensor.*_active_notification_count`) and for `sensor.sms_inbox`. Those carry
+the text of incoming messages, which must not leave the house (ADR-0006,
+privacy-shaped egress). The names come from lentago/epigaea's
+`packages/sms_inbox.yaml`, which also filters them out of HA's Prometheus
+export, so this rule is the second line. If epigaea renames those entities,
+change the drop regex here in the same change.
+
 Check current usage with the `grafanacloud-usage` datasource:
 `grafanacloud_instance_active_series`. If you add a host (each node_exporter is
 ~1.3k series), watch the headroom — trim more (e.g. node_exporter discard/flush
