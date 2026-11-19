@@ -188,6 +188,17 @@ prometheus.relabel "node_trim" {
     regex         = "node_nfs_requests_total|node_scrape_collector_success|node_scrape_collector_duration_seconds|node_disk_discard.*|node_disk_device_mapper_info"
     action        = "drop"
   }
+  // Second trim (#330): metric families no dashboard, alert or recording rule
+  // reads (repo-wide grep, 2026-11-19): the disk merge/flush/in-flight/weighted
+  // counters (dashboards read the read/write op, byte and time counters, and
+  // io_time), the NFS-server per-op counter, per-CPU guest time, and the
+  // filesystem readonly/device_error/mount_info flags. Grafana Cloud bills the
+  // 95th percentile of the sample rate, so every series counts.
+  rule {
+    source_labels = ["__name__"]
+    regex         = "node_disk_(writes_merged_total|reads_merged_total|flush_requests_total|flush_requests_time_seconds_total|io_now|io_time_weighted_seconds_total)|node_nfsd_requests_total|node_cpu_guest_seconds_total|node_filesystem_(device_error|readonly|mount_info)"
+    action        = "drop"
+  }
   // Per-guest and per-container virtual interfaces. A Proxmox host grows a
   // veth (LXC) or tap (VM) per guest NIC, plus fwbr/fwln/fwpr when the guest
   // firewall is on; a Docker host grows a veth per container. Each one costs
