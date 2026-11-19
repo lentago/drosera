@@ -596,7 +596,7 @@ To roll out a config change alone (a relabel rule, say) without handling the
 push token, run `scripts/push-alloy-config.sh <host>` from this clone, for one
 of `pve pve2 pve3 pve4 pve5 neptune`. It takes the config out of
 `deploy-alloy.sh`, checks it with `alloy fmt`, backs up
-`/etc/alloy/config.alloy` to `config.alloy.pre<date>`, installs it, restarts
+`/etc/alloy/config.alloy` to `config.alloy.pre<timestamp>`, installs it, restarts
 Alloy and checks it is active with no error-level journal lines; on failure it
 restores the backup. It never touches `/etc/default/alloy` (#330).
 

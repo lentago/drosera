@@ -8,7 +8,7 @@ set -euo pipefail
 # This script does the narrow job instead: it takes the canonical config out of
 # deploy-alloy.sh (the single source of truth), and on the host it
 #   1. checks it with `alloy fmt`,
-#   2. backs up /etc/alloy/config.alloy to config.alloy.pre<UTC date>,
+#   2. backs up /etc/alloy/config.alloy to config.alloy.pre<UTC timestamp>,
 #   3. installs the new file and restarts alloy,
 #   4. verifies alloy is active with no error-level journal lines,
 # and on any failure restores the backup, restarts alloy and exits non-zero.
@@ -52,7 +52,7 @@ case "${HOST}" in
   *)       run() { ssh -o BatchMode=yes root@pve.local ssh -o BatchMode=yes "${HOST}" "$@"; }; SUDO="none" ;;
 esac
 
-STAMP="$(date -u +%Y%m%d)"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 REMOTE="$(cat <<'R'
 set -u
 STAMP="$1"; [ "$2" = sudo ] && S="sudo -n" || S=""
@@ -65,12 +65,21 @@ ALLOY_PUSH_EOF
 alloy fmt "$NEW" >/dev/null || { echo "alloy fmt rejected the config" >&2; exit 1; }
 BAK="$CFG.pre$STAMP"
 $S cp -p "$CFG" "$BAK" || { echo "backup failed" >&2; exit 1; }
-restore() { echo "FAILED: restoring $BAK" >&2; $S cp -p "$BAK" "$CFG"; $S systemctl restart alloy || true; exit 1; }
+restore() {
+  echo "FAILED: restoring $BAK" >&2
+  if $S cp -p "$BAK" "$CFG" && $S systemctl restart alloy && sleep 5 && [ "$($S systemctl is-active alloy)" = active ]; then
+    echo "restored: alloy active on the previous config" >&2
+  else
+    echo "RESTORE FAILED: $CFG may be wrong and alloy may be down; fix by hand (backup: $BAK)" >&2
+  fi
+  exit 1
+}
 $S install -m 644 -o root -g root "$NEW" "$CFG" || restore
 $S systemctl restart alloy || restore
+T0=$(date +%s)
 sleep 10
 [ "$($S systemctl is-active alloy)" = active ] || restore
-if $S journalctl -u alloy --since "-15 sec" -p err --no-pager -q | grep -q .; then restore; fi
+if $S journalctl -u alloy --since "@$T0" -p err --no-pager -q | grep -q .; then restore; fi
 echo "ok: alloy active, no error lines; backup $BAK"
 R
 )"
