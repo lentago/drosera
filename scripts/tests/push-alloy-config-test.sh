@@ -17,6 +17,8 @@ cat > "$STUB_OUT"
 echo x >> "$STUB_CALLS"
 STUB
 chmod +x "$stub/ssh"
+# Other transports get the same stub, so a future scp/rsync/sftp path fails too.
+for t in scp rsync sftp; do cp "$stub/ssh" "$stub/$t"; done
 export STUB_OUT="$stub/payload" STUB_CALLS="$stub/calls" PATH="$stub:$PATH"
 : > "$STUB_CALLS"
 
