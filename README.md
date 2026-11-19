@@ -716,8 +716,8 @@ change the drop regex here in the same change.
 
 Check current usage with the `grafanacloud-usage` datasource:
 `grafanacloud_instance_active_series`. If you add a host (each node_exporter is
-~1.3k series), watch the headroom — trim more (e.g. node_exporter discard/flush
-families) or the rollout will hit `err-mimir-max-active-series`.
+~1.3k series), watch the headroom — trim more (the node_exporter discard and flush
+families are already dropped, #330; look at what no dashboard reads) or the rollout will hit `err-mimir-max-active-series`.
 
 ### Check Loki label health
 
