@@ -408,6 +408,7 @@ scripts/
   inventory-cloud.sh           # snapshot current state of lentago.grafana.net
   deploy-node-exporter.sh      # install node_exporter on a host
   deploy-alloy.sh              # install a host-local Alloy push agent (60s remote_write)
+  push-alloy-config.sh         # push just the Alloy config to one host (no credentials), with backup + rollback
 .github/actions/
   loki-event/                  # composite action: one event from a workflow to Loki
 .github/workflows/
@@ -590,6 +591,14 @@ supports both side by side with identical labels (`job="node"`,
   The script installs Alloy from the Grafana apt repo, writes
   `/etc/alloy/config.alloy` (canonical config embedded in the script) and a
   `0600 /etc/default/alloy` holding the push token, then enables the service.
+
+To roll out a config change alone (a relabel rule, say) without handling the
+push token, run `scripts/push-alloy-config.sh <host>` from this clone, for one
+of `pve pve2 pve3 pve4 pve5 neptune`. It takes the config out of
+`deploy-alloy.sh`, checks it with `alloy fmt`, backs up
+`/etc/alloy/config.alloy` to `config.alloy.pre<date>`, installs it, restarts
+Alloy and checks it is active with no error-level journal lines; on failure it
+restores the backup. It never touches `/etc/default/alloy` (#330).
 
 **Don't run both for the same host** — that double-counts series. When you move
 a host to push, delete it from the central `prometheus.scrape "node"` block.

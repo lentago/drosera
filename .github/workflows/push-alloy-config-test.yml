@@ -1,0 +1,29 @@
+# ============================================================================
+# push-alloy-config-test — config extraction and host allowlist of
+# scripts/push-alloy-config.sh. No ssh, no host touched.
+#
+# Not path-filtered, matching loki-event-test: a path-filtered check that ever
+# becomes required deadlocks non-matching PRs. The job takes seconds.
+#
+# Origin: #330.
+# ============================================================================
+
+name: push-alloy-config-test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: push-alloy-config-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Offline test
+        run: scripts/tests/push-alloy-config-test.sh
